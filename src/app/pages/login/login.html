@@ -1,26 +1,6 @@
-<h2>Login Form</h2>
-<form (ngSubmit)="Login()">
-
-<input 
-    type="email"
-    [(ngModel)]="email"
-    name = "email"
-    placeholder="email"
-/>
-<br><br>
-
-<input 
-    type="password"
-    [(ngModel)]="password"
-    name="password"
-    placeholder="password"
-/>
-<input type="submit">
-
-</form>
-
-<br><br>
-
-<button (click)="getProfile()">Get Profile</button>
-<p>{{message}}</p>
-
+<div class="login-page">
+  <div class="login-left-image"></div>
+  <div class="login-right-form">
+    <app-login-form></app-login-form>
+  </div>
+</div>

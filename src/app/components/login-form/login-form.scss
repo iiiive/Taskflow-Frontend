@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+* {
+    font-family: 'Inter', sans-serif;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 460%;
+    border: none;
+    background: transparent;
+}
+
+.login-card h2 {
+    font-size: 50px;
+    color: #547A95;
+    font-family: 'Sora', sans-serif;
+    letter-spacing: -1px;
+}
+
+.form-group {
+     width: 100%;
+    margin-top: 18px;
+}
+.subtitle {
+  color: #64748b;
+  font-size: 16px;
+  line-height: 1.6;
+  margin-top: -20px;
+  margin-bottom: 80px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 20px;
+    color: #547A95;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.form-group input {
+    width: 100%;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-right: 0;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+.form-group input:focus{
+    border-color:#2563eb ;
+}
+
+.login-btn {
+    margin-top: 20px;
+    width: 100%;
+    padding: 12px;
+    background: #547A95;
+    color: #e8edf2c4;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 30px;
+    transition: all 0.3s;
+}
+
+.login-btn:hover {
+    background-color: #6593b4;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.login-btn:active{
+    opacity: 0.5;
+}
+
+.register-text {
+    width: 100%;
+    text-align: center;
+    color: #64748b;
+}
+
+

@@ -1,1 +1,21 @@
-/* You can add global styles to this file, and also import other style files */
+/* Removes the default spacing around the browser page */
+html,
+body {
+  /* Makes the page use the full browser height */
+  height: 100%;
+
+  /* Removes default browser margin */
+  margin: 0;
+
+  /* Removes default browser padding */
+  padding: 0;
+
+  /* Prevents unwanted horizontal scrolling */
+  overflow-x: hidden;
+}
+
+/* Makes width and height easier to control for all elements */
+* {
+  /* Includes padding and border inside the total width/height */
+  box-sizing: border-box;
+}
