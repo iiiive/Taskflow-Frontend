@@ -1,29 +1,5 @@
-<h2>Register Form</h2>
-<form (ngSubmit)="register()">
-<input 
-    type="text"
-    [(ngModel)]="name"
-    name = "name"
-    placeholder="name"
-/>
-<br><br>
-
-<input 
-    type="email"
-    [(ngModel)]="email"
-    name = "email"
-    placeholder="email"
-/>
-<br><br>
-
-<input 
-    type="password"
-    [(ngModel)]="password"
-    name="password"
-    placeholder="password"
-/>
-<input type="submit">
-</form>
-<br><br>
-<p>{{message}}</p>
-
+<div class="register-page">
+  <div class="register-form">
+    <app-register-form></app-register-form>
+  </div>
+</div>

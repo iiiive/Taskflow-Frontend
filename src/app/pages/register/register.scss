@@ -1,0 +1,34 @@
+.register-page{
+    min-height: 100vh;
+    width: 100%;
+    background-image: url(/assets/images/registerbg.jpg);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.register-form{
+    min-height: 100vh;
+    width: calc(100% - 500px);
+    display: flex;    
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    position: relative;
+    z-index: 1;
+    background-color: #e8edf2;
+    overflow: hidden;
+    
+}
+
+@media (max-width: 768px) {
+  .register-form {
+    width: 100%;
+    padding: 24px;
+  }
+}
