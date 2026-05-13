@@ -38,17 +38,27 @@ export const routes: Routes = [
   },
 
   {
+    path: 'workspaces/:id/backlog',
+    loadComponent: () =>
+      import('./pages/workspace-backlog/workspace-backlog').then(
+        m => m.WorkspaceBacklog
+      ),
+    canActivate: [authGuard]
+  },
+
+  {
     path: 'workspaces/:id/board',
     component: WorkspaceBoard,
     canActivate: [authGuard]
   },
 
   {
-  path: 'workspaces/:id/activity',
-  loadComponent: () =>
-    import('./pages/workspace-activity/workspace-activity').then(
-      m => m.WorkspaceActivity
-    )
+    path: 'workspaces/:id/activity',
+    loadComponent: () =>
+      import('./pages/workspace-activity/workspace-activity').then(
+        m => m.WorkspaceActivity
+      ),
+    canActivate: [authGuard]
   },
 
   {

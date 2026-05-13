@@ -45,24 +45,33 @@ export class WorkspaceActivity implements OnInit {
   errorMessage = '';
 
   totalTickets = 0;
-  backlogCount = 0;
   todoCount = 0;
-  inProgressCount = 0;
-  inReviewCount = 0;
+  readyForDevelopmentCount = 0;
+  devInProgressCount = 0;
+  readyForTestingCount = 0;
+  readyForUatCount = 0;
   doneCount = 0;
 
   ticketStatusChartType: 'doughnut' = 'doughnut';
 
   ticketStatusChartData: ChartData<'doughnut'> = {
-    labels: ['Backlog', 'To Do', 'In Progress', 'In Review', 'Done'],
+    labels: [
+      'To Do',
+      'Ready for Development',
+      'Dev in Progress',
+      'Ready for Testing',
+      'Ready for UAT',
+      'Done'
+    ],
     datasets: [
       {
-        data: [0, 0, 0, 0, 0],
+        data: [0, 0, 0, 0, 0, 0],
         backgroundColor: [
           '#94a3b8',
           '#547A95',
           '#f59e0b',
           '#7c3aed',
+          '#0891b2',
           '#16a34a'
         ],
         borderColor: '#ffffff',
@@ -203,37 +212,45 @@ export class WorkspaceActivity implements OnInit {
   buildTicketStatusStats(): void {
     this.totalTickets = this.tickets.length;
 
-    this.backlogCount = this.tickets.filter(
-      ticket => ticket.status === 'backlog'
+    this.todoCount = this.tickets.filter(ticket => ticket.status === 'todo').length;
+
+    this.readyForDevelopmentCount = this.tickets.filter(
+      ticket => ticket.status === 'ready_for_development'
     ).length;
 
-    this.todoCount = this.tickets.filter(
-      ticket => ticket.status === 'todo'
+    this.devInProgressCount = this.tickets.filter(
+      ticket => ticket.status === 'dev_in_progress'
     ).length;
 
-    this.inProgressCount = this.tickets.filter(
-      ticket => ticket.status === 'in_progress'
+    this.readyForTestingCount = this.tickets.filter(
+      ticket => ticket.status === 'ready_for_testing'
     ).length;
 
-    this.inReviewCount = this.tickets.filter(
-      ticket => ticket.status === 'in_review'
+    this.readyForUatCount = this.tickets.filter(
+      ticket => ticket.status === 'ready_for_uat'
     ).length;
 
-    this.doneCount = this.tickets.filter(
-      ticket => ticket.status === 'done'
-    ).length;
+    this.doneCount = this.tickets.filter(ticket => ticket.status === 'done').length;
   }
 
   buildTicketStatusChart(): void {
     this.ticketStatusChartData = {
-      labels: ['Backlog', 'To Do', 'In Progress', 'In Review', 'Done'],
+      labels: [
+        'To Do',
+        'Ready for Development',
+        'Dev in Progress',
+        'Ready for Testing',
+        'Ready for UAT',
+        'Done'
+      ],
       datasets: [
         {
           data: [
-            this.backlogCount,
             this.todoCount,
-            this.inProgressCount,
-            this.inReviewCount,
+            this.readyForDevelopmentCount,
+            this.devInProgressCount,
+            this.readyForTestingCount,
+            this.readyForUatCount,
             this.doneCount
           ],
           backgroundColor: [
@@ -241,6 +258,7 @@ export class WorkspaceActivity implements OnInit {
             '#547A95',
             '#f59e0b',
             '#7c3aed',
+            '#0891b2',
             '#16a34a'
           ],
           borderColor: '#ffffff',
@@ -306,6 +324,10 @@ export class WorkspaceActivity implements OnInit {
 
   goBackToBoard(): void {
     this.router.navigate(['/workspaces', this.workspaceId, 'board']);
+  }
+
+  goBackToBacklog(): void {
+    this.router.navigate(['/workspaces', this.workspaceId, 'backlog']);
   }
 
   goBackToWorkspaces(): void {

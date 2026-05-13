@@ -1,0 +1,139 @@
+<div class="members-modal-backdrop" (click)="close()">
+  <section class="members-modal" (click)="$event.stopPropagation()">
+    <header class="members-modal-header">
+      <div>
+        <p class="breadcrumb">Workspace Members</p>
+
+        <h2>{{ workspace?.name || 'Workspace' }}</h2>
+
+        <p>
+          Manage who can access this workspace and what they are allowed to do.
+        </p>
+      </div>
+
+      <button type="button" class="modal-close" (click)="close()">
+        ×
+      </button>
+    </header>
+
+    <section class="permission-note" *ngIf="!canManage">
+      <strong>View only access</strong>
+      <p>
+        You can view workspace members, but only the workspace owner can add,
+        remove, or update member roles.
+      </p>
+    </section>
+
+    <section class="add-member-panel" *ngIf="canManage">
+      <div>
+        <h3>Add Member</h3>
+        <p>Invite an existing Planora user by email and assign a workspace role.</p>
+      </div>
+
+      <form class="add-member-form" (ngSubmit)="addMember()">
+        <div class="form-group">
+          <label>Email</label>
+
+          <input
+            type="email"
+            name="newMemberEmail"
+            [(ngModel)]="newMemberEmail"
+            placeholder="example@email.com"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Role</label>
+
+          <select name="newMemberRole" [(ngModel)]="newMemberRole">
+            <option value="viewer">Viewer</option>
+            <option value="editor">Editor</option>
+          </select>
+        </div>
+
+        <button type="submit" class="primary-btn" [disabled]="addingMember">
+          {{ addingMember ? 'Adding...' : 'Add Member' }}
+        </button>
+      </form>
+    </section>
+
+    <p class="modal-error" *ngIf="errorMessage">
+      {{ errorMessage }}
+    </p>
+
+    <p class="modal-success" *ngIf="successMessage">
+      {{ successMessage }}
+    </p>
+
+    <section class="members-list-section">
+      <div class="members-list-header">
+        <div>
+          <h3>Members</h3>
+          <p>{{ members.length }} member/s in this workspace</p>
+        </div>
+
+        <button type="button" class="secondary-btn" (click)="loadMembers()">
+          Refresh
+        </button>
+      </div>
+
+      <div class="loading-card" *ngIf="loadingMembers">
+        Loading members...
+      </div>
+
+      <div class="empty-state" *ngIf="!loadingMembers && members.length === 0">
+        <div class="empty-icon">□</div>
+        <h3>No members found</h3>
+        <p>Members will appear here once they are added to the workspace.</p>
+      </div>
+
+      <div class="members-list" *ngIf="!loadingMembers && members.length > 0">
+        <article class="member-card" *ngFor="let member of members">
+          <div class="member-info">
+            <div class="member-avatar">
+              {{ getMemberInitial(member) }}
+            </div>
+
+            <div>
+              <h4>{{ getMemberName(member) }}</h4>
+              <p>{{ getMemberEmail(member) }}</p>
+            </div>
+          </div>
+
+          <div class="member-role">
+            <span class="owner-badge" *ngIf="member.role === 'owner'">
+              Owner
+            </span>
+
+            <select
+              *ngIf="member.role !== 'owner'"
+              [ngModel]="member.role"
+              name="role-{{ member.id }}"
+              [disabled]="!canManage || isBusy(member)"
+              (ngModelChange)="updateMemberRole(member, $event)"
+            >
+              <option value="viewer">Viewer</option>
+              <option value="editor">Editor</option>
+            </select>
+          </div>
+
+          <button
+            type="button"
+            class="danger-btn"
+            *ngIf="member.role !== 'owner'"
+            [disabled]="!canManage || isBusy(member)"
+            (click)="removeMember(member)"
+          >
+            {{ removingMemberId === member.id ? 'Removing...' : 'Remove' }}
+          </button>
+        </article>
+      </div>
+    </section>
+
+    <footer class="members-modal-footer">
+      <button type="button" class="secondary-btn" (click)="close()">
+        Close
+      </button>
+    </footer>
+  </section>
+</div>

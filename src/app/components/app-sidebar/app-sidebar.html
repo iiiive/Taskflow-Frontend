@@ -27,6 +27,15 @@
 
     <a
       *ngIf="workspaceId"
+      [routerLink]="['/workspaces', workspaceId, 'backlog']"
+      [class.active]="activePage === 'backlog'"
+    >
+      <span>☰</span>
+      Backlog
+    </a>
+
+    <a
+      *ngIf="workspaceId"
       [routerLink]="['/workspaces', workspaceId, 'board']"
       [class.active]="activePage === 'board'"
     >

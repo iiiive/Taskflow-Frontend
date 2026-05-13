@@ -26,7 +26,6 @@
 
     <div class="ticket-details-body">
       <section class="details-main">
-        <!-- DESCRIPTION -->
         <div class="details-section">
           <h3>Description</h3>
 
@@ -40,17 +39,16 @@
             No description provided.
           </p>
 
-         <editor
-  *ngIf="editingTicket"
-  licenseKey="gpl"
-  class="description-editor"
-  name="editDescription"
-  [(ngModel)]="editTicketData.description"
-  [init]="editorConfig"
-></editor>
+          <editor
+            *ngIf="editingTicket"
+            licenseKey="gpl"
+            class="description-editor"
+            name="editDescription"
+            [(ngModel)]="editTicketData.description"
+            [init]="editorConfig"
+          ></editor>
         </div>
 
-        <!-- TIMELINE -->
         <div class="details-section">
           <h3>Ticket Timeline</h3>
 
@@ -82,7 +80,6 @@
           </div>
         </div>
 
-        <!-- COMMENTS -->
         <div class="details-section comments-section">
           <h3>Comments</h3>
 
@@ -138,7 +135,6 @@
           </div>
         </div>
 
-        <!-- ATTACHMENTS -->
         <div class="details-section attachments-section">
           <h3>Attachments</h3>
 
@@ -179,19 +175,46 @@
           </div>
 
           <div
-            class="attachments-list"
+            class="attachments-grid"
             *ngIf="!loadingAttachments && ticketAttachments.length > 0"
           >
-            <article class="attachment-item" *ngFor="let attachment of ticketAttachments">
-              <div class="attachment-icon">
-                📎
+            <article
+              class="attachment-preview-card"
+              *ngFor="let attachment of ticketAttachments"
+            >
+              <a
+                class="attachment-image-preview"
+                *ngIf="isImageAttachment(attachment)"
+                [href]="attachment.file_url"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  [src]="attachment.file_url"
+                  [alt]="attachment.file_name"
+                />
+              </a>
+
+              <div
+                class="attachment-file-preview"
+                *ngIf="!isImageAttachment(attachment)"
+              >
+                <div class="attachment-file-icon">
+                  {{ getAttachmentIcon(attachment) }}
+                </div>
+
+                <div>
+                  <strong>{{ getAttachmentTypeLabel(attachment) }}</strong>
+                  <span>{{ attachment.file_type || 'Unknown type' }}</span>
+                </div>
               </div>
 
-              <div class="attachment-info">
+              <div class="attachment-preview-info">
                 <a
                   [href]="attachment.file_url"
                   target="_blank"
                   rel="noopener noreferrer"
+                  [title]="attachment.file_name"
                 >
                   {{ attachment.file_name }}
                 </a>
@@ -202,19 +225,29 @@
                 </span>
               </div>
 
-              <button
-                type="button"
-                class="attachment-delete"
-                *ngIf="canEdit"
-                (click)="deleteAttachment(attachment)"
-              >
-                Delete
-              </button>
+              <div class="attachment-preview-actions">
+                <a
+                  class="attachment-open-btn"
+                  [href]="attachment.file_url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open
+                </a>
+
+                <button
+                  type="button"
+                  class="attachment-delete"
+                  *ngIf="canEdit"
+                  (click)="deleteAttachment(attachment)"
+                >
+                  Delete
+                </button>
+              </div>
             </article>
           </div>
         </div>
 
-        <!-- ACTIVITY LOGS -->
         <div class="details-section activity-section">
           <h3>Activity Logs</h3>
 
@@ -249,7 +282,6 @@
         </div>
       </section>
 
-      <!-- SIDEBAR -->
       <aside class="details-sidebar">
         <div class="details-field">
           <span>Status</span>
@@ -263,10 +295,11 @@
             name="editStatus"
             [(ngModel)]="editTicketData.status"
           >
-            <option value="backlog">Backlog</option>
-            <option value="todo">To Do</option>
-            <option value="in_progress">In Progress</option>
-            <option value="in_review">In Review</option>
+            <option value="todo">To Do / Backlog</option>
+            <option value="ready_for_development">Ready for Development</option>
+            <option value="dev_in_progress">Dev in Progress</option>
+            <option value="ready_for_testing">Ready for Testing</option>
+            <option value="ready_for_uat">Ready for UAT</option>
             <option value="done">Done</option>
           </select>
         </div>
@@ -339,7 +372,6 @@
       </aside>
     </div>
 
-    <!-- FOOTER -->
     <footer class="details-footer">
       <p class="viewer-note" *ngIf="!canEdit">
         You have viewer access. Editing is disabled.

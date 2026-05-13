@@ -14,7 +14,7 @@
         </h1>
 
         <p class="header-text">
-          {{ workspace?.description || 'Manage tickets using a Kanban workflow.' }}
+          {{ workspace?.description || 'Manage development tickets using a structured Kanban workflow.' }}
         </p>
       </div>
 
@@ -23,13 +23,25 @@
           Back
         </button>
 
+        <button type="button" class="secondary-btn" (click)="goToBacklog()">
+          Backlog
+        </button>
+
+        <button
+          type="button"
+          class="secondary-btn"
+          (click)="openMembersModal()"
+        >
+          Manage Members
+        </button>
+
         <button
           type="button"
           class="primary-btn"
           (click)="openCreateModal()"
           *ngIf="canEditTicket()"
         >
-          + New Ticket
+          + New Board Ticket
         </button>
       </div>
     </header>
@@ -53,7 +65,7 @@
           type="text"
           name="search"
           [(ngModel)]="search"
-          placeholder="Search tickets..."
+          placeholder="Search board tickets..."
           (input)="loadTickets()"
         />
       </div>
@@ -65,11 +77,11 @@
           [(ngModel)]="selectedStatus"
           (change)="loadTickets()"
         >
-          <option value="">All Statuses</option>
-          <option value="backlog">Backlog</option>
-          <option value="todo">To Do</option>
-          <option value="in_progress">In Progress</option>
-          <option value="in_review">In Review</option>
+          <option value="">All Board Statuses</option>
+          <option value="ready_for_development">Ready for Development</option>
+          <option value="dev_in_progress">Dev in Progress</option>
+          <option value="ready_for_testing">Ready for Testing</option>
+          <option value="ready_for_uat">Ready for UAT</option>
           <option value="done">Done</option>
         </select>
       </div>
@@ -98,7 +110,6 @@
       <article
         class="kanban-column"
         *ngFor="let column of columns"
-        [class.backlog-column]="column.value === 'backlog'"
         (dragover)="canEditTicket() ? onDragOver($event) : null"
         (drop)="canEditTicket() ? onDrop(column.value) : null"
       >
@@ -149,6 +160,13 @@
           </p>
 
           <div class="ticket-meta">
+            <span class="ticket-id">#{{ ticket.id }}</span>
+
+            <span>
+              Assignee:
+              {{ ticket.assignee?.name || 'Unassigned' }}
+            </span>
+
             <span *ngIf="ticket.due_date">
               Due: {{ ticket.due_date }}
             </span>
@@ -171,10 +189,11 @@
               (ngModelChange)="changeTicketStatus(ticket, $event)"
               name="status-{{ ticket.id }}"
             >
-              <option value="backlog">Backlog</option>
-              <option value="todo">To Do</option>
-              <option value="in_progress">In Progress</option>
-              <option value="in_review">In Review</option>
+              <option value="todo">Move to Backlog</option>
+              <option value="ready_for_development">Ready for Development</option>
+              <option value="dev_in_progress">Dev in Progress</option>
+              <option value="ready_for_testing">Ready for Testing</option>
+              <option value="ready_for_uat">Ready for UAT</option>
               <option value="done">Done</option>
             </select>
 
@@ -192,9 +211,9 @@
   <section class="ticket-modal" (click)="$event.stopPropagation()">
     <header class="modal-header">
       <div>
-        <p class="breadcrumb">New Ticket</p>
-        <h2>Create Ticket</h2>
-        <p>Add a task to this workspace board.</p>
+        <p class="breadcrumb">New Board Ticket</p>
+        <h2>Create Development Ticket</h2>
+        <p>Add a task directly to the development board.</p>
       </div>
 
       <button type="button" class="modal-close" (click)="closeCreateModal()">
@@ -229,10 +248,11 @@
         <div class="form-group">
           <label>Status</label>
           <select name="newStatus" [(ngModel)]="newTicket.status">
-            <option value="backlog">Backlog</option>
             <option value="todo">To Do</option>
-            <option value="in_progress">In Progress</option>
-            <option value="in_review">In Review</option>
+            <option value="ready_for_development">Ready for Development</option>
+            <option value="dev_in_progress">Dev in Progress</option>
+            <option value="ready_for_testing">Ready for Testing</option>
+            <option value="ready_for_uat">Ready for UAT</option>
             <option value="done">Done</option>
           </select>
         </div>
@@ -298,3 +318,13 @@
   (closeModal)="closeTicketDetails()"
   (ticketUpdated)="handleTicketUpdated($event)"
 ></app-ticket-modal>
+
+<app-workspace-members-modal
+  *ngIf="showMembersModal"
+  [workspaceId]="workspaceId"
+  [workspace]="workspace"
+  [apiUrl]="apiUrl"
+  [canManage]="canManageMembers()"
+  (closeModal)="closeMembersModal()"
+  (membersChanged)="loadWorkspaceMembers()"
+></app-workspace-members-modal>

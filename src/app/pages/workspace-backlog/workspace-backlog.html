@@ -1,0 +1,251 @@
+<div class="backlog-page">
+  <app-sidebar
+    activePage="backlog"
+    [workspaceId]="workspaceId"
+  ></app-sidebar>
+
+  <main class="backlog-main">
+    <header class="page-header">
+      <div>
+        <p class="breadcrumb">Workspace Backlog</p>
+
+        <h1>
+          {{ loadingWorkspace ? 'Loading workspace...' : workspace?.name }}
+        </h1>
+
+        <p class="header-text">
+          Newly created To Do tickets stay here first. Move them to development when ready.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" class="secondary-btn" (click)="goBackToWorkspaces()">
+          Workspaces
+        </button>
+
+        <button type="button" class="secondary-btn" (click)="goToBoard()">
+          Board
+        </button>
+
+        <button
+          type="button"
+          class="primary-btn"
+          *ngIf="canEditTicket()"
+          (click)="openCreateModal()"
+        >
+          + New Backlog Ticket
+        </button>
+      </div>
+    </header>
+
+    <section class="status-card error-card" *ngIf="errorMessage && !showCreateModal">
+      <p>{{ errorMessage }}</p>
+    </section>
+
+    <section class="status-card success-card" *ngIf="successMessage">
+      <p>{{ successMessage }}</p>
+    </section>
+
+    <section class="status-card viewer-card" *ngIf="!canEditTicket() && !loadingWorkspace">
+      <p>You have viewer access. You can open backlog tickets, but editing is disabled.</p>
+    </section>
+
+    <section class="toolbar">
+      <div class="search-box">
+        <label>Search</label>
+        <input
+          type="text"
+          name="search"
+          [(ngModel)]="search"
+          placeholder="Search backlog tickets..."
+          (input)="loadBacklogTickets()"
+        />
+      </div>
+
+      <div class="filter-box">
+        <label>Priority</label>
+        <select
+          name="priority"
+          [(ngModel)]="selectedPriority"
+          (change)="loadBacklogTickets()"
+        >
+          <option value="">All Priorities</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="urgent">Urgent</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="status-card loading-card" *ngIf="loadingTickets">
+      <p>Loading backlog tickets...</p>
+    </section>
+
+    <section class="backlog-list" *ngIf="!loadingTickets && tickets.length > 0">
+      <article
+        class="backlog-card"
+        *ngFor="let ticket of tickets"
+        (click)="openTicketDetails(ticket)"
+      >
+        <div class="ticket-main">
+          <div class="ticket-top">
+            <div>
+              <span class="ticket-label">Backlog Item</span>
+              <h3>{{ ticket.title }}</h3>
+            </div>
+
+            <span class="priority-badge" [ngClass]="getPriorityClass(ticket.priority)">
+              {{ ticket.priority }}
+            </span>
+          </div>
+
+          <p>
+            {{ getPlainText(ticket.description) || 'No description provided.' }}
+          </p>
+
+          <div class="ticket-meta">
+            <span>#{{ ticket.id }}</span>
+            <span>Assignee: {{ getPersonName(ticket.assignee) }}</span>
+            <span *ngIf="ticket.due_date">Due: {{ ticket.due_date }}</span>
+            <span
+              class="warning"
+              *ngIf="ticket.due_date_warning && ticket.due_date_warning !== 'none'"
+            >
+              {{ ticket.due_date_warning }}
+            </span>
+          </div>
+        </div>
+
+        <div class="ticket-actions" *ngIf="canEditTicket()" (click)="$event.stopPropagation()">
+          <button
+            type="button"
+            class="secondary-btn"
+            (click)="openTicketDetails(ticket)"
+          >
+            Edit
+          </button>
+
+          <button
+            type="button"
+            class="primary-btn"
+            (click)="moveToDevelopment(ticket)"
+          >
+            Move to Development
+          </button>
+
+          <button
+            type="button"
+            class="danger-btn"
+            (click)="deleteTicket(ticket)"
+          >
+            Delete
+          </button>
+        </div>
+      </article>
+    </section>
+
+    <section class="empty-state" *ngIf="!loadingTickets && tickets.length === 0">
+      <div class="empty-icon">☰</div>
+      <h3>No backlog tickets</h3>
+      <p>New To Do tickets will appear here before they move to the development board.</p>
+    </section>
+  </main>
+</div>
+
+<div class="modal-backdrop" *ngIf="showCreateModal" (click)="closeCreateModal()">
+  <section class="ticket-modal" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <div>
+        <p class="breadcrumb">New Backlog Ticket</p>
+        <h2>Create To Do Ticket</h2>
+        <p>This ticket will be placed in the Backlog first.</p>
+      </div>
+
+      <button type="button" class="modal-close" (click)="closeCreateModal()">
+        ×
+      </button>
+    </header>
+
+    <form (ngSubmit)="createTicket()" class="modal-form">
+      <div class="form-group">
+        <label>Title</label>
+        <input
+          type="text"
+          name="title"
+          [(ngModel)]="newTicket.title"
+          placeholder="Example: Prepare login UI"
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <textarea
+          name="description"
+          [(ngModel)]="newTicket.description"
+          placeholder="Describe the ticket..."
+        ></textarea>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Priority</label>
+          <select name="priority" [(ngModel)]="newTicket.priority">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Due Date</label>
+          <input
+            type="date"
+            name="dueDate"
+            [(ngModel)]="newTicket.due_date"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Assignee</label>
+        <select name="assignee" [(ngModel)]="newTicket.assigned_to">
+          <option [ngValue]="null">Unassigned</option>
+
+          <option
+            *ngFor="let member of workspaceMembers"
+            [ngValue]="member.user?.id || member.user_id"
+          >
+            {{ member.user?.name || member.user?.email || ('User #' + member.user_id) }}
+          </option>
+        </select>
+      </div>
+
+      <p class="modal-error" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </p>
+
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeCreateModal()">
+          Cancel
+        </button>
+
+        <button type="submit" class="primary-btn" [disabled]="creating">
+          {{ creating ? 'Creating...' : 'Create Ticket' }}
+        </button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<app-ticket-modal
+  *ngIf="showTicketDetailsModal && selectedTicket"
+  [ticket]="selectedTicket"
+  [workspaceMembers]="workspaceMembers"
+  [canEdit]="canEditTicket()"
+  [canComment]="canCommentTicket()"
+  [apiUrl]="apiUrl"
+  (closeModal)="closeTicketDetails()"
+  (ticketUpdated)="handleTicketUpdated($event)"
+></app-ticket-modal>

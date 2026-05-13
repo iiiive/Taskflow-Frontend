@@ -3,16 +3,13 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { EditorModule, TINYMCE_SCRIPT_SRC } from '@tinymce/tinymce-angular';
 
 import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
 import { TicketModal } from '../../components/ticket-modal/ticket-modal';
-import { WorkspaceMembersModal } from '../../components/workspace-members-modal/workspace-members-modal';
 
 import {
   ApiResponse,
   Ticket,
-  TicketFormData,
   TicketPriority,
   TicketStatus,
   Workspace,
@@ -20,28 +17,19 @@ import {
 } from '../../interfaces/planora.interface';
 
 @Component({
-  selector: 'app-workspace-board',
+  selector: 'app-workspace-backlog',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    EditorModule,
-    TicketModal,
-    AppSidebar,
-    WorkspaceMembersModal
-  ],
-  providers: [
-    { provide: TINYMCE_SCRIPT_SRC, useValue: '/tinymce/tinymce.min.js' }
-  ],
-  templateUrl: './workspace-board.html',
-  styleUrl: './workspace-board.scss',
+  imports: [CommonModule, FormsModule, AppSidebar, TicketModal],
+  templateUrl: './workspace-backlog.html',
+  styleUrl: './workspace-backlog.scss'
 })
-export class WorkspaceBoard implements OnInit {
+export class WorkspaceBacklog implements OnInit {
   apiUrl = 'http://127.0.0.1:8000/api';
 
   workspaceId!: number;
   workspace: Workspace | null = null;
   workspaceMembers: WorkspaceMember[] = [];
+
   tickets: Ticket[] = [];
 
   loadingWorkspace = true;
@@ -49,88 +37,24 @@ export class WorkspaceBoard implements OnInit {
   loadingMembers = false;
 
   creating = false;
+  showCreateModal = false;
+  showTicketDetailsModal = false;
+
+  selectedTicket: Ticket | null = null;
+
   errorMessage = '';
   successMessage = '';
 
   search = '';
   selectedPriority = '';
-  selectedStatus = '';
 
-  showCreateModal = false;
-  showTicketDetailsModal = false;
-  showMembersModal = false;
-
-  selectedTicket: Ticket | null = null;
-  draggedTicket: Ticket | null = null;
-
-  newTicket: TicketFormData = {
+  newTicket = {
     title: '',
     description: '',
-    status: 'ready_for_development',
-    priority: 'medium',
-    due_date: null,
-    assigned_to: null
-  };
-
-  columns: { label: string; value: TicketStatus; description: string }[] = [
-    {
-      label: 'Ready for Development',
-      value: 'ready_for_development',
-      description: 'Approved and ready for dev'
-    },
-    {
-      label: 'Dev in Progress',
-      value: 'dev_in_progress',
-      description: 'Currently being developed'
-    },
-    {
-      label: 'Ready for Testing',
-      value: 'ready_for_testing',
-      description: 'Ready for QA testing'
-    },
-    {
-      label: 'Ready for UAT',
-      value: 'ready_for_uat',
-      description: 'Ready for user acceptance'
-    },
-    {
-      label: 'Done',
-      value: 'done',
-      description: 'Completed work'
-    }
-  ];
-
-  editorConfig = {
-    base_url: '/tinymce',
-    suffix: '.min',
-    height: 300,
-    menubar: false,
-    branding: false,
-    promotion: false,
-    paste_data_images: true,
-    automatic_uploads: false,
-    object_resizing: true,
-    plugins: 'lists link image table code autoresize',
-    toolbar:
-      'undo redo | bold italic underline strikethrough | fontfamily fontsize | ' +
-      'alignleft aligncenter alignright alignjustify | bullist numlist | ' +
-      'link image table | removeformat code',
-    image_advtab: true,
-    image_dimensions: true,
-    resize: true,
-    content_style: `
-      body {
-        font-family: Arial, sans-serif;
-        font-size: 14px;
-        color: #1f2937;
-      }
-
-      img {
-        max-width: 100%;
-        height: auto;
-        border-radius: 10px;
-      }
-    `
+    status: 'todo' as TicketStatus,
+    priority: 'medium' as TicketPriority,
+    due_date: '',
+    assigned_to: null as number | null
   };
 
   constructor(
@@ -150,7 +74,7 @@ export class WorkspaceBoard implements OnInit {
 
     this.loadWorkspace();
     this.loadWorkspaceMembers();
-    this.loadTickets();
+    this.loadBacklogTickets();
   }
 
   loadWorkspace(): void {
@@ -167,7 +91,7 @@ export class WorkspaceBoard implements OnInit {
       error: (err) => {
         console.error('Load workspace error:', err);
         this.loadingWorkspace = false;
-        this.errorMessage = err?.error?.message || 'Unable to load workspace details.';
+        this.errorMessage = err?.error?.message || 'Unable to load workspace.';
         this.cdr.detectChanges();
       }
     });
@@ -184,8 +108,7 @@ export class WorkspaceBoard implements OnInit {
         this.loadingMembers = false;
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        console.error('Load workspace members error:', err);
+      error: () => {
         this.workspaceMembers = [];
         this.loadingMembers = false;
         this.cdr.detectChanges();
@@ -193,11 +116,11 @@ export class WorkspaceBoard implements OnInit {
     });
   }
 
-  loadTickets(): void {
+  loadBacklogTickets(): void {
     this.loadingTickets = true;
     this.errorMessage = '';
 
-    let params = new HttpParams();
+    let params = new HttpParams().set('status', 'todo');
 
     if (this.search.trim()) {
       params = params.set('search', this.search.trim());
@@ -207,61 +130,37 @@ export class WorkspaceBoard implements OnInit {
       params = params.set('priority', this.selectedPriority);
     }
 
-    if (this.selectedStatus) {
-      params = params.set('status', this.selectedStatus);
-    }
-
     this.http.get<ApiResponse<Ticket[]> | Ticket[]>(
       `${this.apiUrl}/workspaces/${this.workspaceId}/tickets`,
       { params }
     ).subscribe({
       next: (res) => {
-        const allTickets = this.extractArray<Ticket>(res);
-
-        this.tickets = allTickets.filter(ticket => ticket.status !== 'todo');
-
+        this.tickets = this.extractArray<Ticket>(res);
         this.loadingTickets = false;
         this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error('Load tickets error:', err);
+        console.error('Load backlog tickets error:', err);
         this.loadingTickets = false;
-        this.errorMessage = err?.error?.message || 'Unable to load tickets.';
+        this.errorMessage = err?.error?.message || 'Unable to load backlog tickets.';
         this.cdr.detectChanges();
       }
     });
   }
 
-  getTicketsByStatus(status: TicketStatus): Ticket[] {
-    return this.tickets.filter(ticket => ticket.status === status);
-  }
-
-  canEditTicket(): boolean {
-    return this.workspace?.role === 'owner' || this.workspace?.role === 'editor';
-  }
-
-  canCommentTicket(): boolean {
-    return this.workspace?.role === 'owner' || this.workspace?.role === 'editor';
-  }
-
-  canManageMembers(): boolean {
-    return this.workspace?.role === 'owner';
-  }
-
-  openCreateModal(status: TicketStatus = 'ready_for_development'): void {
+  openCreateModal(): void {
     this.showCreateModal = true;
+    this.errorMessage = '';
+    this.successMessage = '';
 
     this.newTicket = {
       title: '',
       description: '',
-      status,
+      status: 'todo',
       priority: 'medium',
-      due_date: null,
+      due_date: '',
       assigned_to: null
     };
-
-    this.errorMessage = '';
-    this.successMessage = '';
 
     this.cdr.detectChanges();
   }
@@ -270,16 +169,6 @@ export class WorkspaceBoard implements OnInit {
     this.showCreateModal = false;
     this.creating = false;
     this.errorMessage = '';
-
-    this.newTicket = {
-      title: '',
-      description: '',
-      status: 'ready_for_development',
-      priority: 'medium',
-      due_date: null,
-      assigned_to: null
-    };
-
     this.cdr.detectChanges();
   }
 
@@ -292,8 +181,8 @@ export class WorkspaceBoard implements OnInit {
 
     const payload = {
       title: this.newTicket.title.trim(),
-      description: this.newTicket.description?.trim() || '',
-      status: this.newTicket.status,
+      description: this.newTicket.description.trim(),
+      status: 'todo',
       priority: this.newTicket.priority,
       due_date: this.newTicket.due_date || null,
       assigned_to: this.newTicket.assigned_to
@@ -309,19 +198,16 @@ export class WorkspaceBoard implements OnInit {
     ).subscribe({
       next: (res) => {
         const createdTicket = res?.data ? res.data : res;
-
-        if (createdTicket.status !== 'todo') {
-          this.tickets = [createdTicket, ...this.tickets];
-        }
+        this.tickets = [createdTicket, ...this.tickets];
 
         this.creating = false;
         this.showCreateModal = false;
-        this.successMessage = 'Ticket created successfully.';
+        this.successMessage = 'Ticket added to backlog.';
 
         this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error('Create ticket error:', err);
+        console.error('Create backlog ticket error:', err);
         this.creating = false;
         this.errorMessage = err?.error?.message || 'Unable to create ticket.';
         this.cdr.detectChanges();
@@ -329,15 +215,46 @@ export class WorkspaceBoard implements OnInit {
     });
   }
 
-  changeTicketStatus(ticket: Ticket, newStatus: TicketStatus): void {
-    const oldStatus = ticket.status;
-    ticket.status = newStatus;
+  openTicketDetails(ticket: Ticket): void {
+    this.selectedTicket = ticket;
+    this.showTicketDetailsModal = true;
+    this.errorMessage = '';
+    this.successMessage = '';
     this.cdr.detectChanges();
+  }
+
+  closeTicketDetails(): void {
+    this.showTicketDetailsModal = false;
+    this.selectedTicket = null;
+    this.cdr.detectChanges();
+  }
+
+  handleTicketUpdated(updatedTicket: Ticket): void {
+    if (updatedTicket.status !== 'todo') {
+      this.tickets = this.tickets.filter(ticket => ticket.id !== updatedTicket.id);
+      this.closeTicketDetails();
+      this.successMessage = 'Ticket updated and moved to board.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.tickets = this.tickets.map(ticket =>
+      ticket.id === updatedTicket.id ? updatedTicket : ticket
+    );
+
+    this.selectedTicket = updatedTicket;
+    this.successMessage = 'Ticket updated successfully.';
+    this.cdr.detectChanges();
+  }
+
+  moveToDevelopment(ticket: Ticket): void {
+    const oldStatus = ticket.status;
+    ticket.status = 'ready_for_development';
 
     const payload = {
       title: ticket.title,
       description: ticket.description || '',
-      status: newStatus,
+      status: 'ready_for_development',
       priority: ticket.priority,
       assigned_to: ticket.assigned_to,
       due_date: ticket.due_date
@@ -347,26 +264,21 @@ export class WorkspaceBoard implements OnInit {
       next: (res) => {
         const updatedTicket = res?.data ? res.data : res;
 
-        if (updatedTicket.status === 'todo') {
-          this.tickets = this.tickets.filter(item => item.id !== ticket.id);
-        } else {
-          this.tickets = this.tickets.map(item =>
-            item.id === ticket.id ? updatedTicket : item
-          );
-        }
+        this.tickets = this.tickets.filter(item => item.id !== ticket.id);
 
         if (this.selectedTicket?.id === ticket.id) {
           this.selectedTicket = updatedTicket;
+          this.closeTicketDetails();
         }
 
-        this.successMessage = 'Ticket status updated.';
+        this.successMessage = 'Ticket moved to board.';
         this.errorMessage = '';
         this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error('Update ticket status error:', err);
+        console.error('Move ticket to development error:', err);
         ticket.status = oldStatus;
-        this.errorMessage = err?.error?.message || 'Unable to update ticket status.';
+        this.errorMessage = err?.error?.message || 'Unable to move ticket to board.';
         this.cdr.detectChanges();
       }
     });
@@ -399,77 +311,16 @@ export class WorkspaceBoard implements OnInit {
     });
   }
 
-  onDragStart(ticket: Ticket): void {
-    this.draggedTicket = ticket;
+  canEditTicket(): boolean {
+    return this.workspace?.role === 'owner' || this.workspace?.role === 'editor';
   }
 
-  onDragEnd(): void {
-    this.draggedTicket = null;
+  canCommentTicket(): boolean {
+    return this.workspace?.role === 'owner' || this.workspace?.role === 'editor';
   }
 
-  onDragOver(event: DragEvent): void {
-    event.preventDefault();
-  }
-
-  onDrop(status: TicketStatus): void {
-    if (!this.draggedTicket) {
-      return;
-    }
-
-    if (this.draggedTicket.status === status) {
-      this.draggedTicket = null;
-      return;
-    }
-
-    this.changeTicketStatus(this.draggedTicket, status);
-    this.draggedTicket = null;
-  }
-
-  openTicketDetails(ticket: Ticket): void {
-    this.selectedTicket = ticket;
-    this.showTicketDetailsModal = true;
-    this.errorMessage = '';
-    this.successMessage = '';
-    this.cdr.detectChanges();
-  }
-
-  closeTicketDetails(): void {
-    this.showTicketDetailsModal = false;
-    this.selectedTicket = null;
-    this.cdr.detectChanges();
-  }
-
-  handleTicketUpdated(updatedTicket: Ticket): void {
-    if (updatedTicket.status === 'todo') {
-      this.tickets = this.tickets.filter(ticket => ticket.id !== updatedTicket.id);
-      this.closeTicketDetails();
-      this.successMessage = 'Ticket moved back to backlog.';
-      this.cdr.detectChanges();
-      return;
-    }
-
-    this.tickets = this.tickets.map(ticket =>
-      ticket.id === updatedTicket.id ? updatedTicket : ticket
-    );
-
-    this.selectedTicket = updatedTicket;
-    this.cdr.detectChanges();
-  }
-
-  openMembersModal(): void {
-    this.showMembersModal = true;
-    this.errorMessage = '';
-    this.successMessage = '';
-    this.cdr.detectChanges();
-  }
-
-  closeMembersModal(): void {
-    this.showMembersModal = false;
-    this.cdr.detectChanges();
-  }
-
-  goToBacklog(): void {
-    this.router.navigate(['/workspaces', this.workspaceId, 'backlog']);
+  goToBoard(): void {
+    this.router.navigate(['/workspaces', this.workspaceId, 'board']);
   }
 
   goBackToWorkspaces(): void {
@@ -485,21 +336,13 @@ export class WorkspaceBoard implements OnInit {
     return div.textContent || div.innerText || '';
   }
 
-  formatStatus(status: string): string {
-    const labels: Record<string, string> = {
-      todo: 'To Do',
-      ready_for_development: 'Ready for Development',
-      dev_in_progress: 'Dev in Progress',
-      ready_for_testing: 'Ready for Testing',
-      ready_for_uat: 'Ready for UAT',
-      done: 'Done'
-    };
-
-    return labels[status] || status;
-  }
-
   getPriorityClass(priority: string): string {
     return `priority-${priority}`;
+  }
+
+  getPersonName(person: any): string {
+    if (!person) return 'Unassigned';
+    return person.name || person.email || 'Unknown user';
   }
 
   extractSingle<T>(res: ApiResponse<T> | T | any): T {

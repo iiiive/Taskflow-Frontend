@@ -703,3 +703,122 @@
     }
   }
 }
+
+.attachments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.attachment-preview-card {
+  min-width: 0;
+  border: 1px solid #e1e9f4;
+  border-radius: 14px;
+  background: #f8fafc;
+  overflow: hidden;
+}
+
+.attachment-image-preview {
+  display: block;
+  width: 100%;
+  height: 150px;
+  background: #eef2f7;
+  border-bottom: 1px solid #e1e9f4;
+  overflow: hidden;
+}
+
+.attachment-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.attachment-file-preview {
+  height: 150px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  padding: 14px;
+  background: #eef2f7;
+  border-bottom: 1px solid #e1e9f4;
+  text-align: center;
+}
+
+.attachment-file-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #ffffff;
+  font-size: 24px;
+}
+
+.attachment-file-preview strong {
+  color: #172033;
+  font-size: 14px;
+}
+
+.attachment-file-preview span {
+  color: #64748b;
+  font-size: 12px;
+  word-break: break-word;
+}
+
+.attachment-preview-info {
+  padding: 12px;
+}
+
+.attachment-preview-info a {
+  display: block;
+  color: #2563eb;
+  font-weight: 800;
+  font-size: 14px;
+  text-decoration: none;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.attachment-preview-info a:hover {
+  text-decoration: underline;
+}
+
+.attachment-preview-info span {
+  display: block;
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.attachment-preview-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+.attachment-open-btn {
+  height: 34px;
+  flex: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d7e1ee;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.attachment-open-btn:hover {
+  background: #f1f5f9;
+}
+
+.attachment-preview-actions .attachment-delete {
+  height: 34px;
+  flex: 1;
+}

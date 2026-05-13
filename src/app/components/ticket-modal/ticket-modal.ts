@@ -12,7 +12,6 @@ import {
 import { FormsModule } from '@angular/forms';
 import { EditorModule, TINYMCE_SCRIPT_SRC } from '@tinymce/tinymce-angular';
 
-
 import {
   ActivityLog,
   ApiResponse,
@@ -24,7 +23,6 @@ import {
   TicketStatus,
   WorkspaceMember
 } from '../../interfaces/planora.interface';
-
 
 @Component({
   selector: 'app-ticket-modal',
@@ -52,53 +50,48 @@ export class TicketModal implements OnChanges {
   errorMessage = '';
   successMessage = '';
 
+  commentText = '';
+  sendingComment = false;
+  loadingComments = false;
+  ticketComments: TicketComment[] = [];
+
+  selectedAttachmentFile: File | null = null;
+  uploadingAttachment = false;
+  loadingAttachments = false;
+  attachmentError = '';
+  ticketAttachments: TicketAttachment[] = [];
+
+  loadingActivityLogs = false;
+  activityLogError = '';
+  ticketActivityLogs: ActivityLog[] = [];
+
   editTicketData: TicketFormData = {
     title: '',
     description: '',
-    status: 'backlog',
+    status: 'todo',
     priority: 'medium',
     due_date: null,
     assigned_to: null
   };
 
-  commentText = '';
-  ticketComments: TicketComment[] = [];
-  loadingComments = false;
-  sendingComment = false;
-
-  ticketAttachments: TicketAttachment[] = [];
-  loadingAttachments = false;
-  uploadingAttachment = false;
-  attachmentError = '';
-  selectedAttachmentFile: File | null = null;
-
-  ticketActivityLogs: ActivityLog[] = [];
-  loadingActivityLogs = false;
-  activityLogError = '';
-
   editorConfig = {
     base_url: '/tinymce',
     suffix: '.min',
-
     height: 360,
     menubar: false,
     branding: false,
     promotion: false,
-
     paste_data_images: true,
     automatic_uploads: false,
     object_resizing: true,
-
     plugins: 'lists link image table code autoresize',
     toolbar:
       'undo redo | bold italic underline strikethrough | fontfamily fontsize | ' +
       'alignleft aligncenter alignright alignjustify | bullist numlist | ' +
       'link image table | removeformat code',
-
     image_advtab: true,
     image_dimensions: true,
     resize: true,
-
     content_style: `
       body {
         font-family: Arial, sans-serif;
@@ -132,27 +125,26 @@ export class TicketModal implements OnChanges {
 
     this.editingTicket = false;
     this.savingTicket = false;
+
     this.errorMessage = '';
     this.successMessage = '';
+
     this.commentText = '';
     this.attachmentError = '';
     this.activityLogError = '';
-    this.selectedAttachmentFile = null;
 
     this.editTicketData = {
       title: this.ticket.title || '',
       description: this.ticket.description || '',
-      status: this.ticket.status || 'backlog',
+      status: this.ticket.status || 'todo',
       priority: this.ticket.priority || 'medium',
       due_date: this.ticket.due_date || null,
-      assigned_to: this.ticket.assigned_to ?? null
+      assigned_to: this.ticket.assigned_to || null
     };
 
-    const ticketId = this.ticket.id;
-
-    this.loadTicketComments(ticketId);
-    this.loadTicketAttachments(ticketId);
-    this.loadTicketActivityLogs(ticketId);
+    this.loadTicketComments(this.ticket.id);
+    this.loadTicketAttachments(this.ticket.id);
+    this.loadTicketActivityLogs(this.ticket.id);
   }
 
   close(): void {
@@ -167,23 +159,35 @@ export class TicketModal implements OnChanges {
     this.editingTicket = true;
     this.errorMessage = '';
     this.successMessage = '';
-  }
-
-  cancelEditingTicket(): void {
-    if (!this.ticket) {
-      return;
-    }
-
-    this.editingTicket = false;
 
     this.editTicketData = {
       title: this.ticket.title || '',
       description: this.ticket.description || '',
-      status: this.ticket.status,
-      priority: this.ticket.priority,
+      status: this.ticket.status || 'todo',
+      priority: this.ticket.priority || 'medium',
       due_date: this.ticket.due_date || null,
-      assigned_to: this.ticket.assigned_to ?? null
+      assigned_to: this.ticket.assigned_to || null
     };
+
+    this.cdr.detectChanges();
+  }
+
+  cancelEditingTicket(): void {
+    this.editingTicket = false;
+    this.errorMessage = '';
+
+    if (this.ticket) {
+      this.editTicketData = {
+        title: this.ticket.title || '',
+        description: this.ticket.description || '',
+        status: this.ticket.status || 'todo',
+        priority: this.ticket.priority || 'medium',
+        due_date: this.ticket.due_date || null,
+        assigned_to: this.ticket.assigned_to || null
+      };
+    }
+
+    this.cdr.detectChanges();
   }
 
   saveTicketChanges(): void {
@@ -203,8 +207,6 @@ export class TicketModal implements OnChanges {
       return;
     }
 
-    const ticketId = this.ticket.id;
-
     const payload = {
       title: this.editTicketData.title.trim(),
       description: this.editTicketData.description || '',
@@ -218,47 +220,49 @@ export class TicketModal implements OnChanges {
     this.errorMessage = '';
     this.successMessage = '';
 
-    this.http.put<ApiResponse<Ticket> | Ticket>(`${this.apiUrl}/tickets/${ticketId}`, payload)
-      .subscribe({
-        next: (res) => {
-          const updatedTicket = this.extractSingle<Ticket>(res);
+    this.http.put<ApiResponse<Ticket> | Ticket | any>(
+      `${this.apiUrl}/tickets/${this.ticket.id}`,
+      payload
+    ).subscribe({
+      next: (res) => {
+        const updatedTicket = res?.data ? res.data : res;
 
-          this.ticket = updatedTicket;
-          this.ticketUpdated.emit(updatedTicket);
+        this.ticket = updatedTicket;
+        this.editingTicket = false;
+        this.savingTicket = false;
+        this.successMessage = 'Ticket updated successfully.';
 
-          this.editingTicket = false;
-          this.savingTicket = false;
-          this.successMessage = 'Ticket updated successfully.';
+        this.ticketUpdated.emit(updatedTicket);
+        this.loadTicketActivityLogs(updatedTicket.id);
 
-          this.loadTicketActivityLogs(ticketId);
-          this.cdr.detectChanges();
-        },
-        error: (err) => {
-          console.error('Update ticket error:', err);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Save ticket changes error:', err);
 
-          this.savingTicket = false;
-          this.errorMessage =
-            err?.error?.message ||
-            'Unable to update ticket. You may not have permission.';
+        this.savingTicket = false;
+        this.errorMessage =
+          err?.error?.message ||
+          'Unable to update ticket. Please try again.';
 
-          this.cdr.detectChanges();
-        }
-      });
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   loadTicketComments(ticketId: number): void {
     this.loadingComments = true;
 
-    this.http.get<ApiResponse<TicketComment[]> | TicketComment[]>(
+    this.http.get<ApiResponse<TicketComment[]> | TicketComment[] | any>(
       `${this.apiUrl}/tickets/${ticketId}/comments`
     ).subscribe({
       next: (res) => {
-        this.ticketComments = this.extractArray<TicketComment>(res, 'comments');
+        this.ticketComments = this.extractArray<TicketComment>(res);
         this.loadingComments = false;
         this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error('Load ticket comments error:', err);
+        console.error('Load comments error:', err);
 
         this.ticketComments = [];
         this.loadingComments = false;
@@ -272,8 +276,6 @@ export class TicketModal implements OnChanges {
       return;
     }
 
-    const ticketId = this.ticket.id;
-
     if (!this.canComment) {
       this.errorMessage = 'You do not have permission to comment on this ticket.';
       this.cdr.detectChanges();
@@ -286,49 +288,54 @@ export class TicketModal implements OnChanges {
       return;
     }
 
+    this.sendingComment = true;
+    this.errorMessage = '';
+
     const payload = {
       comment: this.commentText.trim()
     };
 
-    this.sendingComment = true;
-    this.errorMessage = '';
+    this.http
+      .post<ApiResponse<TicketComment> | TicketComment | any>(
+        `${this.apiUrl}/tickets/${this.ticket.id}/comments`,
+        payload
+      )
+      .subscribe({
+        next: (res) => {
+          const newComment = res?.data ? res.data : res;
 
-    this.http.post<ApiResponse<TicketComment> | TicketComment>(
-      `${this.apiUrl}/tickets/${ticketId}/comments`,
-      payload
-    ).subscribe({
-      next: (res) => {
-        const newComment = this.extractSingle<TicketComment>(res);
+          this.ticketComments = [...this.ticketComments, newComment];
+          this.commentText = '';
+          this.sendingComment = false;
 
-        this.ticketComments = [...this.ticketComments, newComment];
-        this.commentText = '';
-        this.sendingComment = false;
+          if (this.ticket) {
+            this.loadTicketActivityLogs(this.ticket.id);
+          }
 
-        this.loadTicketActivityLogs(ticketId);
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('Add ticket comment error:', err);
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error('Add ticket comment error:', err);
 
-        this.sendingComment = false;
-        this.errorMessage =
-          err?.error?.message ||
-          'Unable to add comment. You may not have permission.';
+          this.sendingComment = false;
+          this.errorMessage =
+            err?.error?.message ||
+            'Unable to add comment. You may not have permission.';
 
-        this.cdr.detectChanges();
-      }
-    });
+          this.cdr.detectChanges();
+        }
+      });
   }
 
   loadTicketAttachments(ticketId: number): void {
     this.loadingAttachments = true;
     this.attachmentError = '';
 
-    this.http.get<ApiResponse<TicketAttachment[]> | TicketAttachment[]>(
+    this.http.get<ApiResponse<TicketAttachment[]> | TicketAttachment[] | any>(
       `${this.apiUrl}/tickets/${ticketId}/attachments`
     ).subscribe({
       next: (res) => {
-        this.ticketAttachments = this.extractArray<TicketAttachment>(res, 'attachments');
+        this.ticketAttachments = this.extractArray<TicketAttachment>(res);
         this.loadingAttachments = false;
         this.cdr.detectChanges();
       },
@@ -339,7 +346,7 @@ export class TicketModal implements OnChanges {
         this.loadingAttachments = false;
         this.attachmentError =
           err?.error?.message ||
-          'Failed to load attachments.';
+          'Unable to load attachments.';
 
         this.cdr.detectChanges();
       }
@@ -358,12 +365,10 @@ export class TicketModal implements OnChanges {
     this.attachmentError = '';
   }
 
-  uploadAttachment(fileInput: HTMLInputElement): void {
+  uploadAttachment(inputElement: HTMLInputElement): void {
     if (!this.ticket) {
       return;
     }
-
-    const ticketId = this.ticket.id;
 
     if (!this.canEdit) {
       this.attachmentError = 'You do not have permission to upload attachments.';
@@ -383,19 +388,23 @@ export class TicketModal implements OnChanges {
     this.uploadingAttachment = true;
     this.attachmentError = '';
 
-    this.http.post<ApiResponse<TicketAttachment> | TicketAttachment>(
-      `${this.apiUrl}/tickets/${ticketId}/attachments`,
+    this.http.post<ApiResponse<TicketAttachment> | TicketAttachment | any>(
+      `${this.apiUrl}/tickets/${this.ticket.id}/attachments`,
       formData
     ).subscribe({
       next: (res) => {
-        const newAttachment = this.extractSingle<TicketAttachment>(res);
+        const newAttachment = res?.data ? res.data : res;
 
-        this.ticketAttachments = [newAttachment, ...this.ticketAttachments];
+        this.ticketAttachments = [...this.ticketAttachments, newAttachment];
         this.selectedAttachmentFile = null;
-        fileInput.value = '';
+        inputElement.value = '';
+
         this.uploadingAttachment = false;
 
-        this.loadTicketActivityLogs(ticketId);
+        if (this.ticket) {
+          this.loadTicketActivityLogs(this.ticket.id);
+        }
+
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -403,9 +412,8 @@ export class TicketModal implements OnChanges {
 
         this.uploadingAttachment = false;
         this.attachmentError =
-        err?.error?.errors?.file?.[0] ||
-        err?.error?.message ||
-        'Failed to upload attachment.';
+          err?.error?.message ||
+          'Unable to upload attachment.';
 
         this.cdr.detectChanges();
       }
@@ -416,8 +424,6 @@ export class TicketModal implements OnChanges {
     if (!this.ticket) {
       return;
     }
-
-    const ticketId = this.ticket.id;
 
     if (!this.canEdit) {
       this.attachmentError = 'You do not have permission to delete attachments.';
@@ -431,13 +437,18 @@ export class TicketModal implements OnChanges {
       return;
     }
 
-    this.http.delete(`${this.apiUrl}/attachments/${attachment.id}`).subscribe({
+    this.http.delete(
+      `${this.apiUrl}/tickets/${this.ticket.id}/attachments/${attachment.id}`
+    ).subscribe({
       next: () => {
         this.ticketAttachments = this.ticketAttachments.filter(
           item => item.id !== attachment.id
         );
 
-        this.loadTicketActivityLogs(ticketId);
+        if (this.ticket) {
+          this.loadTicketActivityLogs(this.ticket.id);
+        }
+
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -445,7 +456,7 @@ export class TicketModal implements OnChanges {
 
         this.attachmentError =
           err?.error?.message ||
-          'Failed to delete attachment.';
+          'Unable to delete attachment.';
 
         this.cdr.detectChanges();
       }
@@ -456,58 +467,38 @@ export class TicketModal implements OnChanges {
     this.loadingActivityLogs = true;
     this.activityLogError = '';
 
-    this.http.get<ApiResponse<ActivityLog[]> | ActivityLog[]>(
+    this.http.get<ApiResponse<ActivityLog[]> | ActivityLog[] | any>(
       `${this.apiUrl}/tickets/${ticketId}/activity`
     ).subscribe({
       next: (res) => {
-        this.ticketActivityLogs = this.extractArray<ActivityLog>(res, 'activity_logs');
+        this.ticketActivityLogs = this.extractArray<ActivityLog>(res);
         this.loadingActivityLogs = false;
         this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error('Load activity logs error:', err);
+        console.error('Load ticket activity logs error:', err);
 
         this.ticketActivityLogs = [];
         this.loadingActivityLogs = false;
         this.activityLogError =
           err?.error?.message ||
-          'Failed to load activity logs.';
+          'Unable to load ticket activity logs.';
 
         this.cdr.detectChanges();
       }
     });
   }
 
-  extractArray<T>(res: ApiResponse<T[]> | T[] | any, fallbackKey: string): T[] {
-    if (Array.isArray(res)) {
-      return res;
+  getPersonName(person: any): string {
+    if (!person) {
+      return 'Unassigned';
     }
 
-    if (Array.isArray(res?.data)) {
-      return res.data;
-    }
-
-    if (Array.isArray(res?.data?.data)) {
-      return res.data.data;
-    }
-
-    if (Array.isArray(res?.[fallbackKey])) {
-      return res[fallbackKey];
-    }
-
-    return [];
-  }
-
-  extractSingle<T>(res: ApiResponse<T> | T | any): T {
-    if (res?.data) {
-      return res.data as T;
-    }
-
-    return res as T;
+    return person.name || person.email || 'Unknown User';
   }
 
   getCommentAuthor(comment: TicketComment): string {
-    return comment.user?.name || comment.user?.email || `User #${comment.user_id}`;
+    return comment.user?.name || comment.user?.email || 'Unknown User';
   }
 
   getDisplayValue(value: string | number | null | undefined): string {
@@ -518,19 +509,20 @@ export class TicketModal implements OnChanges {
     return String(value);
   }
 
-  formatStatus(status: TicketStatus | string | undefined): string {
+  formatStatus(status: string | null | undefined): string {
     const labels: Record<string, string> = {
-      backlog: 'Backlog',
-      todo: 'To Do',
-      in_progress: 'In Progress',
-      in_review: 'In Review',
+      todo: 'To Do / Backlog',
+      ready_for_development: 'Ready for Development',
+      dev_in_progress: 'Dev in Progress',
+      ready_for_testing: 'Ready for Testing',
+      ready_for_uat: 'Ready for UAT',
       done: 'Done'
     };
 
     return status ? labels[status] || status : '—';
   }
 
-  formatPriority(priority: TicketPriority | string | undefined): string {
+  formatPriority(priority: string | null | undefined): string {
     if (!priority) {
       return '—';
     }
@@ -538,15 +530,65 @@ export class TicketModal implements OnChanges {
     return priority.charAt(0).toUpperCase() + priority.slice(1);
   }
 
-  getPersonName(person: { name?: string; email?: string } | null | undefined): string {
-    if (!person) {
-      return 'Unassigned';
-    }
-
-    return person.name || person.email || 'Unknown user';
+  getPriorityClass(priority: string | null | undefined): string {
+    return `priority-${priority || 'medium'}`;
   }
 
-  getPriorityClass(priority: TicketPriority | string | undefined): string {
-    return priority ? `priority-${priority}` : '';
+  isImageAttachment(attachment: any): boolean {
+    const fileName = attachment?.file_name?.toLowerCase() || '';
+    const fileType = attachment?.file_type?.toLowerCase() || '';
+
+    return (
+      fileType.startsWith('image/') ||
+      fileName.endsWith('.jpg') ||
+      fileName.endsWith('.jpeg') ||
+      fileName.endsWith('.png') ||
+      fileName.endsWith('.gif') ||
+      fileName.endsWith('.webp')
+    );
+  }
+
+  isPdfAttachment(attachment: any): boolean {
+    const fileName = attachment?.file_name?.toLowerCase() || '';
+    const fileType = attachment?.file_type?.toLowerCase() || '';
+
+    return fileType === 'application/pdf' || fileName.endsWith('.pdf');
+  }
+
+  getAttachmentIcon(attachment: any): string {
+    const fileName = attachment?.file_name?.toLowerCase() || '';
+
+    if (this.isImageAttachment(attachment)) return '🖼️';
+    if (this.isPdfAttachment(attachment)) return '📄';
+    if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) return '📝';
+    if (fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) return '📊';
+    if (fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) return '📽️';
+    if (fileName.endsWith('.zip') || fileName.endsWith('.rar')) return '🗂️';
+
+    return '📎';
+  }
+
+  getAttachmentTypeLabel(attachment: any): string {
+    const fileName = attachment?.file_name?.toLowerCase() || '';
+
+    if (this.isImageAttachment(attachment)) return 'Image file';
+    if (this.isPdfAttachment(attachment)) return 'PDF document';
+    if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) return 'Word document';
+    if (fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) return 'Spreadsheet';
+    if (fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) return 'Presentation';
+    if (fileName.endsWith('.zip') || fileName.endsWith('.rar')) return 'Compressed file';
+
+    return 'Attachment';
+  }
+
+  extractArray<T>(res: ApiResponse<T[]> | T[] | any): T[] {
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res?.data)) return res.data;
+    if (Array.isArray(res?.data?.data)) return res.data.data;
+    if (Array.isArray(res?.comments)) return res.comments;
+    if (Array.isArray(res?.attachments)) return res.attachments;
+    if (Array.isArray(res?.logs)) return res.logs;
+
+    return [];
   }
 }

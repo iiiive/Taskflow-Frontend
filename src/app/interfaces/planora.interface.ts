@@ -1,8 +1,9 @@
 export type TicketStatus =
-  | 'backlog'
   | 'todo'
-  | 'in_progress'
-  | 'in_review'
+  | 'ready_for_development'
+  | 'dev_in_progress'
+  | 'ready_for_testing'
+  | 'ready_for_uat'
   | 'done';
 
 export type TicketPriority =
@@ -29,10 +30,7 @@ export interface Workspace {
   owner_id: number;
   name: string;
   description?: string | null;
-
-  // This is needed because your backend returns the current user's permission role
   role?: WorkspaceRole;
-
   owner?: PlanoraUser;
   members?: WorkspaceMember[];
   created_at?: string | null;

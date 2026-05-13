@@ -1,0 +1,372 @@
+.members-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(4px);
+}
+
+.members-modal {
+  width: min(100%, 900px);
+  max-height: 92vh;
+  border: 1px solid #d9e2ec;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.22);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.members-modal-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.breadcrumb {
+  margin: 0 0 8px;
+  color: #547a95;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.members-modal-header h2 {
+  margin: 0;
+  color: #172033;
+  font-size: 24px;
+  letter-spacing: -0.03em;
+}
+
+.members-modal-header p:not(.breadcrumb) {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.modal-close {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #d9e2ec;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  background: #f8fafc;
+}
+
+.permission-note,
+.add-member-panel,
+.members-list-section {
+  margin: 18px 22px 0;
+}
+
+.permission-note {
+  padding: 14px;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  background: #fffbeb;
+}
+
+.permission-note strong,
+.permission-note p {
+  color: #92400e;
+}
+
+.permission-note p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.add-member-panel {
+  padding: 16px;
+  border: 1px solid #d9e2ec;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.add-member-panel h3,
+.members-list-header h3 {
+  margin: 0;
+  color: #172033;
+  font-size: 18px;
+}
+
+.add-member-panel p,
+.members-list-header p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.add-member-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 160px auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 16px;
+}
+
+.form-group {
+  display: grid;
+  gap: 7px;
+}
+
+.form-group label {
+  color: #172033;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.form-group input,
+.form-group select,
+.member-role select {
+  width: 100%;
+  height: 40px;
+  border: 1px solid #d9e2ec;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #172033;
+  font-size: 14px;
+  outline: none;
+}
+
+.form-group input,
+.form-group select,
+.member-role select {
+  padding: 0 12px;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.member-role select:focus {
+  border-color: #547a95;
+  box-shadow: 0 0 0 3px rgba(84, 122, 149, 0.14);
+}
+
+.primary-btn,
+.secondary-btn,
+.danger-btn {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.primary-btn {
+  border: none;
+  background: #547a95;
+  color: #ffffff;
+}
+
+.primary-btn:hover:not(:disabled) {
+  background: #3f637c;
+}
+
+.secondary-btn {
+  border: 1px solid #d9e2ec;
+  background: #ffffff;
+  color: #172033;
+}
+
+.secondary-btn:hover {
+  background: #f8fafc;
+}
+
+.danger-btn {
+  border: 1px solid #fecaca;
+  background: #fff7f7;
+  color: #dc2626;
+}
+
+.danger-btn:hover:not(:disabled) {
+  background: #fee2e2;
+}
+
+.primary-btn:disabled,
+.secondary-btn:disabled,
+.danger-btn:disabled,
+.member-role select:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.modal-error,
+.modal-success {
+  margin: 14px 22px 0;
+  padding: 10px 12px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.modal-error {
+  border: 1px solid #fecaca;
+  background: #fff7f7;
+  color: #991b1b;
+}
+
+.modal-success {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.members-list-section {
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 18px;
+}
+
+.members-list-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.loading-card,
+.empty-state {
+  padding: 18px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 46px;
+  height: 46px;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #e7f0f6;
+  color: #3f637c;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.empty-state h3 {
+  margin: 0 0 6px;
+  color: #172033;
+  font-size: 17px;
+}
+
+.empty-state p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.members-list {
+  display: grid;
+  gap: 10px;
+}
+
+.member-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #d9e2ec;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.member-info {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.member-avatar {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #e7f0f6;
+  color: #3f637c;
+  font-weight: 900;
+}
+
+.member-info h4 {
+  margin: 0;
+  color: #172033;
+  font-size: 14px;
+}
+
+.member-info p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.owner-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #e7f0f6;
+  color: #3f637c;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.members-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 22px;
+  border-top: 1px solid #edf2f7;
+  background: #f8fafc;
+}
+
+@media (max-width: 760px) {
+  .add-member-form {
+    grid-template-columns: 1fr;
+  }
+
+  .member-card {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .member-role select,
+  .danger-btn {
+    width: 100%;
+  }
+
+  .members-list-header {
+    flex-direction: column;
+  }
+
+  .members-list-header .secondary-btn {
+    width: 100%;
+  }
+}

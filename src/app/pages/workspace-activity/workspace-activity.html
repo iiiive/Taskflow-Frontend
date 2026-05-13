@@ -19,8 +19,12 @@
       </div>
 
       <div class="header-actions">
+        <button type="button" class="secondary-btn" (click)="goBackToBacklog()">
+          Backlog
+        </button>
+
         <button type="button" class="secondary-btn" (click)="goBackToBoard()">
-          Back to Board
+          Board
         </button>
 
         <button type="button" class="secondary-btn" (click)="goBackToWorkspaces()">
@@ -48,8 +52,8 @@
       </article>
 
       <article class="stat-card">
-        <span>In Progress</span>
-        <strong>{{ inProgressCount }}</strong>
+        <span>Dev in Progress</span>
+        <strong>{{ devInProgressCount }}</strong>
       </article>
 
       <article class="stat-card">
@@ -89,29 +93,34 @@
           <h3>Workspace Progress</h3>
 
           <p>
-            This chart shows how many tickets are currently in Backlog, To Do,
-            In Progress, In Review, and Done.
+            This chart shows how many tickets are currently in To Do, Ready for Development,
+            Dev in Progress, Ready for Testing, Ready for UAT, and Done.
           </p>
 
           <div class="status-breakdown">
-            <div>
-              <span>Backlog</span>
-              <strong>{{ backlogCount }}</strong>
-            </div>
-
             <div>
               <span>To Do</span>
               <strong>{{ todoCount }}</strong>
             </div>
 
             <div>
-              <span>In Progress</span>
-              <strong>{{ inProgressCount }}</strong>
+              <span>Ready for Development</span>
+              <strong>{{ readyForDevelopmentCount }}</strong>
             </div>
 
             <div>
-              <span>In Review</span>
-              <strong>{{ inReviewCount }}</strong>
+              <span>Dev in Progress</span>
+              <strong>{{ devInProgressCount }}</strong>
+            </div>
+
+            <div>
+              <span>Ready for Testing</span>
+              <strong>{{ readyForTestingCount }}</strong>
+            </div>
+
+            <div>
+              <span>Ready for UAT</span>
+              <strong>{{ readyForUatCount }}</strong>
             </div>
 
             <div>

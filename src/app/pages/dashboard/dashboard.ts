@@ -18,10 +18,11 @@ import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
 Chart.register(...registerables);
 
 type TicketStatus =
-  | 'backlog'
   | 'todo'
-  | 'in_progress'
-  | 'in_review'
+  | 'ready_for_development'
+  | 'dev_in_progress'
+  | 'ready_for_testing'
+  | 'ready_for_uat'
   | 'done';
 
 type TicketPriority =
@@ -47,6 +48,12 @@ interface Ticket {
   due_date?: string | null;
   due_date_warning?: string | null;
   suggested_priority?: string | null;
+  assigned_to?: number | null;
+  assignee?: {
+    id: number;
+    name?: string | null;
+    email?: string | null;
+  } | null;
   created_at?: string | null;
   updated_at?: string | null;
 }
@@ -54,10 +61,11 @@ interface Ticket {
 interface WorkspaceDashboardItem extends Workspace {
   tickets: Ticket[];
   totalTickets: number;
-  backlogCount: number;
   todoCount: number;
-  inProgressCount: number;
-  inReviewCount: number;
+  readyForDevelopmentCount: number;
+  devInProgressCount: number;
+  readyForTestingCount: number;
+  readyForUatCount: number;
   doneCount: number;
   urgentCount: number;
   completionPercentage: number;
@@ -67,12 +75,19 @@ interface WorkspaceDashboardItem extends Workspace {
 interface DashboardTotals {
   total_workspaces: number;
   total_tickets: number;
-  backlog_tickets: number;
   todo_tickets: number;
-  in_progress_tickets: number;
-  in_review_tickets: number;
+  ready_for_development_tickets: number;
+  dev_in_progress_tickets: number;
+  ready_for_testing_tickets: number;
+  ready_for_uat_tickets: number;
   done_tickets: number;
   urgent_tickets: number;
+}
+
+interface NeedsAttentionTicket extends Ticket {
+  workspace_name: string;
+  reason: string;
+  reason_class: string;
 }
 
 @Component({
@@ -90,14 +105,16 @@ export class Dashboard implements OnInit {
 
   workspaces: Workspace[] = [];
   workspaceDashboards: WorkspaceDashboardItem[] = [];
+  needsAttentionTickets: NeedsAttentionTicket[] = [];
 
   totals: DashboardTotals = {
     total_workspaces: 0,
     total_tickets: 0,
-    backlog_tickets: 0,
     todo_tickets: 0,
-    in_progress_tickets: 0,
-    in_review_tickets: 0,
+    ready_for_development_tickets: 0,
+    dev_in_progress_tickets: 0,
+    ready_for_testing_tickets: 0,
+    ready_for_uat_tickets: 0,
     done_tickets: 0,
     urgent_tickets: 0,
   };
@@ -140,6 +157,7 @@ export class Dashboard implements OnInit {
     '#547A95',
     '#f59e0b',
     '#7c3aed',
+    '#0891b2',
     '#16a34a'
   ];
 
@@ -163,6 +181,7 @@ export class Dashboard implements OnInit {
 
         if (this.workspaces.length === 0) {
           this.workspaceDashboards = [];
+          this.needsAttentionTickets = [];
           this.recalculateTotals();
           this.loading = false;
           this.cdr.detectChanges();
@@ -187,6 +206,7 @@ export class Dashboard implements OnInit {
             });
 
             this.recalculateTotals();
+            this.buildNeedsAttentionTickets();
 
             this.loading = false;
             this.cdr.detectChanges();
@@ -220,10 +240,24 @@ export class Dashboard implements OnInit {
     workspace: Workspace,
     tickets: Ticket[]
   ): WorkspaceDashboardItem {
-    const backlogCount = tickets.filter(ticket => ticket.status === 'backlog').length;
     const todoCount = tickets.filter(ticket => ticket.status === 'todo').length;
-    const inProgressCount = tickets.filter(ticket => ticket.status === 'in_progress').length;
-    const inReviewCount = tickets.filter(ticket => ticket.status === 'in_review').length;
+
+    const readyForDevelopmentCount = tickets.filter(
+      ticket => ticket.status === 'ready_for_development'
+    ).length;
+
+    const devInProgressCount = tickets.filter(
+      ticket => ticket.status === 'dev_in_progress'
+    ).length;
+
+    const readyForTestingCount = tickets.filter(
+      ticket => ticket.status === 'ready_for_testing'
+    ).length;
+
+    const readyForUatCount = tickets.filter(
+      ticket => ticket.status === 'ready_for_uat'
+    ).length;
+
     const doneCount = tickets.filter(ticket => ticket.status === 'done').length;
     const urgentCount = tickets.filter(ticket => ticket.priority === 'urgent').length;
 
@@ -235,39 +269,50 @@ export class Dashboard implements OnInit {
       ...workspace,
       tickets,
       totalTickets,
-      backlogCount,
       todoCount,
-      inProgressCount,
-      inReviewCount,
+      readyForDevelopmentCount,
+      devInProgressCount,
+      readyForTestingCount,
+      readyForUatCount,
       doneCount,
       urgentCount,
       completionPercentage,
       chartData: this.buildTicketStatusChartData(
-        backlogCount,
         todoCount,
-        inProgressCount,
-        inReviewCount,
+        readyForDevelopmentCount,
+        devInProgressCount,
+        readyForTestingCount,
+        readyForUatCount,
         doneCount
       )
     };
   }
 
   buildTicketStatusChartData(
-    backlogCount: number,
     todoCount: number,
-    inProgressCount: number,
-    inReviewCount: number,
+    readyForDevelopmentCount: number,
+    devInProgressCount: number,
+    readyForTestingCount: number,
+    readyForUatCount: number,
     doneCount: number
   ): ChartData<'doughnut'> {
     return {
-      labels: ['Backlog', 'To Do', 'In Progress', 'In Review', 'Done'],
+      labels: [
+        'To Do',
+        'Ready for Development',
+        'Dev in Progress',
+        'Ready for Testing',
+        'Ready for UAT',
+        'Done'
+      ],
       datasets: [
         {
           data: [
-            backlogCount,
             todoCount,
-            inProgressCount,
-            inReviewCount,
+            readyForDevelopmentCount,
+            devInProgressCount,
+            readyForTestingCount,
+            readyForUatCount,
             doneCount
           ],
           backgroundColor: this.chartColors,
@@ -284,13 +329,97 @@ export class Dashboard implements OnInit {
     this.totals = {
       total_workspaces: this.workspaceDashboards.length,
       total_tickets: allTickets.length,
-      backlog_tickets: allTickets.filter(ticket => ticket.status === 'backlog').length,
       todo_tickets: allTickets.filter(ticket => ticket.status === 'todo').length,
-      in_progress_tickets: allTickets.filter(ticket => ticket.status === 'in_progress').length,
-      in_review_tickets: allTickets.filter(ticket => ticket.status === 'in_review').length,
+
+      ready_for_development_tickets: allTickets.filter(
+        ticket => ticket.status === 'ready_for_development'
+      ).length,
+
+      dev_in_progress_tickets: allTickets.filter(
+        ticket => ticket.status === 'dev_in_progress'
+      ).length,
+
+      ready_for_testing_tickets: allTickets.filter(
+        ticket => ticket.status === 'ready_for_testing'
+      ).length,
+
+      ready_for_uat_tickets: allTickets.filter(
+        ticket => ticket.status === 'ready_for_uat'
+      ).length,
+
       done_tickets: allTickets.filter(ticket => ticket.status === 'done').length,
       urgent_tickets: allTickets.filter(ticket => ticket.priority === 'urgent').length,
     };
+  }
+
+  buildNeedsAttentionTickets(): void {
+    const attentionTickets: NeedsAttentionTicket[] = [];
+
+    this.workspaceDashboards.forEach(workspace => {
+      workspace.tickets.forEach(ticket => {
+        const reason = this.getAttentionReason(ticket);
+
+        if (!reason) {
+          return;
+        }
+
+        attentionTickets.push({
+          ...ticket,
+          workspace_name: workspace.name,
+          reason: reason.label,
+          reason_class: reason.className
+        });
+      });
+    });
+
+    this.needsAttentionTickets = attentionTickets
+      .sort((a, b) => this.getAttentionWeight(a) - this.getAttentionWeight(b))
+      .slice(0, 8);
+  }
+
+  getAttentionReason(ticket: Ticket): { label: string; className: string } | null {
+    if (ticket.status === 'done') {
+      return null;
+    }
+
+    if (ticket.due_date_warning === 'overdue') {
+      return {
+        label: 'Overdue',
+        className: 'attention-overdue'
+      };
+    }
+
+    if (ticket.priority === 'urgent') {
+      return {
+        label: 'Urgent',
+        className: 'attention-urgent'
+      };
+    }
+
+    if (ticket.due_date_warning === 'due_soon') {
+      return {
+        label: 'Due Soon',
+        className: 'attention-due-soon'
+      };
+    }
+
+    if (!ticket.assigned_to && !ticket.assignee) {
+      return {
+        label: 'Unassigned',
+        className: 'attention-unassigned'
+      };
+    }
+
+    return null;
+  }
+
+  getAttentionWeight(ticket: NeedsAttentionTicket): number {
+    if (ticket.reason === 'Overdue') return 1;
+    if (ticket.reason === 'Urgent') return 2;
+    if (ticket.reason === 'Due Soon') return 3;
+    if (ticket.reason === 'Unassigned') return 4;
+
+    return 5;
   }
 
   extractWorkspaceArray(res: any): Workspace[] {
@@ -347,7 +476,7 @@ export class Dashboard implements OnInit {
 
   getRoleLabel(role: string | null | undefined): string {
     if (!role) {
-      return 'member';
+      return 'Member';
     }
 
     return role.charAt(0).toUpperCase() + role.slice(1);
@@ -361,8 +490,29 @@ export class Dashboard implements OnInit {
     return `${workspace.completionPercentage}% complete`;
   }
 
+  getStatusLabel(status: TicketStatus): string {
+    const labels: Record<TicketStatus, string> = {
+      todo: 'To Do / Backlog',
+      ready_for_development: 'Ready for Development',
+      dev_in_progress: 'Dev in Progress',
+      ready_for_testing: 'Ready for Testing',
+      ready_for_uat: 'Ready for UAT',
+      done: 'Done'
+    };
+
+    return labels[status] || status;
+  }
+
+  getPriorityLabel(priority: TicketPriority): string {
+    return priority.charAt(0).toUpperCase() + priority.slice(1);
+  }
+
   openWorkspaceBoard(workspaceId: number): void {
     this.router.navigate(['/workspaces', workspaceId, 'board']);
+  }
+
+  openWorkspaceBacklog(workspaceId: number): void {
+    this.router.navigate(['/workspaces', workspaceId, 'backlog']);
   }
 
   openWorkspaceActivity(workspaceId: number): void {

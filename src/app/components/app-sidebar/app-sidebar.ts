@@ -14,6 +14,7 @@ export class AppSidebar implements OnInit {
   @Input() activePage:
     | 'dashboard'
     | 'workspaces'
+    | 'backlog'
     | 'board'
     | 'activity'
     | '' = '';
