@@ -1,0 +1,622 @@
+<div class="board-page">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">P</div>
+
+      <div>
+        <h2>Planora</h2>
+        <p>Project Workspace</p>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a routerLink="/dashboard">
+        <span>▦</span>
+        Dashboard
+      </a>
+
+      <a routerLink="/workspaces" class="active">
+        <span>□</span>
+        Workspaces
+      </a>
+
+      <a>
+        <span>◷</span>
+        Activity
+      </a>
+    </nav>
+
+    <div class="sidebar-user">
+      <p>Signed in as</p>
+      <strong>{{ userName }}</strong>
+
+      <button type="button" (click)="logout()">
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <main class="board-main">
+    <header class="page-header">
+      <div>
+        <p class="breadcrumb">Workspace Board</p>
+
+        <h1>
+          {{ loadingWorkspace ? 'Loading workspace...' : workspace?.name }}
+        </h1>
+
+        <p class="header-text">
+          {{ workspace?.description || 'Manage tickets using a Kanban workflow.' }}
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" class="secondary-btn" (click)="goBackToWorkspaces()">
+          Back
+        </button>
+
+        <button
+          type="button"
+          class="primary-btn"
+          (click)="openCreateModal()"
+          *ngIf="canEditTicket()"
+        >
+          + New Ticket
+        </button>
+      </div>
+    </header>
+
+    <section class="status-card error-card" *ngIf="errorMessage && !showCreateModal">
+      <p>{{ errorMessage }}</p>
+    </section>
+
+    <section class="status-card success-card" *ngIf="successMessage">
+      <p>{{ successMessage }}</p>
+    </section>
+
+    <section class="status-card viewer-card" *ngIf="!canEditTicket() && !loadingWorkspace">
+      <p>You have viewer access. You can view tickets and comments, but editing is disabled.</p>
+    </section>
+
+    <section class="toolbar">
+      <div class="search-box">
+        <label>Search</label>
+        <input
+          type="text"
+          name="search"
+          [(ngModel)]="search"
+          placeholder="Search tickets..."
+          (input)="loadTickets()"
+        />
+      </div>
+
+      <div class="filter-box">
+        <label>Status</label>
+        <select
+          name="status"
+          [(ngModel)]="selectedStatus"
+          (change)="loadTickets()"
+        >
+          <option value="">All Statuses</option>
+          <option value="backlog">Backlog</option>
+          <option value="todo">To Do</option>
+          <option value="in_progress">In Progress</option>
+          <option value="in_review">In Review</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+
+      <div class="filter-box">
+        <label>Priority</label>
+        <select
+          name="priority"
+          [(ngModel)]="selectedPriority"
+          (change)="loadTickets()"
+        >
+          <option value="">All Priorities</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="urgent">Urgent</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="status-card loading-card" *ngIf="loadingTickets">
+      <p>Loading tickets...</p>
+    </section>
+
+    <section class="kanban-board" *ngIf="!loadingTickets">
+      <article
+        class="kanban-column"
+        *ngFor="let column of columns"
+        [class.backlog-column]="column.value === 'backlog'"
+        (dragover)="canEditTicket() ? onDragOver($event) : null"
+        (drop)="canEditTicket() ? onDrop(column.value) : null"
+      >
+        <header class="column-header">
+          <div>
+            <h2>{{ column.label }}</h2>
+            <p>
+              {{ column.description }} · {{ getTicketsByStatus(column.value).length }} tickets
+            </p>
+          </div>
+
+          <button
+            type="button"
+            (click)="openCreateModal(column.value)"
+            *ngIf="canEditTicket()"
+          >
+            +
+          </button>
+        </header>
+
+        <div
+          class="empty-column"
+          *ngIf="getTicketsByStatus(column.value).length === 0"
+        >
+          No tickets in this column.
+        </div>
+
+        <article
+          class="ticket-card"
+          *ngFor="let ticket of getTicketsByStatus(column.value)"
+          [attr.draggable]="canEditTicket() ? true : false"
+          (click)="openTicketDetails(ticket)"
+          (dragstart)="canEditTicket() ? onDragStart(ticket) : null"
+          (dragend)="canEditTicket() ? onDragEnd() : null"
+        >
+          <div class="ticket-top">
+            <h3 [title]="ticket.title">
+              {{ ticket.title }}
+            </h3>
+
+            <span class="priority-badge" [ngClass]="getPriorityClass(ticket.priority)">
+              {{ ticket.priority }}
+            </span>
+          </div>
+
+          <p class="ticket-description">
+            {{ ticket.description || 'No description provided.' }}
+          </p>
+
+          <div class="ticket-meta">
+            <span *ngIf="ticket.due_date">
+              Due: {{ ticket.due_date }}
+            </span>
+
+            <span
+              class="warning"
+              *ngIf="ticket.due_date_warning && ticket.due_date_warning !== 'none'"
+            >
+              {{ ticket.due_date_warning }}
+            </span>
+          </div>
+
+          <div class="suggestion" *ngIf="ticket.suggested_priority">
+            Suggested: {{ ticket.suggested_priority }}
+          </div>
+
+          <div class="ticket-actions" (click)="$event.stopPropagation()" *ngIf="canEditTicket()">
+            <select
+              [ngModel]="ticket.status"
+              (ngModelChange)="changeTicketStatus(ticket, $event)"
+              name="status-{{ ticket.id }}"
+            >
+              <option value="backlog">Backlog</option>
+              <option value="todo">To Do</option>
+              <option value="in_progress">In Progress</option>
+              <option value="in_review">In Review</option>
+              <option value="done">Done</option>
+            </select>
+
+            <button type="button" (click)="deleteTicket(ticket)">
+              Delete
+            </button>
+          </div>
+        </article>
+      </article>
+    </section>
+  </main>
+</div>
+
+<div class="modal-backdrop" *ngIf="showCreateModal" (click)="closeCreateModal()">
+  <section class="ticket-modal" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <div>
+        <p class="breadcrumb">New Ticket</p>
+        <h2>Create Ticket</h2>
+        <p>
+          Add a task to this workspace board.
+        </p>
+      </div>
+
+      <button type="button" class="modal-close" (click)="closeCreateModal()">
+        ×
+      </button>
+    </header>
+
+    <form (ngSubmit)="createTicket()" class="modal-form">
+      <div class="form-group">
+        <label>Title</label>
+        <input
+          type="text"
+          name="title"
+          [(ngModel)]="newTicket.title"
+          placeholder="Example: Build workspace board"
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <textarea
+          name="description"
+          [(ngModel)]="newTicket.description"
+          placeholder="Describe the ticket..."
+        ></textarea>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Status</label>
+          <select name="newStatus" [(ngModel)]="newTicket.status">
+            <option value="backlog">Backlog</option>
+            <option value="todo">To Do</option>
+            <option value="in_progress">In Progress</option>
+            <option value="in_review">In Review</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Priority</label>
+          <select name="newPriority" [(ngModel)]="newTicket.priority">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Assignee</label>
+        <select name="newAssignee" [(ngModel)]="newTicket.assigned_to">
+          <option [ngValue]="null">Unassigned</option>
+
+          <option
+            *ngFor="let member of workspaceMembers"
+            [ngValue]="member.user?.id || member.user_id"
+          >
+            {{ member.user?.name || member.user?.email || ('User #' + member.user_id) }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Due Date</label>
+        <input
+          type="date"
+          name="dueDate"
+          [(ngModel)]="newTicket.due_date"
+        />
+      </div>
+
+      <p class="modal-error" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </p>
+
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeCreateModal()">
+          Cancel
+        </button>
+
+        <button type="submit" class="primary-btn" [disabled]="creating">
+          {{ creating ? 'Creating...' : 'Create Ticket' }}
+        </button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<div
+  class="modal-backdrop"
+  *ngIf="showTicketDetailsModal && selectedTicket"
+  (click)="closeTicketDetails()"
+>
+  <section class="ticket-details-modal" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <div>
+        <p class="breadcrumb">Ticket Details</p>
+
+        <h2 *ngIf="!editingTicket">{{ selectedTicket.title }}</h2>
+
+        <input
+          *ngIf="editingTicket"
+          class="details-title-input"
+          type="text"
+          name="editTitle"
+          [(ngModel)]="editTicketData.title"
+        />
+
+        <p>
+          {{ editingTicket ? 'Edit ticket information.' : 'Full information about this ticket.' }}
+        </p>
+      </div>
+
+      <button type="button" class="modal-close" (click)="closeTicketDetails()">
+        ×
+      </button>
+    </header>
+
+    <div class="ticket-details-body">
+      <section class="details-main">
+        <div class="details-section">
+          <h3>Description</h3>
+
+          <p class="details-description" *ngIf="!editingTicket">
+            {{ selectedTicket.description || 'No description provided.' }}
+          </p>
+
+          <textarea
+            *ngIf="editingTicket"
+            class="details-textarea"
+            name="editDescription"
+            [(ngModel)]="editTicketData.description"
+            placeholder="Describe the ticket..."
+          ></textarea>
+        </div>
+
+        <div class="details-section">
+          <h3>Ticket Timeline</h3>
+
+          <div class="timeline-list">
+            <div class="timeline-item">
+              <span>Created</span>
+              <strong>{{ getDisplayValue(selectedTicket.created_at) }}</strong>
+            </div>
+
+            <div class="timeline-item">
+              <span>Last Updated</span>
+              <strong>{{ getDisplayValue(selectedTicket.updated_at) }}</strong>
+            </div>
+
+            <div class="timeline-item">
+              <span>Due Date</span>
+
+              <strong *ngIf="!editingTicket">
+                {{ getDisplayValue(selectedTicket.due_date) }}
+              </strong>
+
+              <input
+                *ngIf="editingTicket"
+                type="date"
+                name="editDueDate"
+                [(ngModel)]="editTicketData.due_date"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="details-section comments-section">
+          <h3>Comments</h3>
+
+          <div class="comment-box" *ngIf="canCommentTicket()">
+            <textarea
+              name="commentText"
+              [(ngModel)]="commentText"
+              placeholder="Write a comment..."
+            ></textarea>
+
+            <div class="comment-actions">
+              <button
+                type="button"
+                class="primary-btn"
+                [disabled]="sendingComment"
+                (click)="addTicketComment()"
+              >
+                {{ sendingComment ? 'Posting...' : 'Post Comment' }}
+              </button>
+            </div>
+          </div>
+
+          <p class="viewer-note inline-note" *ngIf="!canCommentTicket()">
+            You can view comments, but your permission does not allow commenting.
+          </p>
+
+          <div class="comments-loading" *ngIf="loadingComments">
+            Loading comments...
+          </div>
+
+          <div
+            class="empty-comments"
+            *ngIf="!loadingComments && ticketComments.length === 0"
+          >
+            No comments yet.
+          </div>
+
+          <div class="comments-list" *ngIf="!loadingComments && ticketComments.length > 0">
+            <article class="comment-item" *ngFor="let comment of ticketComments">
+              <div class="comment-avatar">
+                {{ getCommentAuthor(comment).charAt(0).toUpperCase() }}
+              </div>
+
+              <div class="comment-content">
+                <div class="comment-header">
+                  <strong>{{ getCommentAuthor(comment) }}</strong>
+                  <span>{{ getDisplayValue(comment.created_at) }}</span>
+                </div>
+
+                <p>{{ comment.comment }}</p>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div class="details-section activity-section">
+  <h3>Activity Logs</h3>
+
+  <div class="activity-loading" *ngIf="loadingActivityLogs">
+    Loading activity logs...
+  </div>
+
+  <p class="modal-error" *ngIf="activityLogError">
+    {{ activityLogError }}
+  </p>
+
+  <div
+    class="empty-activity"
+    *ngIf="!loadingActivityLogs && ticketActivityLogs.length === 0"
+  >
+    No activity yet.
+  </div>
+
+  <div
+    class="activity-list"
+    *ngIf="!loadingActivityLogs && ticketActivityLogs.length > 0"
+  >
+    <article class="activity-item" *ngFor="let log of ticketActivityLogs">
+      <div class="activity-dot"></div>
+
+      <div class="activity-content">
+        <p>{{ log.description }}</p>
+        <span>{{ getDisplayValue(log.created_at) }}</span>
+      </div>
+    </article>
+  </div>
+</div>
+      </section>
+
+      <aside class="details-sidebar">
+        <div class="details-field">
+          <span>Status</span>
+
+          <strong *ngIf="!editingTicket">
+            {{ formatStatus(selectedTicket.status) }}
+          </strong>
+
+          <select
+            *ngIf="editingTicket"
+            name="editStatus"
+            [(ngModel)]="editTicketData.status"
+          >
+            <option value="backlog">Backlog</option>
+            <option value="todo">To Do</option>
+            <option value="in_progress">In Progress</option>
+            <option value="in_review">In Review</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+
+        <div class="details-field">
+          <span>Priority</span>
+
+          <strong
+            *ngIf="!editingTicket"
+            class="details-priority"
+            [ngClass]="getPriorityClass(selectedTicket.priority)"
+          >
+            {{ formatPriority(selectedTicket.priority) }}
+          </strong>
+
+          <select
+            *ngIf="editingTicket"
+            name="editPriority"
+            [(ngModel)]="editTicketData.priority"
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        </div>
+
+        <div class="details-field">
+          <span>Assignee</span>
+
+          <strong *ngIf="!editingTicket">
+            {{ getPersonName(selectedTicket.assignee) }}
+          </strong>
+
+          <select
+            *ngIf="editingTicket"
+            name="editAssignee"
+            [(ngModel)]="editTicketData.assigned_to"
+          >
+            <option [ngValue]="null">Unassigned</option>
+
+            <option
+              *ngFor="let member of workspaceMembers"
+              [ngValue]="member.user?.id || member.user_id"
+            >
+              {{ member.user?.name || member.user?.email || ('User #' + member.user_id) }}
+            </option>
+          </select>
+        </div>
+
+        <div class="details-field">
+          <span>Due Date Warning</span>
+          <strong>{{ getDisplayValue(selectedTicket.due_date_warning) }}</strong>
+        </div>
+
+        <div class="details-field">
+          <span>Suggested Priority</span>
+          <strong>{{ getDisplayValue(selectedTicket.suggested_priority) }}</strong>
+        </div>
+
+        <div class="details-field">
+          <span>Creator</span>
+          <strong>{{ getPersonName(selectedTicket.creator) }}</strong>
+        </div>
+
+        <div class="details-field">
+          <span>Ticket ID</span>
+          <strong>#{{ selectedTicket.id }}</strong>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="details-footer">
+      <p class="viewer-note" *ngIf="!canEditTicket()">
+        You have viewer access. Editing is disabled.
+      </p>
+
+      <button
+        type="button"
+        class="secondary-btn"
+        *ngIf="!editingTicket"
+        (click)="closeTicketDetails()"
+      >
+        Close
+      </button>
+
+      <button
+        type="button"
+        class="primary-btn"
+        *ngIf="!editingTicket && canEditTicket()"
+        (click)="startEditingTicket()"
+      >
+        Edit Ticket
+      </button>
+
+      <button
+        type="button"
+        class="secondary-btn"
+        *ngIf="editingTicket"
+        (click)="cancelEditingTicket()"
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        class="primary-btn"
+        *ngIf="editingTicket"
+        [disabled]="savingTicket"
+        (click)="saveTicketChanges()"
+      >
+        {{ savingTicket ? 'Saving...' : 'Save Changes' }}
+      </button>
+    </footer>
+  </section>
+</div>

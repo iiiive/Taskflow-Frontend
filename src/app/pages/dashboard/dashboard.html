@@ -1,1 +1,278 @@
-<p>dashboard works!</p>
+<div class="dashboard-page">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">P</div>
+
+      <div>
+        <h2>Planora</h2>
+        <p>Project Workspace</p>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+    <a routerLink="/dashboard" class="active">
+        <span>▦</span>
+        Dashboard
+    </a>
+
+    <div class="nav-dropdown">
+  <button type="button" class="nav-dropdown-trigger" (click)="goToWorkspaces()">
+    <span class="nav-icon">□</span>
+
+    <span class="nav-label">Workspaces</span>
+
+    <span
+      class="chevron"
+      [class.open]="sidebarWorkspacesOpen"
+      (click)="toggleWorkspaceDropdown($event)"
+    >
+      ▾
+    </span>
+  </button>
+
+  <div class="workspace-dropdown" *ngIf="sidebarWorkspacesOpen">
+    <p class="workspace-loading" *ngIf="loadingWorkspaces">
+      Loading spaces...
+    </p>
+
+    <p class="workspace-empty" *ngIf="!loadingWorkspaces && workspaces.length === 0">
+      No workspaces yet
+    </p>
+
+    <button
+      type="button"
+      class="workspace-link workspace-item"
+      *ngFor="let workspace of workspaces"
+      (click)="openWorkspaceBoard(workspace.id)"
+    >
+      <span class="workspace-dot">
+        {{ workspace.name.charAt(0).toUpperCase() }}
+      </span>
+
+      <span class="workspace-name" [title]="workspace.name">
+        {{ workspace.name }}
+      </span>
+    </button>
+  </div>
+</div>
+
+    <a>
+        <span>◷</span>
+        Activity
+    </a>
+    </nav>
+
+    <div class="sidebar-user">
+      <p>Signed in as</p>
+      <strong>{{ userName }}</strong>
+
+      <button type="button" (click)="logout()">
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <header class="page-header">
+      <div>
+        <p class="breadcrumb">Dashboard</p>
+        <h1>Overview</h1>
+        <p class="header-text">
+          Monitor your workspaces, tickets, and project status from one place.
+        </p>
+      </div>
+
+      <button type="button" class="primary-btn" routerLink="/workspaces">
+        View Workspaces
+      </button>
+    </header>
+
+    <section class="alert-card loading-card" *ngIf="loading">
+      <p>Loading dashboard data...</p>
+    </section>
+
+    <section class="alert-card error-card" *ngIf="errorMessage && !loading">
+      <div>
+        <strong>Unable to load dashboard</strong>
+        <p>{{ errorMessage }}</p>
+      </div>
+
+      <button type="button" (click)="loadDashboard()">
+        Retry
+      </button>
+    </section>
+
+    <section class="stats-grid" *ngIf="!loading && !errorMessage">
+      <article class="stat-card">
+        <p>Total Workspaces</p>
+
+        <div>
+          <h2>{{ stats.total_workspaces }}</h2>
+          <span>Spaces</span>
+        </div>
+      </article>
+
+      <article class="stat-card">
+        <p>Total Tickets</p>
+
+        <div>
+          <h2>{{ stats.total_tickets }}</h2>
+          <span>All tickets</span>
+        </div>
+      </article>
+
+      <article class="stat-card">
+        <p>Open Tickets</p>
+
+        <div>
+          <h2>{{ stats.open_tickets }}</h2>
+          <span>Needs action</span>
+        </div>
+      </article>
+
+      <article class="stat-card">
+        <p>In Progress</p>
+
+        <div>
+          <h2>{{ stats.in_progress_tickets }}</h2>
+          <span>Currently active</span>
+        </div>
+      </article>
+
+      <article class="stat-card">
+        <p>Completed</p>
+
+        <div>
+          <h2>{{ stats.done_tickets }}</h2>
+          <span>Finished work</span>
+        </div>
+      </article>
+
+      <article class="stat-card urgent">
+        <p>Urgent Tickets</p>
+
+        <div>
+          <h2>{{ stats.urgent_tickets }}</h2>
+          <span>High priority</span>
+        </div>
+      </article>
+    </section>
+
+    <section class="content-grid" *ngIf="!loading && !errorMessage">
+      <article class="panel-card chart-card">
+        <div class="panel-header">
+          <div>
+            <h3>Ticket Status Overview</h3>
+            <p>Visual breakdown of your current ticket workflow.</p>
+          </div>
+        </div>
+
+        <div class="bar-chart">
+          <div class="bar-row">
+            <div class="bar-info">
+              <strong>Open</strong>
+              <span>{{ stats.open_tickets }} tickets</span>
+            </div>
+
+            <div class="bar-track">
+              <div
+                class="bar-fill open"
+                [style.width.%]="getStatusPercentage(stats.open_tickets)"
+              ></div>
+            </div>
+
+            <p>{{ getStatusPercentage(stats.open_tickets) }}%</p>
+          </div>
+
+          <div class="bar-row">
+            <div class="bar-info">
+              <strong>In Progress</strong>
+              <span>{{ stats.in_progress_tickets }} tickets</span>
+            </div>
+
+            <div class="bar-track">
+              <div
+                class="bar-fill progress"
+                [style.width.%]="getStatusPercentage(stats.in_progress_tickets)"
+              ></div>
+            </div>
+
+            <p>{{ getStatusPercentage(stats.in_progress_tickets) }}%</p>
+          </div>
+
+          <div class="bar-row">
+            <div class="bar-info">
+              <strong>Done</strong>
+              <span>{{ stats.done_tickets }} tickets</span>
+            </div>
+
+            <div class="bar-track">
+              <div
+                class="bar-fill done"
+                [style.width.%]="getStatusPercentage(stats.done_tickets)"
+              ></div>
+            </div>
+
+            <p>{{ getStatusPercentage(stats.done_tickets) }}%</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel-card chart-side-card">
+        <div class="panel-header">
+          <div>
+            <h3>Completion Rate</h3>
+            <p>Finished tickets compared to active workflow tickets.</p>
+          </div>
+        </div>
+
+        <div
+          class="donut-chart"
+          [style.--progress]="getCompletionPercentage()"
+        >
+          <div class="donut-center">
+            <strong>{{ getCompletionPercentage() }}%</strong>
+            <span>Done</span>
+          </div>
+        </div>
+
+        <div class="chart-note">
+          <strong>{{ stats.done_tickets }}</strong>
+          <span>completed out of {{ getTotalTrackedTickets() }} tracked tickets</span>
+        </div>
+      </article>
+
+      <article class="panel-card urgent-chart-card">
+        <div class="panel-header">
+          <div>
+            <h3>Urgency Level</h3>
+            <p>Urgent tickets compared to all tickets.</p>
+          </div>
+        </div>
+
+        <div class="urgent-meter">
+          <div class="urgent-meter-header">
+            <span>Urgent workload</span>
+            <strong>{{ getUrgentPercentage() }}%</strong>
+          </div>
+
+          <div class="urgent-track">
+            <div
+              class="urgent-fill"
+              [style.width.%]="getUrgentPercentage()"
+            ></div>
+          </div>
+
+          <p>
+            {{ stats.urgent_tickets }} urgent ticket/s out of
+            {{ stats.total_tickets }} total ticket/s.
+          </p>
+        </div>
+
+        <button type="button" routerLink="/workspaces">
+          Review Workspaces
+        </button>
+      </article>
+    </section>
+  </main>
+</div>
