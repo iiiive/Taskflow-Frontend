@@ -44,6 +44,14 @@ export const routes: Routes = [
   },
 
   {
+  path: 'workspaces/:id/activity',
+  loadComponent: () =>
+    import('./pages/workspace-activity/workspace-activity').then(
+      m => m.WorkspaceActivity
+    )
+  },
+
+  {
     path: '**',
     redirectTo: 'login'
   }

@@ -1,0 +1,206 @@
+<div class="activity-page">
+  <app-sidebar
+    activePage="activity"
+    [workspaceId]="workspaceId"
+  ></app-sidebar>
+
+  <main class="activity-main">
+    <header class="page-header">
+      <div>
+        <p class="breadcrumb">Workspace Activity</p>
+
+        <h1>
+          {{ loadingWorkspace ? 'Loading workspace...' : workspace?.name }}
+        </h1>
+
+        <p class="header-text">
+          Track ticket progress and recent workspace activity.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" class="secondary-btn" (click)="goBackToBoard()">
+          Back to Board
+        </button>
+
+        <button type="button" class="secondary-btn" (click)="goBackToWorkspaces()">
+          Workspaces
+        </button>
+      </div>
+    </header>
+
+    <section class="status-card error-card" *ngIf="errorMessage">
+      <p>{{ errorMessage }}</p>
+    </section>
+
+    <section
+      class="activity-stats"
+      *ngIf="!loadingTickets && tickets.length > 0"
+    >
+      <article class="stat-card">
+        <span>Total Tickets</span>
+        <strong>{{ totalTickets }}</strong>
+      </article>
+
+      <article class="stat-card">
+        <span>To Do</span>
+        <strong>{{ todoCount }}</strong>
+      </article>
+
+      <article class="stat-card">
+        <span>In Progress</span>
+        <strong>{{ inProgressCount }}</strong>
+      </article>
+
+      <article class="stat-card">
+        <span>Done</span>
+        <strong>{{ doneCount }}</strong>
+      </article>
+    </section>
+
+    <section
+      class="chart-panel"
+      *ngIf="!loadingTickets && tickets.length > 0"
+    >
+      <div class="chart-header">
+        <div>
+          <h2>Ticket Progress</h2>
+          <p>
+            Visual summary of tickets by current status inside this workspace.
+          </p>
+        </div>
+
+        <button type="button" class="refresh-btn" (click)="loadWorkspaceTickets()">
+          Refresh
+        </button>
+      </div>
+
+      <div class="chart-layout">
+        <div class="chart-box">
+          <canvas
+            baseChart
+            [type]="ticketStatusChartType"
+            [data]="ticketStatusChartData"
+            [options]="ticketStatusChartOptions"
+          ></canvas>
+        </div>
+
+        <div class="chart-note">
+          <h3>Workspace Progress</h3>
+
+          <p>
+            This chart shows how many tickets are currently in Backlog, To Do,
+            In Progress, In Review, and Done.
+          </p>
+
+          <div class="status-breakdown">
+            <div>
+              <span>Backlog</span>
+              <strong>{{ backlogCount }}</strong>
+            </div>
+
+            <div>
+              <span>To Do</span>
+              <strong>{{ todoCount }}</strong>
+            </div>
+
+            <div>
+              <span>In Progress</span>
+              <strong>{{ inProgressCount }}</strong>
+            </div>
+
+            <div>
+              <span>In Review</span>
+              <strong>{{ inReviewCount }}</strong>
+            </div>
+
+            <div>
+              <span>Done</span>
+              <strong>{{ doneCount }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section
+      class="empty-state"
+      *ngIf="!loadingTickets && tickets.length === 0"
+    >
+      <div class="empty-icon">▤</div>
+
+      <h3>No tickets yet</h3>
+
+      <p>
+        Once tickets are created in this workspace, progress charts will appear here.
+      </p>
+    </section>
+
+    <section class="activity-panel">
+      <div class="activity-panel-header">
+        <div>
+          <h2>Recent Activity</h2>
+          <p>
+            Ticket updates, comments, attachments, and workspace actions will appear here.
+          </p>
+        </div>
+
+        <button type="button" class="refresh-btn" (click)="loadWorkspaceActivity()">
+          Refresh
+        </button>
+      </div>
+
+      <div class="loading-card" *ngIf="loadingActivity">
+        Loading activity...
+      </div>
+
+      <div class="empty-state" *ngIf="!loadingActivity && activityLogs.length === 0">
+        <div class="empty-icon">◷</div>
+
+        <h3>No activity yet</h3>
+
+        <p>
+          Once tickets are created or updated, the activity history will appear here.
+        </p>
+      </div>
+
+      <div class="activity-timeline" *ngIf="!loadingActivity && activityLogs.length > 0">
+        <article class="activity-item" *ngFor="let log of activityLogs">
+          <div class="activity-dot" [ngClass]="getActionClass(log.action)">
+            ◦
+          </div>
+
+          <div class="activity-card">
+            <div class="activity-card-top">
+              <span class="action-badge" [ngClass]="getActionClass(log.action)">
+                {{ getActionLabel(log.action) }}
+              </span>
+
+              <span class="activity-date">
+                {{ getDisplayValue(log.created_at) }}
+              </span>
+            </div>
+
+            <p class="activity-description">
+              {{ log.description }}
+            </p>
+
+            <div class="activity-meta">
+              <span *ngIf="log.user">
+                By {{ log.user.name || log.user.email }}
+              </span>
+
+              <span *ngIf="log.ticket">
+                Ticket: {{ log.ticket.title }}
+              </span>
+
+              <span *ngIf="log.ticket_id && !log.ticket">
+                Ticket #{{ log.ticket_id }}
+              </span>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+</div>

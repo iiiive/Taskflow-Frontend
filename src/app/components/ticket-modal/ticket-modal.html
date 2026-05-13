@@ -1,0 +1,394 @@
+<div class="modal-backdrop" (click)="close()">
+  <section class="ticket-details-modal" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <div>
+        <p class="breadcrumb">Ticket Details</p>
+
+        <h2 *ngIf="!editingTicket">{{ ticket?.title }}</h2>
+
+        <input
+          *ngIf="editingTicket"
+          class="details-title-input"
+          type="text"
+          name="editTitle"
+          [(ngModel)]="editTicketData.title"
+        />
+
+        <p>
+          {{ editingTicket ? 'Edit ticket information.' : 'Full information about this ticket.' }}
+        </p>
+      </div>
+
+      <button type="button" class="modal-close" (click)="close()">
+        ×
+      </button>
+    </header>
+
+    <div class="ticket-details-body">
+      <section class="details-main">
+        <!-- DESCRIPTION -->
+        <div class="details-section">
+          <h3>Description</h3>
+
+          <div
+            class="details-description rich-description"
+            *ngIf="!editingTicket && ticket?.description"
+            [innerHTML]="ticket?.description || ''"
+          ></div>
+
+          <p class="details-description" *ngIf="!editingTicket && !ticket?.description">
+            No description provided.
+          </p>
+
+         <editor
+  *ngIf="editingTicket"
+  licenseKey="gpl"
+  class="description-editor"
+  name="editDescription"
+  [(ngModel)]="editTicketData.description"
+  [init]="editorConfig"
+></editor>
+        </div>
+
+        <!-- TIMELINE -->
+        <div class="details-section">
+          <h3>Ticket Timeline</h3>
+
+          <div class="timeline-list">
+            <div class="timeline-item">
+              <span>Created</span>
+              <strong>{{ getDisplayValue(ticket?.created_at) }}</strong>
+            </div>
+
+            <div class="timeline-item">
+              <span>Last Updated</span>
+              <strong>{{ getDisplayValue(ticket?.updated_at) }}</strong>
+            </div>
+
+            <div class="timeline-item">
+              <span>Due Date</span>
+
+              <strong *ngIf="!editingTicket">
+                {{ getDisplayValue(ticket?.due_date) }}
+              </strong>
+
+              <input
+                *ngIf="editingTicket"
+                type="date"
+                name="editDueDate"
+                [(ngModel)]="editTicketData.due_date"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- COMMENTS -->
+        <div class="details-section comments-section">
+          <h3>Comments</h3>
+
+          <div class="comment-box" *ngIf="canComment">
+            <textarea
+              name="commentText"
+              [(ngModel)]="commentText"
+              placeholder="Write a comment..."
+            ></textarea>
+
+            <div class="comment-actions">
+              <button
+                type="button"
+                class="primary-btn"
+                [disabled]="sendingComment"
+                (click)="addTicketComment()"
+              >
+                {{ sendingComment ? 'Posting...' : 'Post Comment' }}
+              </button>
+            </div>
+          </div>
+
+          <p class="viewer-note inline-note" *ngIf="!canComment">
+            You can view comments, but your permission does not allow commenting.
+          </p>
+
+          <div class="comments-loading" *ngIf="loadingComments">
+            Loading comments...
+          </div>
+
+          <div
+            class="empty-comments"
+            *ngIf="!loadingComments && ticketComments.length === 0"
+          >
+            No comments yet.
+          </div>
+
+          <div class="comments-list" *ngIf="!loadingComments && ticketComments.length > 0">
+            <article class="comment-item" *ngFor="let comment of ticketComments">
+              <div class="comment-avatar">
+                {{ getCommentAuthor(comment).charAt(0).toUpperCase() }}
+              </div>
+
+              <div class="comment-content">
+                <div class="comment-header">
+                  <strong>{{ getCommentAuthor(comment) }}</strong>
+                  <span>{{ getDisplayValue(comment.created_at) }}</span>
+                </div>
+
+                <p>{{ comment.comment }}</p>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <!-- ATTACHMENTS -->
+        <div class="details-section attachments-section">
+          <h3>Attachments</h3>
+
+          <div class="attachment-upload" *ngIf="canEdit">
+            <input
+              #attachmentInput
+              type="file"
+              (change)="onAttachmentSelected($event)"
+            />
+
+            <button
+              type="button"
+              class="primary-btn"
+              [disabled]="uploadingAttachment"
+              (click)="uploadAttachment(attachmentInput)"
+            >
+              {{ uploadingAttachment ? 'Uploading...' : 'Upload' }}
+            </button>
+          </div>
+
+          <p class="viewer-note inline-note" *ngIf="!canEdit">
+            You can view attachments, but your permission does not allow uploading.
+          </p>
+
+          <p class="modal-error" *ngIf="attachmentError">
+            {{ attachmentError }}
+          </p>
+
+          <div class="attachments-loading" *ngIf="loadingAttachments">
+            Loading attachments...
+          </div>
+
+          <div
+            class="empty-attachments"
+            *ngIf="!loadingAttachments && ticketAttachments.length === 0"
+          >
+            No attachments yet.
+          </div>
+
+          <div
+            class="attachments-list"
+            *ngIf="!loadingAttachments && ticketAttachments.length > 0"
+          >
+            <article class="attachment-item" *ngFor="let attachment of ticketAttachments">
+              <div class="attachment-icon">
+                📎
+              </div>
+
+              <div class="attachment-info">
+                <a
+                  [href]="attachment.file_url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ attachment.file_name }}
+                </a>
+
+                <span>
+                  Uploaded by {{ attachment.user?.name || 'Unknown User' }}
+                  · {{ getDisplayValue(attachment.created_at) }}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                class="attachment-delete"
+                *ngIf="canEdit"
+                (click)="deleteAttachment(attachment)"
+              >
+                Delete
+              </button>
+            </article>
+          </div>
+        </div>
+
+        <!-- ACTIVITY LOGS -->
+        <div class="details-section activity-section">
+          <h3>Activity Logs</h3>
+
+          <div class="activity-loading" *ngIf="loadingActivityLogs">
+            Loading activity logs...
+          </div>
+
+          <p class="modal-error" *ngIf="activityLogError">
+            {{ activityLogError }}
+          </p>
+
+          <div
+            class="empty-activity"
+            *ngIf="!loadingActivityLogs && ticketActivityLogs.length === 0"
+          >
+            No activity yet.
+          </div>
+
+          <div
+            class="activity-list"
+            *ngIf="!loadingActivityLogs && ticketActivityLogs.length > 0"
+          >
+            <article class="activity-item" *ngFor="let log of ticketActivityLogs">
+              <div class="activity-dot"></div>
+
+              <div class="activity-content">
+                <p>{{ log.description }}</p>
+                <span>{{ getDisplayValue(log.created_at) }}</span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- SIDEBAR -->
+      <aside class="details-sidebar">
+        <div class="details-field">
+          <span>Status</span>
+
+          <strong *ngIf="!editingTicket">
+            {{ formatStatus(ticket?.status) }}
+          </strong>
+
+          <select
+            *ngIf="editingTicket"
+            name="editStatus"
+            [(ngModel)]="editTicketData.status"
+          >
+            <option value="backlog">Backlog</option>
+            <option value="todo">To Do</option>
+            <option value="in_progress">In Progress</option>
+            <option value="in_review">In Review</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+
+        <div class="details-field">
+          <span>Priority</span>
+
+          <strong
+            *ngIf="!editingTicket"
+            class="details-priority"
+            [ngClass]="getPriorityClass(ticket?.priority)"
+          >
+            {{ formatPriority(ticket?.priority) }}
+          </strong>
+
+          <select
+            *ngIf="editingTicket"
+            name="editPriority"
+            [(ngModel)]="editTicketData.priority"
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        </div>
+
+        <div class="details-field">
+          <span>Assignee</span>
+
+          <strong *ngIf="!editingTicket">
+            {{ getPersonName(ticket?.assignee) }}
+          </strong>
+
+          <select
+            *ngIf="editingTicket"
+            name="editAssignee"
+            [(ngModel)]="editTicketData.assigned_to"
+          >
+            <option [ngValue]="null">Unassigned</option>
+
+            <option
+              *ngFor="let member of workspaceMembers"
+              [ngValue]="member.user?.id || member.user_id"
+            >
+              {{ member.user?.name || member.user?.email || ('User #' + member.user_id) }}
+            </option>
+          </select>
+        </div>
+
+        <div class="details-field">
+          <span>Due Date Warning</span>
+          <strong>{{ getDisplayValue(ticket?.due_date_warning) }}</strong>
+        </div>
+
+        <div class="details-field">
+          <span>Suggested Priority</span>
+          <strong>{{ getDisplayValue(ticket?.suggested_priority) }}</strong>
+        </div>
+
+        <div class="details-field">
+          <span>Creator</span>
+          <strong>{{ getPersonName(ticket?.creator) }}</strong>
+        </div>
+
+        <div class="details-field">
+          <span>Ticket ID</span>
+          <strong>#{{ ticket?.id }}</strong>
+        </div>
+      </aside>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="details-footer">
+      <p class="viewer-note" *ngIf="!canEdit">
+        You have viewer access. Editing is disabled.
+      </p>
+
+      <p class="modal-error" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </p>
+
+      <p class="modal-success" *ngIf="successMessage">
+        {{ successMessage }}
+      </p>
+
+      <button
+        type="button"
+        class="secondary-btn"
+        *ngIf="!editingTicket"
+        (click)="close()"
+      >
+        Close
+      </button>
+
+      <button
+        type="button"
+        class="primary-btn"
+        *ngIf="!editingTicket && canEdit"
+        (click)="startEditingTicket()"
+      >
+        Edit Ticket
+      </button>
+
+      <button
+        type="button"
+        class="secondary-btn"
+        *ngIf="editingTicket"
+        (click)="cancelEditingTicket()"
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        class="primary-btn"
+        *ngIf="editingTicket"
+        [disabled]="savingTicket"
+        (click)="saveTicketChanges()"
+      >
+        {{ savingTicket ? 'Saving...' : 'Save Changes' }}
+      </button>
+    </footer>
+  </section>
+</div>

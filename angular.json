@@ -25,13 +25,19 @@
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
-              {
-                "glob": "**/*",
-                "input": "public"
-              }
-            ],
+  {
+    "glob": "**/*",
+    "input": "public"
+  },
+  {
+    "glob": "**/*",
+    "input": "node_modules/tinymce",
+    "output": "/tinymce/"
+  }
+],
             "styles": [
-              "src/styles.scss"
+              "src/styles.scss",
+              "node_modules/quill/dist/quill.snow.css"
             ]
           },
           "configurations": {

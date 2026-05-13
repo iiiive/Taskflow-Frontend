@@ -1,0 +1,55 @@
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-mark">P</div>
+
+    <div>
+      <h2>Planora</h2>
+      <p>Project Workspace</p>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a
+      routerLink="/dashboard"
+      [class.active]="activePage === 'dashboard'"
+    >
+      <span>▦</span>
+      Dashboard
+    </a>
+
+    <a
+      routerLink="/workspaces"
+      [class.active]="activePage === 'workspaces'"
+    >
+      <span>□</span>
+      Workspaces
+    </a>
+
+    <a
+      *ngIf="workspaceId"
+      [routerLink]="['/workspaces', workspaceId, 'board']"
+      [class.active]="activePage === 'board'"
+    >
+      <span>▤</span>
+      Board
+    </a>
+
+    <a
+      *ngIf="workspaceId"
+      [routerLink]="['/workspaces', workspaceId, 'activity']"
+      [class.active]="activePage === 'activity'"
+    >
+      <span>◷</span>
+      Activity
+    </a>
+  </nav>
+
+  <div class="sidebar-user">
+    <p>Signed in as</p>
+    <strong>{{ userName }}</strong>
+
+    <button type="button" (click)="logout()">
+      Logout
+    </button>
+  </div>
+</aside>
