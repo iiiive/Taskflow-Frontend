@@ -69,7 +69,6 @@ interface WorkspaceDashboardItem extends Workspace {
   doneCount: number;
   urgentCount: number;
   completionPercentage: number;
-  chartData: ChartData<'doughnut'>;
 }
 
 interface DashboardTotals {
@@ -126,6 +125,9 @@ export class Dashboard implements OnInit {
   notificationError = '';
   notifications: DashboardNotification[] = [];
 
+  selectedWorkspaceChartId: number | null = null;
+  selectedWorkspaceChart: WorkspaceDashboardItem | null = null;
+
   totals: DashboardTotals = {
     total_workspaces: 0,
     total_tickets: 0,
@@ -138,47 +140,74 @@ export class Dashboard implements OnInit {
     urgent_tickets: 0,
   };
 
-  chartType: 'doughnut' = 'doughnut';
+  workspaceBarChartType: 'bar' = 'bar';
 
-  chartOptions: ChartConfiguration<'doughnut'>['options'] = {
+  workspaceBarChartData: ChartData<'bar'> = {
+    labels: [
+      'Backlog / To Do',
+      'Ready for Dev',
+      'Dev in Progress',
+      'Ready for Testing',
+      'Ready for UAT',
+      'Done'
+    ],
+    datasets: []
+  };
+
+  workspaceBarChartOptions: ChartConfiguration<'bar'>['options'] = {
     responsive: true,
     maintainAspectRatio: false,
-    cutout: '62%',
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: {
-          boxWidth: 12,
-          boxHeight: 12,
-          padding: 14,
-          color: '#475569',
+    scales: {
+      x: {
+        grid: {
+          display: false
+        },
+        ticks: {
+          color: '#42546f',
           font: {
             size: 12,
             weight: 'bold'
           }
         }
       },
+      y: {
+        beginAtZero: true,
+        ticks: {
+          precision: 0,
+          color: '#7a8798',
+          font: {
+            size: 11,
+            weight: 'bold'
+          }
+        },
+        grid: {
+          color: 'rgba(84, 122, 149, 0.12)'
+        }
+      }
+    },
+    plugins: {
+      legend: {
+        display: false
+      },
       tooltip: {
         callbacks: {
           label: (context) => {
-            const label = context.label || 'Status';
-            const value = context.parsed || 0;
-
-            return `${label}: ${value}`;
+            const value = context.parsed.y || 0;
+            return `Tickets: ${value}`;
           }
         }
       }
     }
   };
 
-  private chartColors = [
-    '#94a3b8',
-    '#547A95',
-    '#f59e0b',
-    '#7c3aed',
-    '#0891b2',
-    '#16a34a'
-  ];
+  private monochromePalette = {
+    todo: '#dbe7ef',
+    readyForDevelopment: '#b9ccd9',
+    devInProgress: '#8faabd',
+    readyForTesting: '#6f8ea5',
+    readyForUat: '#547a95',
+    done: '#18394f'
+  };
 
   constructor(
     private http: HttpClient,
@@ -214,6 +243,7 @@ export class Dashboard implements OnInit {
           this.workspaceDashboards = [];
           this.needsAttentionTickets = [];
           this.recalculateTotals();
+          this.buildWorkspaceBarChart();
           this.loading = false;
           this.cdr.detectChanges();
           return;
@@ -240,6 +270,7 @@ export class Dashboard implements OnInit {
 
             this.recalculateTotals();
             this.buildNeedsAttentionTickets();
+            this.buildWorkspaceBarChart();
 
             this.loading = false;
             this.cdr.detectChanges();
@@ -374,29 +405,44 @@ export class Dashboard implements OnInit {
       doneCount,
       urgentCount,
       completionPercentage,
-      chartData: this.buildTicketStatusChartData(
-        todoCount,
-        readyForDevelopmentCount,
-        devInProgressCount,
-        readyForTestingCount,
-        readyForUatCount,
-        doneCount
-      )
     };
   }
 
-  buildTicketStatusChartData(
-    todoCount: number,
-    readyForDevelopmentCount: number,
-    devInProgressCount: number,
-    readyForTestingCount: number,
-    readyForUatCount: number,
-    doneCount: number
-  ): ChartData<'doughnut'> {
-    return {
+  buildWorkspaceBarChart(): void {
+    if (this.workspaceDashboards.length === 0) {
+      this.selectedWorkspaceChartId = null;
+      this.selectedWorkspaceChart = null;
+
+      this.workspaceBarChartData = {
+        labels: [
+          'Backlog / To Do',
+          'Ready for Dev',
+          'Dev in Progress',
+          'Ready for Testing',
+          'Ready for UAT',
+          'Done'
+        ],
+        datasets: []
+      };
+
+      return;
+    }
+
+    if (!this.selectedWorkspaceChartId) {
+      this.selectedWorkspaceChartId = this.workspaceDashboards[0].id;
+    }
+
+    const selectedWorkspace = this.workspaceDashboards.find(
+      workspace => workspace.id === Number(this.selectedWorkspaceChartId)
+    );
+
+    this.selectedWorkspaceChart = selectedWorkspace || this.workspaceDashboards[0];
+    this.selectedWorkspaceChartId = this.selectedWorkspaceChart.id;
+
+    this.workspaceBarChartData = {
       labels: [
-        'To Do',
-        'Ready for Development',
+        'Backlog / To Do',
+        'Ready for Dev',
         'Dev in Progress',
         'Ready for Testing',
         'Ready for UAT',
@@ -404,20 +450,37 @@ export class Dashboard implements OnInit {
       ],
       datasets: [
         {
+          label: this.selectedWorkspaceChart.name,
           data: [
-            todoCount,
-            readyForDevelopmentCount,
-            devInProgressCount,
-            readyForTestingCount,
-            readyForUatCount,
-            doneCount
+            this.selectedWorkspaceChart.todoCount,
+            this.selectedWorkspaceChart.readyForDevelopmentCount,
+            this.selectedWorkspaceChart.devInProgressCount,
+            this.selectedWorkspaceChart.readyForTestingCount,
+            this.selectedWorkspaceChart.readyForUatCount,
+            this.selectedWorkspaceChart.doneCount
           ],
-          backgroundColor: this.chartColors,
+          backgroundColor: [
+            this.monochromePalette.todo,
+            this.monochromePalette.readyForDevelopment,
+            this.monochromePalette.devInProgress,
+            this.monochromePalette.readyForTesting,
+            this.monochromePalette.readyForUat,
+            this.monochromePalette.done
+          ],
           borderColor: '#ffffff',
-          borderWidth: 3
+          borderWidth: 2,
+          borderRadius: 12,
+          borderSkipped: false
         }
       ]
     };
+  }
+
+  onWorkspaceChartChange(event: Event): void {
+    const selectElement = event.target as HTMLSelectElement;
+
+    this.selectedWorkspaceChartId = Number(selectElement.value);
+    this.buildWorkspaceBarChart();
   }
 
   recalculateTotals(): void {
@@ -471,7 +534,7 @@ export class Dashboard implements OnInit {
 
     this.needsAttentionTickets = attentionTickets
       .sort((a, b) => this.getAttentionWeight(a) - this.getAttentionWeight(b))
-      .slice(0, 8);
+      .slice(0, 5);
   }
 
   getAttentionReason(ticket: Ticket): { label: string; className: string } | null {

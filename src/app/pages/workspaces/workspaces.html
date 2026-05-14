@@ -1,46 +1,13 @@
 <div class="workspaces-page">
-  <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-mark">P</div>
-
-      <div>
-        <h2>Planora</h2>
-        <p>Project Workspace</p>
-      </div>
-    </div>
-
-    <nav class="sidebar-nav">
-      <a routerLink="/dashboard">
-        <span>▦</span>
-        Dashboard
-      </a>
-
-      <a routerLink="/workspaces" class="active">
-        <span>□</span>
-        Workspaces
-      </a>
-
-      <a>
-        <span>◷</span>
-        Activity
-      </a>
-    </nav>
-
-    <div class="sidebar-user">
-      <p>Signed in as</p>
-      <strong>{{ userName }}</strong>
-
-      <button type="button" (click)="logout()">
-        Logout
-      </button>
-    </div>
-  </aside>
+  <app-sidebar activePage="workspaces"></app-sidebar>
 
   <main class="workspaces-main">
     <header class="page-header">
       <div>
         <p class="breadcrumb">Workspaces</p>
+
         <h1>Workspace Center</h1>
+
         <p class="header-text">
           Create project spaces, manage access, and open boards for ticket tracking.
         </p>
@@ -51,6 +18,7 @@
         class="create-icon-btn"
         (click)="openCreateModal()"
         title="Create workspace"
+        aria-label="Create workspace"
       >
         +
       </button>
@@ -60,11 +28,17 @@
       <p>Loading workspaces...</p>
     </section>
 
-    <section class="status-card error-card" *ngIf="errorMessage && !loading && !showCreateModal">
+    <section
+      class="status-card error-card"
+      *ngIf="errorMessage && !loading && !showCreateModal"
+    >
       <p>{{ errorMessage }}</p>
     </section>
 
-    <section class="status-card success-card" *ngIf="successMessage && !loading">
+    <section
+      class="status-card success-card"
+      *ngIf="successMessage && !loading"
+    >
       <p>{{ successMessage }}</p>
     </section>
 
@@ -72,6 +46,7 @@
       <div class="list-header">
         <div>
           <h2>All Workspaces</h2>
+
           <p>
             Open a workspace to access its board and tickets.
           </p>
@@ -89,7 +64,11 @@
           Create your first workspace to start organizing tickets and team tasks.
         </p>
 
-        <button type="button" class="empty-create-btn" (click)="openCreateModal()">
+        <button
+          type="button"
+          class="empty-create-btn"
+          (click)="openCreateModal()"
+        >
           Create Workspace
         </button>
       </div>
@@ -105,10 +84,10 @@
         <article class="workspace-row" *ngFor="let workspace of workspaces">
           <div class="workspace-info">
             <div class="workspace-icon">
-              {{ workspace.name.charAt(0).toUpperCase() }}
+              {{ getWorkspaceInitial(workspace) }}
             </div>
 
-            <div>
+            <div class="workspace-copy">
               <h3 [title]="workspace.name">
                 {{ workspace.name }}
               </h3>
@@ -119,14 +98,14 @@
             </div>
           </div>
 
-          <div>
+          <div class="role-cell">
             <span class="role-badge" [class.no-role]="!workspace.role">
               {{ workspace.role || 'member' }}
             </span>
           </div>
 
           <div class="created-date">
-            {{ workspace.created_at || '—' }}
+            {{ formatDate(workspace.created_at) }}
           </div>
 
           <div class="row-actions">
@@ -152,18 +131,29 @@
   </main>
 </div>
 
-<div class="modal-backdrop" *ngIf="showCreateModal" (click)="closeCreateModal()">
+<div
+  class="modal-backdrop"
+  *ngIf="showCreateModal"
+  (click)="closeCreateModal()"
+>
   <section class="workspace-modal" (click)="$event.stopPropagation()">
     <header class="modal-header">
       <div>
         <p class="breadcrumb">New Workspace</p>
+
         <h2>Create Workspace</h2>
+
         <p>
           Add a new project space where tickets, members, and activity will be organized.
         </p>
       </div>
 
-      <button type="button" class="modal-close" (click)="closeCreateModal()">
+      <button
+        type="button"
+        class="modal-close"
+        (click)="closeCreateModal()"
+        aria-label="Close modal"
+      >
         ×
       </button>
     </header>
@@ -178,6 +168,7 @@
           name="name"
           [(ngModel)]="name"
           placeholder="Example: Planora Development"
+          autocomplete="off"
         />
       </div>
 
@@ -197,11 +188,19 @@
       </p>
 
       <div class="modal-actions">
-        <button type="button" class="cancel-btn" (click)="closeCreateModal()">
+        <button
+          type="button"
+          class="cancel-btn"
+          (click)="closeCreateModal()"
+        >
           Cancel
         </button>
 
-        <button type="submit" class="primary-btn" [disabled]="creating">
+        <button
+          type="submit"
+          class="primary-btn"
+          [disabled]="creating"
+        >
           {{ creating ? 'Creating...' : 'Create Workspace' }}
         </button>
       </div>

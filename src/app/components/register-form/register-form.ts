@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { finalize, timeout } from 'rxjs';
@@ -21,20 +21,27 @@ export class RegisterForm {
   toastMessage = '';
   toastType: 'success' | 'error' = 'error';
   loading = false;
+  submitted = false;
 
   readonly maxNameLength = 80;
+  readonly minPasswordLength = 8;
 
   private toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private auth: Auth,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef,
+    private zone: NgZone
   ) {}
 
   Register(): void {
     if (this.loading) {
       return;
     }
+
+    this.submitted = true;
+    this.toastMessage = '';
 
     const cleanedName = this.normalizeNameValue(this.name);
     const cleanedEmail = this.normalizeEmailValue(this.email);
@@ -67,8 +74,8 @@ export class RegisterForm {
       return;
     }
 
-    if (this.password.length < 8) {
-      this.showToast('Password must be at least 8 characters.', 'error');
+    if (this.password.length < this.minPasswordLength) {
+      this.showToast(`Password must be at least ${this.minPasswordLength} characters.`, 'error');
       return;
     }
 
@@ -83,6 +90,7 @@ export class RegisterForm {
     }
 
     this.loading = true;
+    this.forceRefresh();
 
     const data = {
       name: cleanedName,
@@ -95,60 +103,72 @@ export class RegisterForm {
       .pipe(
         timeout(15000),
         finalize(() => {
-          this.loading = false;
+          this.zone.run(() => {
+            this.loading = false;
+            this.forceRefresh();
+          });
         })
       )
       .subscribe({
         next: () => {
-          localStorage.removeItem('planora_token');
-          localStorage.removeItem('token');
-          sessionStorage.removeItem('planora_token');
-          sessionStorage.removeItem('token');
+          this.zone.run(() => {
+            localStorage.removeItem('planora_token');
+            localStorage.removeItem('token');
+            sessionStorage.removeItem('planora_token');
+            sessionStorage.removeItem('token');
 
-          this.showToast('Account created successfully. You can now sign in.', 'success');
+            this.showToast('Account created successfully. You can now sign in.', 'success');
 
-          setTimeout(() => {
-            this.router.navigate(['/login'], { replaceUrl: true });
-          }, 700);
+            setTimeout(() => {
+              this.router.navigate(['/login'], { replaceUrl: true });
+            }, 700);
+          });
         },
 
         error: (err) => {
-          if (err?.name === 'TimeoutError') {
-            this.showToast('Registration request timed out. Please check if your Laravel backend is running.', 'error');
-            return;
-          }
+          this.zone.run(() => {
+            if (err?.name === 'TimeoutError') {
+              this.showToast('Registration request timed out. Please check if your Laravel backend is running.', 'error');
+              return;
+            }
 
-          const backendErrors = err?.error?.errors;
+            const backendErrors = err?.error?.errors;
 
-          if (backendErrors?.email?.[0]) {
-            this.showToast(backendErrors.email[0], 'error');
-            return;
-          }
+            if (backendErrors?.email?.[0]) {
+              this.showToast(backendErrors.email[0], 'error');
+              return;
+            }
 
-          if (backendErrors?.name?.[0]) {
-            this.showToast(backendErrors.name[0], 'error');
-            return;
-          }
+            if (backendErrors?.name?.[0]) {
+              this.showToast(backendErrors.name[0], 'error');
+              return;
+            }
 
-          if (backendErrors?.password?.[0]) {
-            this.showToast(backendErrors.password[0], 'error');
-            return;
-          }
+            if (backendErrors?.password?.[0]) {
+              this.showToast(backendErrors.password[0], 'error');
+              return;
+            }
 
-          if (backendErrors) {
-            const firstKey = Object.keys(backendErrors)[0];
-            const firstMessage = backendErrors[firstKey]?.[0];
+            if (backendErrors) {
+              const firstKey = Object.keys(backendErrors)[0];
+              const firstMessage = backendErrors[firstKey]?.[0];
 
-            this.showToast(firstMessage || 'Registration failed. Please check your details.', 'error');
-            return;
-          }
+              this.showToast(firstMessage || 'Registration failed. Please check your details.', 'error');
+              return;
+            }
 
-          this.showToast(
-            err?.error?.message ||
-              err?.message ||
-              'Registration failed. Please check if your backend API is running.',
-            'error'
-          );
+            if (err?.status === 422) {
+              this.showToast('Registration failed. Please check your details.', 'error');
+              return;
+            }
+
+            this.showToast(
+              err?.error?.message ||
+                err?.message ||
+                'Registration failed. Please check if your backend API is running.',
+              'error'
+            );
+          });
         },
       });
   }
@@ -161,6 +181,21 @@ export class RegisterForm {
     this.email = this.normalizeEmailValue(this.email);
   }
 
+  clearToastOnEdit(): void {
+    /*
+     * Do not clear while loading.
+     * This prevents the same delayed-error behavior from login.
+     */
+    if (this.loading) {
+      return;
+    }
+
+    if (this.toastMessage && this.toastType === 'error') {
+      this.toastMessage = '';
+      this.forceRefresh();
+    }
+  }
+
   dismissToast(): void {
     this.toastMessage = '';
 
@@ -168,10 +203,44 @@ export class RegisterForm {
       clearTimeout(this.toastTimeout);
       this.toastTimeout = null;
     }
+
+    this.forceRefresh();
   }
 
   loginWithGoogle(): void {
     window.location.href = this.auth.getGoogleRedirectUrl();
+  }
+
+  shouldShowNameRequired(): boolean {
+    return this.submitted && !this.name.trim();
+  }
+
+  shouldShowNameMaxLength(): boolean {
+    return this.submitted && this.name.trim().length > this.maxNameLength;
+  }
+
+  shouldShowEmailRequired(): boolean {
+    return this.submitted && !this.email.trim();
+  }
+
+  shouldShowEmailInvalid(): boolean {
+    return this.submitted && !!this.email.trim() && !this.isValidEmail(this.email.trim());
+  }
+
+  shouldShowPasswordRequired(): boolean {
+    return this.submitted && !this.password;
+  }
+
+  shouldShowPasswordMinLength(): boolean {
+    return this.submitted && !!this.password && this.password.length < this.minPasswordLength;
+  }
+
+  shouldShowConfirmPasswordRequired(): boolean {
+    return this.submitted && !this.passwordConfirmation;
+  }
+
+  shouldShowPasswordMismatch(): boolean {
+    return this.submitted && !!this.password && !!this.passwordConfirmation && this.password !== this.passwordConfirmation;
   }
 
   private normalizeNameValue(value: string): string {
@@ -194,9 +263,20 @@ export class RegisterForm {
       clearTimeout(this.toastTimeout);
     }
 
-    this.toastTimeout = setTimeout(() => {
-      this.toastMessage = '';
-      this.toastTimeout = null;
-    }, 4500);
+    this.forceRefresh();
+
+    if (type === 'error') {
+      this.toastTimeout = setTimeout(() => {
+        this.zone.run(() => {
+          this.toastMessage = '';
+          this.toastTimeout = null;
+          this.forceRefresh();
+        });
+      }, 5000);
+    }
+  }
+
+  private forceRefresh(): void {
+    this.cdr.detectChanges();
   }
 }

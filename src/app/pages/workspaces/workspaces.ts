@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
 
 interface Workspace {
   id: number;
@@ -10,19 +11,18 @@ interface Workspace {
   name: string;
   description?: string | null;
   role?: 'owner' | 'editor' | 'viewer';
-  created_at?: string;
-  updated_at?: string;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 @Component({
   selector: 'app-workspaces',
-  imports: [CommonModule, FormsModule, RouterLink],
+  standalone: true,
+  imports: [CommonModule, FormsModule, AppSidebar],
   templateUrl: './workspaces.html',
   styleUrl: './workspaces.scss',
 })
 export class Workspaces implements OnInit {
-  userName = 'User';
-
   workspaces: Workspace[] = [];
 
   name = '';
@@ -44,36 +44,17 @@ export class Workspaces implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.loadUser();
     this.loadWorkspaces();
-  }
-
-  loadUser(): void {
-    const storedUser = localStorage.getItem('planora_user');
-
-    if (!storedUser) {
-      this.userName = 'User';
-      return;
-    }
-
-    try {
-      const user = JSON.parse(storedUser);
-      this.userName = user?.name || 'User';
-    } catch {
-      this.userName = 'User';
-    }
   }
 
   loadWorkspaces(): void {
     this.loading = true;
     this.errorMessage = '';
+    this.successMessage = '';
 
     this.http.get<any>(`${this.apiUrl}/workspaces`).subscribe({
       next: (res) => {
-        console.log('Workspaces API response:', res);
-
         this.workspaces = this.extractWorkspaceArray(res);
-
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -86,21 +67,11 @@ export class Workspaces implements OnInit {
           'Unable to load workspaces. Please try again.';
 
         this.cdr.detectChanges();
-      }
+      },
     });
   }
 
   extractWorkspaceArray(res: any): Workspace[] {
-    /*
-      Why this exists:
-      Laravel can return resource collections in different response shapes.
-
-      Examples:
-      { data: [...] }
-      { data: { data: [...] } }
-      [...]
-    */
-
     if (Array.isArray(res)) {
       return res;
     }
@@ -138,7 +109,10 @@ export class Workspaces implements OnInit {
   }
 
   createWorkspace(): void {
-    if (!this.name.trim()) {
+    const cleanedName = this.name.trim();
+    const cleanedDescription = this.description.trim();
+
+    if (!cleanedName) {
       this.errorMessage = 'Workspace name is required.';
       this.successMessage = '';
       this.cdr.detectChanges();
@@ -150,8 +124,8 @@ export class Workspaces implements OnInit {
     this.successMessage = '';
 
     const payload = {
-      name: this.name.trim(),
-      description: this.description.trim()
+      name: cleanedName,
+      description: cleanedDescription,
     };
 
     this.http.post<any>(`${this.apiUrl}/workspaces`, payload).subscribe({
@@ -175,10 +149,11 @@ export class Workspaces implements OnInit {
         this.creating = false;
         this.errorMessage =
           err?.error?.message ||
+          err?.error?.errors?.name?.[0] ||
           'Unable to create workspace. Please check your input.';
 
         this.cdr.detectChanges();
-      }
+      },
     });
   }
 
@@ -215,26 +190,29 @@ export class Workspaces implements OnInit {
           'Unable to delete workspace. You may not have permission.';
 
         this.cdr.detectChanges();
-      }
-    });
-  }
-
-  logout(): void {
-    this.http.post(`${this.apiUrl}/logout`, {}).subscribe({
-      next: () => {
-        this.clearSession();
       },
-      error: () => {
-        this.clearSession();
-      }
     });
   }
 
-  clearSession(): void {
-    localStorage.removeItem('token');
-    localStorage.removeItem('planora_token');
-    localStorage.removeItem('planora_user');
+  getWorkspaceInitial(workspace: Workspace): string {
+    return workspace.name ? workspace.name.charAt(0).toUpperCase() : 'W';
+  }
 
-    this.router.navigate(['/login']);
+  formatDate(value?: string | null): string {
+    if (!value) {
+      return '-';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleDateString('en-PH', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+    });
   }
 }

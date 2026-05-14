@@ -1,64 +1,95 @@
-<aside class="sidebar">
+<aside class="sidebar" [class.collapsed]="isCollapsed">
   <div class="sidebar-brand">
-    <div class="brand-mark">P</div>
+    <button
+      type="button"
+      class="brand-logo-button"
+      [class.logo-clickable]="isCollapsed"
+      (click)="isCollapsed ? expandSidebar() : null"
+      [attr.aria-label]="isCollapsed ? 'Open sidebar' : 'Planora home'"
+      title="Planora"
+    >
+      <div class="brand-mark">P</div>
+    </button>
 
-    <div>
+    <div class="brand-text">
       <h2>Planora</h2>
       <p>Project Workspace</p>
     </div>
+
+    <button
+      type="button"
+      class="sidebar-menu-button"
+      (click)="collapseSidebar()"
+      aria-label="Hide sidebar"
+      title="Hide sidebar"
+    >
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
   </div>
 
   <nav class="sidebar-nav">
     <a
       routerLink="/dashboard"
       [class.active]="activePage === 'dashboard'"
+      title="Dashboard"
     >
       <span>▦</span>
-      Dashboard
+      <strong>Dashboard</strong>
     </a>
 
     <a
       routerLink="/workspaces"
       [class.active]="activePage === 'workspaces'"
+      title="Workspaces"
     >
       <span>□</span>
-      Workspaces
+      <strong>Workspaces</strong>
     </a>
 
     <a
       routerLink="/profile"
       [class.active]="activePage === 'profile'"
+      title="Profile"
     >
       <span>◉</span>
-      Profile
+      <strong>Profile</strong>
     </a>
 
-    <a
-      *ngIf="workspaceId"
-      [routerLink]="['/workspaces', workspaceId, 'backlog']"
-      [class.active]="activePage === 'backlog'"
+    <div
+      class="workspace-nav-group"
+      *ngIf="hasSelectedWorkspace()"
     >
-      <span>☰</span>
-      Backlog
-    </a>
+      <p class="sidebar-section-label">Selected Workspace</p>
 
-    <a
-      *ngIf="workspaceId"
-      [routerLink]="['/workspaces', workspaceId, 'board']"
-      [class.active]="activePage === 'board'"
-    >
-      <span>▤</span>
-      Board
-    </a>
+      <a
+        [routerLink]="['/workspaces', getSelectedWorkspaceId(), 'backlog']"
+        [class.active]="activePage === 'backlog'"
+        title="Backlog"
+      >
+        <span>☰</span>
+        <strong>Backlog</strong>
+      </a>
 
-    <a
-      *ngIf="workspaceId"
-      [routerLink]="['/workspaces', workspaceId, 'activity']"
-      [class.active]="activePage === 'activity'"
-    >
-      <span>◷</span>
-      Activity
-    </a>
+      <a
+        [routerLink]="['/workspaces', getSelectedWorkspaceId(), 'board']"
+        [class.active]="activePage === 'board'"
+        title="Board"
+      >
+        <span>▤</span>
+        <strong>Board</strong>
+      </a>
+
+      <a
+        [routerLink]="['/workspaces', getSelectedWorkspaceId(), 'activity']"
+        [class.active]="activePage === 'activity'"
+        title="Activity"
+      >
+        <span>◷</span>
+        <strong>Activity</strong>
+      </a>
+    </div>
   </nav>
 
   <div class="sidebar-user">

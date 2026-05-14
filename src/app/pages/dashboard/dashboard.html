@@ -20,14 +20,26 @@
           (click)="toggleNotifications()"
           aria-label="Open notifications"
         >
-          <span>◷</span>
+          <span class="notification-symbol">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M15 17H9M18 10.8C18 7.46 15.76 5 12 5C8.24 5 6 7.46 6 10.8C6 14.64 4.5 15.5 4.5 16.5C4.5 17.05 4.95 17.5 5.5 17.5H18.5C19.05 17.5 19.5 17.05 19.5 16.5C19.5 15.5 18 14.64 18 10.8Z"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M10 19C10.36 19.6 11.02 20 12 20C12.98 20 13.64 19.6 14 19"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              />
+            </svg>
+          </span>
 
           <strong *ngIf="notifications.length > 0">
             {{ notifications.length > 9 ? '9+' : notifications.length }}
           </strong>
         </button>
-
-        
       </div>
     </header>
 
@@ -103,49 +115,103 @@
     </section>
 
     <section
-      class="needs-attention-card"
+      class="dashboard-content-grid"
       *ngIf="!loading && !errorMessage && workspaceDashboards.length > 0"
     >
-      <header class="section-header">
-        <div>
-          <p class="breadcrumb">Needs Attention</p>
-          <h2>Tickets that may need action</h2>
-          <span>
-            Overdue, urgent, due soon, and unassigned tickets are shown here.
-          </span>
-        </div>
-      </header>
-
-      <div class="attention-empty" *ngIf="needsAttentionTickets.length === 0">
-        <strong>Everything looks stable.</strong>
-        <p>No overdue, urgent, due soon, or unassigned active tickets right now.</p>
-      </div>
-
-      <div class="attention-list" *ngIf="needsAttentionTickets.length > 0">
-        <article
-          class="attention-item"
-          *ngFor="let ticket of needsAttentionTickets"
-          (click)="ticket.status === 'todo' ? openWorkspaceBacklog(ticket.workspace_id) : openWorkspaceBoard(ticket.workspace_id)"
-        >
+      <section class="needs-attention-card">
+        <header class="section-header compact-header">
           <div>
-            <span class="attention-badge" [ngClass]="ticket.reason_class">
-              {{ ticket.reason }}
+            <p class="breadcrumb">Needs Attention</p>
+            <h2>Tickets that may need action</h2>
+            <span>
+              Showing only the 5 most important tickets.
             </span>
+          </div>
+        </header>
 
-            <h3>{{ ticket.title }}</h3>
+        <div class="attention-empty" *ngIf="needsAttentionTickets.length === 0">
+          <strong>Everything looks stable.</strong>
+          <p>No overdue, urgent, due soon, or unassigned active tickets right now.</p>
+        </div>
 
-            <p>
-              {{ ticket.workspace_name }} ·
-              {{ getStatusLabel(ticket.status) }} ·
-              {{ getPriorityLabel(ticket.priority) }}
-            </p>
+        <div class="attention-list" *ngIf="needsAttentionTickets.length > 0">
+          <article
+            class="attention-item"
+            *ngFor="let ticket of needsAttentionTickets"
+            (click)="ticket.status === 'todo' ? openWorkspaceBacklog(ticket.workspace_id) : openWorkspaceBoard(ticket.workspace_id)"
+          >
+            <div>
+              <span class="attention-badge" [ngClass]="ticket.reason_class">
+                {{ ticket.reason }}
+              </span>
+
+              <h3>{{ ticket.title }}</h3>
+
+              <p>
+                {{ ticket.workspace_name }} ·
+                {{ getStatusLabel(ticket.status) }} ·
+                {{ getPriorityLabel(ticket.priority) }}
+              </p>
+            </div>
+
+            <button type="button" class="secondary-btn">
+              Open
+            </button>
+          </article>
+        </div>
+      </section>
+
+      <section class="workspace-bar-card">
+        <header class="section-header compact-header chart-header">
+          <div>
+            <p class="breadcrumb">Workspace Progress</p>
+            <h2>Tickets by status</h2>
+            <span>
+              Select a workspace to view its ticket status breakdown.
+            </span>
           </div>
 
-          <button type="button" class="secondary-btn">
-            Open
-          </button>
-        </article>
-      </div>
+          <div class="workspace-select-wrap">
+            <label for="workspaceChartSelect">Workspace</label>
+
+            <select
+              id="workspaceChartSelect"
+              [value]="selectedWorkspaceChartId"
+              (change)="onWorkspaceChartChange($event)"
+            >
+              <option
+                *ngFor="let workspace of workspaceDashboards"
+                [value]="workspace.id"
+              >
+                {{ workspace.name }}
+              </option>
+            </select>
+          </div>
+        </header>
+
+        <div class="selected-workspace-summary" *ngIf="selectedWorkspaceChart">
+          <div>
+            <strong>{{ selectedWorkspaceChart.name }}</strong>
+            <span>
+              {{ selectedWorkspaceChart.totalTickets }} tickets ·
+              {{ getWorkspaceCompletionLabel(selectedWorkspaceChart) }}
+            </span>
+          </div>
+
+          <span class="role-badge">
+            {{ getRoleLabel(selectedWorkspaceChart.role) }}
+          </span>
+        </div>
+
+        <div class="bar-chart-wrap">
+          <canvas
+            baseChart
+            [type]="workspaceBarChartType"
+            [data]="workspaceBarChartData"
+            [options]="workspaceBarChartOptions"
+          ></canvas>
+        </div>
+      </section>
     </section>
 
     <section
@@ -163,118 +229,6 @@
       <button type="button" class="primary-btn" routerLink="/workspaces">
         Go to Workspaces
       </button>
-    </section>
-
-    <section
-      class="workspace-chart-grid"
-      *ngIf="!loading && !errorMessage && workspaceDashboards.length > 0"
-    >
-      <article
-        class="workspace-chart-card"
-        *ngFor="let workspace of workspaceDashboards"
-      >
-        <header class="workspace-card-header">
-          <div class="workspace-title-wrap">
-            <div class="workspace-avatar">
-              {{ getWorkspaceInitial(workspace.name) }}
-            </div>
-
-            <div>
-              <h3>{{ workspace.name }}</h3>
-
-              <p>
-                {{ workspace.description || 'No workspace description provided.' }}
-              </p>
-            </div>
-          </div>
-
-          <span class="role-badge">
-            {{ getRoleLabel(workspace.role) }}
-          </span>
-        </header>
-
-        <section class="workspace-card-body">
-          <div class="chart-box" *ngIf="workspace.totalTickets > 0">
-            <canvas
-              baseChart
-              [type]="chartType"
-              [data]="workspace.chartData"
-              [options]="chartOptions"
-            ></canvas>
-          </div>
-
-          <div class="workspace-empty-chart" *ngIf="workspace.totalTickets === 0">
-            <div>▤</div>
-            <strong>No tickets yet</strong>
-            <span>Create tickets on the backlog or board to see progress here.</span>
-          </div>
-
-          <div class="workspace-status-list">
-            <div>
-              <span>To Do</span>
-              <strong>{{ workspace.todoCount }}</strong>
-            </div>
-
-            <div>
-              <span>Ready for Development</span>
-              <strong>{{ workspace.readyForDevelopmentCount }}</strong>
-            </div>
-
-            <div>
-              <span>Dev in Progress</span>
-              <strong>{{ workspace.devInProgressCount }}</strong>
-            </div>
-
-            <div>
-              <span>Ready for Testing</span>
-              <strong>{{ workspace.readyForTestingCount }}</strong>
-            </div>
-
-            <div>
-              <span>Ready for UAT</span>
-              <strong>{{ workspace.readyForUatCount }}</strong>
-            </div>
-
-            <div>
-              <span>Done</span>
-              <strong>{{ workspace.doneCount }}</strong>
-            </div>
-          </div>
-        </section>
-
-        <footer class="workspace-card-footer">
-          <div>
-            <strong>{{ workspace.totalTickets }}</strong>
-            <span>tickets · {{ getWorkspaceCompletionLabel(workspace) }}</span>
-          </div>
-
-          <div class="workspace-actions">
-            <button
-              type="button"
-              class="secondary-btn"
-              (click)="openWorkspaceBacklog(workspace.id)"
-            >
-              Backlog
-            </button>
-
-            <button
-              type="button"
-              class="secondary-btn"
-              (click)="openWorkspaceActivity(workspace.id)"
-            >
-              Activity
-            </button>
-
-            <button
-              type="button"
-              class="primary-btn compact"
-              (click)="openWorkspaceBoard(workspace.id)"
-            >
-              Board
-            </button>
-          </div>
-        </footer>
-      </article>
     </section>
   </main>
 

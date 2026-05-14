@@ -1,30 +1,47 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnInit } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import {
+  Component,
+  HostBinding,
+  Input,
+  OnInit,
+} from '@angular/core';
+import {
+  NavigationEnd,
+  Router,
+  RouterLink,
+} from '@angular/router';
+import { filter } from 'rxjs';
 import { Auth } from '../../services/auth/auth';
+
+type SidebarPage =
+  | 'dashboard'
+  | 'workspaces'
+  | 'profile'
+  | 'backlog'
+  | 'board'
+  | 'activity'
+  | '';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
   imports: [CommonModule, RouterLink],
   templateUrl: './app-sidebar.html',
-  styleUrl: './app-sidebar.scss'
+  styleUrl: './app-sidebar.scss',
 })
 export class AppSidebar implements OnInit {
-  @Input() activePage:
-    | 'dashboard'
-    | 'workspaces'
-    | 'profile'
-    | 'backlog'
-    | 'board'
-    | 'activity'
-    | '' = '';
-
+  @Input() activePage: SidebarPage = '';
   @Input() workspaceId: number | null = null;
+
+  @HostBinding('class.sidebar-collapsed-host')
+  isCollapsed = false;
 
   userName = 'User';
   userEmail = '';
   avatarUrl: string | null = null;
+
+  currentUrl = '';
+  selectedWorkspaceId: number | null = null;
 
   constructor(
     private router: Router,
@@ -32,8 +49,95 @@ export class AppSidebar implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    const savedSidebarState = localStorage.getItem('planora_sidebar_collapsed');
+
+    this.isCollapsed = savedSidebarState === 'true';
+    this.applySidebarLayoutState();
+
+    this.currentUrl = this.router.url;
+    this.syncSidebarWithCurrentRoute();
+
+    this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe((event) => {
+        const navigationEnd = event as NavigationEnd;
+        this.currentUrl = navigationEnd.urlAfterRedirects;
+        this.syncSidebarWithCurrentRoute();
+      });
+
     this.loadStoredUser();
     this.loadProfile();
+  }
+
+  collapseSidebar(): void {
+    this.isCollapsed = true;
+    localStorage.setItem('planora_sidebar_collapsed', 'true');
+    this.applySidebarLayoutState();
+  }
+
+  expandSidebar(): void {
+    this.isCollapsed = false;
+    localStorage.setItem('planora_sidebar_collapsed', 'false');
+    this.applySidebarLayoutState();
+  }
+
+  toggleSidebar(): void {
+    this.isCollapsed ? this.expandSidebar() : this.collapseSidebar();
+  }
+
+  applySidebarLayoutState(): void {
+    const sidebarWidth = this.isCollapsed ? '92px' : '280px';
+
+    document.documentElement.style.setProperty(
+      '--planora-sidebar-width',
+      sidebarWidth
+    );
+
+    document.body.classList.toggle(
+      'planora-sidebar-collapsed',
+      this.isCollapsed
+    );
+  }
+
+  syncSidebarWithCurrentRoute(): void {
+    const cleanUrl = this.currentUrl.split('?')[0];
+
+    const workspaceSectionMatch = cleanUrl.match(
+      /^\/workspaces\/(\d+)\/(backlog|board|activity)(\/)?$/
+    );
+
+    if (workspaceSectionMatch) {
+      this.selectedWorkspaceId = Number(workspaceSectionMatch[1]);
+      this.activePage = workspaceSectionMatch[2] as SidebarPage;
+      return;
+    }
+
+    this.selectedWorkspaceId = null;
+
+    if (cleanUrl.startsWith('/dashboard')) {
+      this.activePage = 'dashboard';
+      return;
+    }
+
+    if (cleanUrl === '/workspaces' || cleanUrl.startsWith('/workspaces')) {
+      this.activePage = 'workspaces';
+      return;
+    }
+
+    if (cleanUrl.startsWith('/profile')) {
+      this.activePage = 'profile';
+      return;
+    }
+
+    this.activePage = '';
+  }
+
+  hasSelectedWorkspace(): boolean {
+    return this.selectedWorkspaceId !== null;
+  }
+
+  getSelectedWorkspaceId(): number | null {
+    return this.selectedWorkspaceId;
   }
 
   loadStoredUser(): void {
@@ -65,7 +169,7 @@ export class AppSidebar implements OnInit {
       },
       error: () => {
         this.loadStoredUser();
-      }
+      },
     });
   }
 
@@ -86,7 +190,7 @@ export class AppSidebar implements OnInit {
       },
       error: () => {
         this.clearSession();
-      }
+      },
     });
   }
 
@@ -94,7 +198,11 @@ export class AppSidebar implements OnInit {
     localStorage.removeItem('token');
     localStorage.removeItem('planora_token');
     localStorage.removeItem('planora_user');
+    localStorage.removeItem('planora_sidebar_collapsed');
 
-    this.router.navigate(['/login']);
+    document.documentElement.style.setProperty('--planora-sidebar-width', '280px');
+    document.body.classList.remove('planora-sidebar-collapsed');
+
+    this.router.navigate(['/login'], { replaceUrl: true });
   }
 }
