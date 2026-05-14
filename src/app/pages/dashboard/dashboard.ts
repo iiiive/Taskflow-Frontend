@@ -90,6 +90,20 @@ interface NeedsAttentionTicket extends Ticket {
   reason_class: string;
 }
 
+interface DashboardNotification {
+  id: string;
+  type: 'assigned_ticket' | 'comment' | 'activity';
+  title: string;
+  message: string;
+  ticket_id: number;
+  ticket_title: string;
+  workspace_id: number;
+  workspace_name: string;
+  status: TicketStatus;
+  priority: TicketPriority;
+  created_at: string;
+}
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -106,6 +120,11 @@ export class Dashboard implements OnInit {
   workspaces: Workspace[] = [];
   workspaceDashboards: WorkspaceDashboardItem[] = [];
   needsAttentionTickets: NeedsAttentionTicket[] = [];
+
+  showNotifications = false;
+  loadingNotifications = false;
+  notificationError = '';
+  notifications: DashboardNotification[] = [];
 
   totals: DashboardTotals = {
     total_workspaces: 0,
@@ -169,13 +188,25 @@ export class Dashboard implements OnInit {
 
   ngOnInit(): void {
     this.loadDashboard();
+    this.loadNotifications();
+  }
+
+  getAuthHeaders() {
+    const token = localStorage.getItem('token') || localStorage.getItem('planora_token');
+
+    return {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json'
+    };
   }
 
   loadDashboard(): void {
     this.loading = true;
     this.errorMessage = '';
 
-    this.http.get<any>(`${this.apiUrl}/workspaces`).subscribe({
+    this.http.get<any>(`${this.apiUrl}/workspaces`, {
+      headers: this.getAuthHeaders()
+    }).subscribe({
       next: (res) => {
         this.workspaces = this.extractWorkspaceArray(res);
 
@@ -189,7 +220,9 @@ export class Dashboard implements OnInit {
         }
 
         const ticketRequests = this.workspaces.map(workspace =>
-          this.http.get<any>(`${this.apiUrl}/workspaces/${workspace.id}/tickets`).pipe(
+          this.http.get<any>(`${this.apiUrl}/workspaces/${workspace.id}/tickets`, {
+            headers: this.getAuthHeaders()
+          }).pipe(
             catchError((err) => {
               console.error(`Tickets API error for workspace ${workspace.id}:`, err);
               return of([]);
@@ -234,6 +267,70 @@ export class Dashboard implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  loadNotifications(): void {
+    this.loadingNotifications = true;
+    this.notificationError = '';
+
+    this.http.get<any>(`${this.apiUrl}/dashboard/notifications`, {
+      headers: this.getAuthHeaders()
+    }).subscribe({
+      next: (res) => {
+        this.notifications = Array.isArray(res?.data) ? res.data : [];
+        this.loadingNotifications = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Notifications error:', err);
+
+        this.notificationError =
+          err?.error?.message ||
+          'Unable to load notifications.';
+
+        this.loadingNotifications = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  toggleNotifications(): void {
+    this.showNotifications = !this.showNotifications;
+
+    if (this.showNotifications) {
+      this.loadNotifications();
+    }
+  }
+
+  closeNotifications(): void {
+    this.showNotifications = false;
+  }
+
+  getNotificationIcon(type: string): string {
+    if (type === 'assigned_ticket') return '✓';
+    if (type === 'comment') return '💬';
+    if (type === 'activity') return '◷';
+
+    return '•';
+  }
+
+  getNotificationTypeLabel(type: string): string {
+    if (type === 'assigned_ticket') return 'Assigned Ticket';
+    if (type === 'comment') return 'Comment';
+    if (type === 'activity') return 'Activity';
+
+    return 'Notification';
+  }
+
+  openNotification(notification: DashboardNotification): void {
+    this.closeNotifications();
+
+    if (notification.status === 'todo') {
+      this.openWorkspaceBacklog(notification.workspace_id);
+      return;
+    }
+
+    this.openWorkspaceBoard(notification.workspace_id);
   }
 
   buildWorkspaceDashboardItem(

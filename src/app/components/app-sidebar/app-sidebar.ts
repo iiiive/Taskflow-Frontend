@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
+import { Auth } from '../../services/auth/auth';
 
 @Component({
   selector: 'app-sidebar',
@@ -14,6 +14,7 @@ export class AppSidebar implements OnInit {
   @Input() activePage:
     | 'dashboard'
     | 'workspaces'
+    | 'profile'
     | 'backlog'
     | 'board'
     | 'activity'
@@ -21,36 +22,65 @@ export class AppSidebar implements OnInit {
 
   @Input() workspaceId: number | null = null;
 
-  apiUrl = 'http://127.0.0.1:8000/api';
   userName = 'User';
+  userEmail = '';
+  avatarUrl: string | null = null;
 
   constructor(
     private router: Router,
-    private http: HttpClient
+    private auth: Auth
   ) {}
 
   ngOnInit(): void {
-    this.loadUser();
+    this.loadStoredUser();
+    this.loadProfile();
   }
 
-  loadUser(): void {
+  loadStoredUser(): void {
     const storedUser = localStorage.getItem('planora_user');
 
     if (!storedUser) {
-      this.userName = 'User';
       return;
     }
 
     try {
       const user = JSON.parse(storedUser);
-      this.userName = user?.name || 'User';
+      this.setUserDisplay(user);
     } catch {
       this.userName = 'User';
+      this.userEmail = '';
+      this.avatarUrl = null;
     }
   }
 
+  loadProfile(): void {
+    this.auth.getProfile().subscribe({
+      next: (res: any) => {
+        const user = res?.user || res?.data || res;
+
+        if (user) {
+          localStorage.setItem('planora_user', JSON.stringify(user));
+          this.setUserDisplay(user);
+        }
+      },
+      error: () => {
+        this.loadStoredUser();
+      }
+    });
+  }
+
+  setUserDisplay(user: any): void {
+    this.userName = user?.name || 'User';
+    this.userEmail = user?.email || '';
+    this.avatarUrl = user?.avatar_url || user?.avatar || null;
+  }
+
+  getUserInitial(): string {
+    return this.userName ? this.userName.charAt(0).toUpperCase() : 'U';
+  }
+
   logout(): void {
-    this.http.post(`${this.apiUrl}/logout`, {}).subscribe({
+    this.auth.logout().subscribe({
       next: () => {
         this.clearSession();
       },

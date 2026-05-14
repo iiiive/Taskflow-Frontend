@@ -13,9 +13,22 @@
         </p>
       </div>
 
-      <button type="button" class="primary-btn" routerLink="/workspaces">
-        View Workspaces
-      </button>
+      <div class="dashboard-header-actions">
+        <button
+          type="button"
+          class="notification-btn"
+          (click)="toggleNotifications()"
+          aria-label="Open notifications"
+        >
+          <span>◷</span>
+
+          <strong *ngIf="notifications.length > 0">
+            {{ notifications.length > 9 ? '9+' : notifications.length }}
+          </strong>
+        </button>
+
+        
+      </div>
     </header>
 
     <section class="alert-card loading-card" *ngIf="loading">
@@ -264,4 +277,82 @@
       </article>
     </section>
   </main>
+
+  <div
+    class="notification-backdrop"
+    *ngIf="showNotifications"
+    (click)="closeNotifications()"
+  ></div>
+
+  <aside
+    class="notification-drawer"
+    [class.open]="showNotifications"
+  >
+    <header class="notification-header">
+      <div>
+        <p class="breadcrumb">Notifications</p>
+        <h2>Assigned to you</h2>
+        <span>
+          Tickets, comments, and activity from your assigned work.
+        </span>
+      </div>
+
+      <button type="button" (click)="closeNotifications()">
+        ×
+      </button>
+    </header>
+
+    <section class="notification-loading" *ngIf="loadingNotifications">
+      Loading notifications...
+    </section>
+
+    <section class="notification-error" *ngIf="notificationError && !loadingNotifications">
+      {{ notificationError }}
+    </section>
+
+    <section
+      class="notification-empty"
+      *ngIf="!loadingNotifications && !notificationError && notifications.length === 0"
+    >
+      <div>🔔</div>
+      <strong>No notifications yet</strong>
+      <p>
+        Assigned tickets, comments, and activity updates will appear here.
+      </p>
+    </section>
+
+    <section
+      class="notification-list"
+      *ngIf="!loadingNotifications && !notificationError && notifications.length > 0"
+    >
+      <article
+        class="notification-item"
+        *ngFor="let notification of notifications"
+        (click)="openNotification(notification)"
+      >
+        <div class="notification-icon">
+          {{ getNotificationIcon(notification.type) }}
+        </div>
+
+        <div class="notification-content">
+          <div class="notification-top">
+            <span>{{ getNotificationTypeLabel(notification.type) }}</span>
+            <small>{{ notification.created_at }}</small>
+          </div>
+
+          <h3>{{ notification.title }}</h3>
+
+          <p>
+            {{ notification.message }}
+          </p>
+
+          <div class="notification-meta">
+            <span>#{{ notification.ticket_id }}</span>
+            <span>{{ notification.ticket_title }}</span>
+            <span>{{ notification.workspace_name }}</span>
+          </div>
+        </div>
+      </article>
+    </section>
+  </aside>
 </div>

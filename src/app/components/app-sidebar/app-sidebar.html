@@ -26,6 +26,14 @@
     </a>
 
     <a
+      routerLink="/profile"
+      [class.active]="activePage === 'profile'"
+    >
+      <span>◉</span>
+      Profile
+    </a>
+
+    <a
       *ngIf="workspaceId"
       [routerLink]="['/workspaces', workspaceId, 'backlog']"
       [class.active]="activePage === 'backlog'"
@@ -54,8 +62,23 @@
   </nav>
 
   <div class="sidebar-user">
-    <p>Signed in as</p>
-    <strong>{{ userName }}</strong>
+    <div class="sidebar-avatar">
+      <img
+        *ngIf="avatarUrl"
+        [src]="avatarUrl"
+        [alt]="userName"
+      />
+
+      <span *ngIf="!avatarUrl">
+        {{ getUserInitial() }}
+      </span>
+    </div>
+
+    <div class="sidebar-user-info">
+      <p>Signed in as</p>
+      <strong>{{ userName }}</strong>
+      <small *ngIf="userEmail">{{ userEmail }}</small>
+    </div>
 
     <button type="button" (click)="logout()">
       Logout

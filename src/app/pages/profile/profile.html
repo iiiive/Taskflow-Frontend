@@ -1,1 +1,213 @@
-<p>profile works!</p>
+<div class="profile-page">
+  <app-sidebar activePage="profile"></app-sidebar>
+
+  <main class="profile-main">
+    <header class="page-header">
+      <div>
+        <p class="breadcrumb">Account Settings</p>
+        <h1>Profile</h1>
+        <p class="header-text">
+          Manage your personal information, profile picture, and password.
+        </p>
+      </div>
+    </header>
+
+    <section class="status-card loading-card" *ngIf="loading">
+      <p>Loading profile...</p>
+    </section>
+
+    <section class="profile-grid" *ngIf="!loading">
+      <section class="profile-card avatar-card">
+        <div class="avatar-preview">
+          <img
+            *ngIf="getAvatarDisplay()"
+            [src]="getAvatarDisplay()"
+            [alt]="name"
+          />
+
+          <span *ngIf="!getAvatarDisplay()">
+            {{ getUserInitial() }}
+          </span>
+        </div>
+
+        <h2>{{ user?.name }}</h2>
+        <p>{{ user?.email }}</p>
+
+        <span class="account-badge">
+          {{ getAccountType() }}
+        </span>
+
+        <div class="avatar-actions">
+          <label class="upload-label">
+            Choose Photo
+            <input
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              (change)="onAvatarSelected($event)"
+            />
+          </label>
+
+          <button
+            type="button"
+            class="primary-btn"
+            [disabled]="!selectedAvatarFile || uploadingAvatar"
+            (click)="uploadAvatar()"
+          >
+            {{ uploadingAvatar ? 'Uploading...' : 'Upload Photo' }}
+          </button>
+
+          <button
+            type="button"
+            class="danger-btn"
+            *ngIf="user?.avatar_url || user?.avatar"
+            [disabled]="removingAvatar"
+            (click)="removeAvatar()"
+          >
+            {{ removingAvatar ? 'Removing...' : 'Remove Photo' }}
+          </button>
+        </div>
+
+        <small>
+          Accepted formats: JPG, PNG, WEBP. Maximum size: 2MB.
+        </small>
+      </section>
+
+      <section class="profile-card">
+        <div class="card-heading">
+          <div>
+            <p class="breadcrumb">Basic Information</p>
+            <h2>Edit Profile</h2>
+          </div>
+        </div>
+
+        <form class="profile-form" (ngSubmit)="updateProfile()">
+          <div class="form-group">
+            <label for="name">Full Name</label>
+
+            <input
+              id="name"
+              type="text"
+              name="name"
+              [(ngModel)]="name"
+              placeholder="Enter your full name"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email Address</label>
+
+            <input
+              id="email"
+              type="email"
+              name="email"
+              [(ngModel)]="email"
+              placeholder="Enter your email"
+              required
+            />
+          </div>
+
+          <div class="info-box">
+            <strong>Account note</strong>
+            <p>
+              This email is used for login, workspace invites, and password reset instructions.
+            </p>
+          </div>
+
+          <p
+            class="message"
+            *ngIf="message"
+            [class.success]="isSuccess"
+            [class.error]="!isSuccess"
+          >
+            {{ message }}
+          </p>
+
+          <button
+            type="submit"
+            class="primary-btn save-btn"
+            [disabled]="savingProfile"
+          >
+            {{ savingProfile ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </form>
+
+        <div class="password-divider"></div>
+
+        <div class="card-heading">
+          <div>
+            <p class="breadcrumb">Security</p>
+            <h2>Change Password</h2>
+          </div>
+        </div>
+
+        <form class="profile-form" (ngSubmit)="updatePassword()">
+          <div class="info-box" *ngIf="!userHasPassword()">
+            <strong>Google account password setup</strong>
+            <p>
+              Your account was created through Google. You can set a Planora password here if you also want to sign in using email and password.
+            </p>
+          </div>
+
+          <div class="form-group" *ngIf="userHasPassword()">
+            <label for="currentPassword">Current Password</label>
+
+            <input
+              id="currentPassword"
+              type="password"
+              name="currentPassword"
+              [(ngModel)]="currentPassword"
+              placeholder="Enter your current password"
+              autocomplete="current-password"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="newPassword">New Password</label>
+
+            <input
+              id="newPassword"
+              type="password"
+              name="newPassword"
+              [(ngModel)]="newPassword"
+              placeholder="Enter new password"
+              autocomplete="new-password"
+              minlength="8"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="newPasswordConfirmation">Confirm New Password</label>
+
+            <input
+              id="newPasswordConfirmation"
+              type="password"
+              name="newPasswordConfirmation"
+              [(ngModel)]="newPasswordConfirmation"
+              placeholder="Re-enter new password"
+              autocomplete="new-password"
+              minlength="8"
+            />
+          </div>
+
+          <p
+            class="message"
+            *ngIf="passwordMessage"
+            [class.success]="passwordSuccess"
+            [class.error]="!passwordSuccess"
+          >
+            {{ passwordMessage }}
+          </p>
+
+          <button
+            type="submit"
+            class="primary-btn save-btn"
+            [disabled]="savingPassword"
+          >
+            {{ savingPassword ? 'Updating...' : 'Update Password' }}
+          </button>
+        </form>
+      </section>
+    </section>
+  </main>
+</div>

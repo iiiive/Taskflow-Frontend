@@ -8,6 +8,45 @@
   font-family: 'Inter', sans-serif;
 }
 
+.toast-message {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 9999;
+  width: min(390px, calc(100vw - 32px));
+  min-height: 52px;
+  margin: 0;
+  padding: 14px 18px;
+  border-radius: 16px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.45;
+  cursor: pointer;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.22);
+  animation: toastSlideIn 0.22s ease-out;
+}
+
+.toast-message.error {
+  background: #b91c1c;
+}
+
+.toast-message.success {
+  background: #166534;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 .login-card {
   width: 100%;
   padding: 42px;
@@ -116,6 +155,23 @@ form {
   background: #ffffff;
 }
 
+.form-group input.input-error {
+  border-color: #b91c1c;
+  background: #fff7f7;
+}
+
+.form-group input.input-error:focus {
+  border-color: #b91c1c;
+  box-shadow: 0 0 0 4px rgba(185, 28, 28, 0.12);
+}
+
+.field-error {
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
 .login-btn {
   width: 100%;
   height: 54px;
@@ -145,24 +201,6 @@ form {
   cursor: not-allowed;
   opacity: 0.55;
   box-shadow: none;
-}
-
-.message {
-  margin: 18px 0 0;
-  padding: 12px 14px;
-  border-radius: 14px;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.message.success {
-  color: #166534;
-  background: #dcfce7;
-}
-
-.message.error {
-  color: #991b1b;
-  background: #fee2e2;
 }
 
 .divider {
@@ -205,6 +243,83 @@ form {
   text-decoration: underline;
 }
 
+.google-btn {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #dbe3ea;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #1f2937;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.google-btn:hover {
+  background: #f8fafc;
+  border-color: #b6c4d1;
+  transform: translateY(-1px);
+}
+
+.password-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.forgot-password-link {
+  color: #547a95;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(84, 122, 149, 0.08);
+  transition: 0.2s ease;
+  white-space: nowrap;
+}
+
+.forgot-password-link:hover {
+  color: #34576f;
+  background: rgba(84, 122, 149, 0.16);
+  transform: translateY(-1px);
+}
+
+.forgot-password-link:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(84, 122, 149, 0.16);
+}
+
+.forgot-password-under-btn {
+  display: block;
+  width: fit-content;
+  margin: 14px auto 0;
+  color: #547a95;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: 0.2s ease;
+}
+
+.forgot-password-under-btn:hover {
+  color: #34576f;
+  background: transparent;
+  text-decoration: underline;
+  transform: none;
+}
+
+.forgot-password-under-btn:focus {
+  outline: none;
+  box-shadow: none;
+}
+
 @media (max-width: 560px) {
   .login-card {
     padding: 28px 22px;
@@ -219,5 +334,25 @@ form {
     width: 48px;
     height: 48px;
     border-radius: 16px;
+  }
+
+  .toast-message {
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    width: auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .password-label-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .forgot-password-link {
+    padding-left: 0;
+    background: transparent;
   }
 }

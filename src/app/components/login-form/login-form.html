@@ -1,3 +1,14 @@
+<p
+  class="toast-message"
+  *ngIf="message"
+  [class.success]="isSuccess"
+  [class.error]="!isSuccess"
+  role="alert"
+  (click)="dismissMessage()"
+>
+  {{ message }}
+</p>
+
 <div class="login-card">
   <div class="card-header">
     <div class="logo-mark">P</div>
@@ -12,7 +23,7 @@
     Continue managing your workspaces, tickets, deadlines, and project activity.
   </p>
 
-  <form (ngSubmit)="Login()" #loginForm="ngForm">
+  <form (ngSubmit)="Login()" #loginForm="ngForm" novalidate>
     <div class="form-group">
       <label for="email">Email Address</label>
 
@@ -21,38 +32,70 @@
         type="email"
         [(ngModel)]="email"
         name="email"
+        #emailModel="ngModel"
         placeholder="charlin@example.com"
         autocomplete="email"
         required
+        email
+        [class.input-error]="shouldShowEmailRequired() || shouldShowEmailInvalid()"
+        (input)="clearMessageOnEdit()"
+        (blur)="normalizeEmail()"
       />
+
+      <small class="field-error" *ngIf="shouldShowEmailRequired()">
+        Email address is required.
+      </small>
+
+      <small class="field-error" *ngIf="shouldShowEmailInvalid()">
+        Please enter a valid email address.
+      </small>
     </div>
 
     <div class="form-group">
-      <div class="label-row">
-        <label for="password">Password</label>
-        <span>Secure access</span>
-      </div>
+      <label for="password">Password</label>
 
       <input
         id="password"
         type="password"
         [(ngModel)]="password"
         name="password"
+        #passwordModel="ngModel"
         placeholder="Enter your password"
         autocomplete="current-password"
         required
+        [attr.minlength]="minPasswordLength"
+        [class.input-error]="shouldShowPasswordRequired() || shouldShowPasswordMinLength()"
+        (input)="clearMessageOnEdit()"
       />
+
+      <small class="field-error" *ngIf="shouldShowPasswordRequired()">
+        Password is required.
+      </small>
+
+      <small class="field-error" *ngIf="shouldShowPasswordMinLength()">
+        Password must be at least {{ minPasswordLength }} characters.
+      </small>
     </div>
 
-    <button type="submit" class="login-btn" [disabled]="loading || loginForm.invalid">
+    <button type="submit" class="login-btn" [disabled]="loading">
       <span *ngIf="!loading">Sign in</span>
       <span *ngIf="loading">Signing in...</span>
     </button>
+
+    <a routerLink="/forgot-password" class="forgot-password-under-btn">
+      Forgot password?
+    </a>
   </form>
 
-  <p class="message" *ngIf="message" [class.success]="isSuccess" [class.error]="!isSuccess">
-    {{ message }}
-  </p>
+  <div class="divider">
+    <span></span>
+    <p>or</p>
+    <span></span>
+  </div>
+
+  <button type="button" class="google-btn" (click)="loginWithGoogle()">
+    Continue with Google
+  </button>
 
   <div class="divider">
     <span></span>
