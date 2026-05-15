@@ -1,0 +1,134 @@
+<div class="archive-page">
+  <app-sidebar
+    activePage="archive"
+    [workspaceId]="workspaceId"
+  ></app-sidebar>
+
+  <main class="archive-main">
+    <header class="page-header">
+      <div>
+        <p class="breadcrumb">Workspace Archive</p>
+
+        <h1>
+          {{ loadingWorkspace ? 'Loading workspace...' : workspace?.name }}
+        </h1>
+
+        <p class="header-text">
+          Completed tickets are stored here for future reference.
+        </p>
+      </div>
+    </header>
+
+    <nav class="ticket-nav" aria-label="Ticket navigation">
+      <button type="button" class="ticket-nav-item" (click)="goToBacklog()">
+        <span class="nav-icon">☰</span>
+        <span>Backlog</span>
+      </button>
+
+      <button type="button" class="ticket-nav-item" (click)="goToBoard()">
+        <span class="nav-icon">▦</span>
+        <span>Development Board</span>
+      </button>
+
+      <button type="button" class="ticket-nav-item" (click)="goToActivityLog()">
+        <span class="nav-icon">↻</span>
+        <span>Activity Log</span>
+      </button>
+
+      <button type="button" class="ticket-nav-item active">
+        <span class="nav-icon">▣</span>
+        <span>Archive</span>
+        <strong>{{ tickets.length }}</strong>
+      </button>
+    </nav>
+
+    <section class="status-card error-card" *ngIf="errorMessage">
+      <p>{{ errorMessage }}</p>
+    </section>
+
+    <section class="status-card success-card" *ngIf="successMessage">
+      <p>{{ successMessage }}</p>
+    </section>
+
+    <section class="toolbar">
+      <div class="search-box">
+        <label>Search</label>
+        <input
+          type="text"
+          name="search"
+          [(ngModel)]="search"
+          placeholder="Search archived tickets..."
+          (input)="loadArchivedTickets()"
+        />
+      </div>
+
+      <div class="filter-box">
+        <label>Priority</label>
+        <select
+          name="priority"
+          [(ngModel)]="selectedPriority"
+          (change)="loadArchivedTickets()"
+        >
+          <option value="">All Priorities</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="urgent">Urgent</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="status-card loading-card" *ngIf="loadingTickets">
+      <p>Loading archived tickets...</p>
+    </section>
+
+    <section class="archive-list" *ngIf="!loadingTickets && tickets.length > 0">
+      <article
+        class="archive-card"
+        *ngFor="let ticket of tickets"
+        (click)="openTicketDetails(ticket)"
+      >
+        <div class="ticket-main">
+          <div class="ticket-top">
+            <div>
+              <span class="ticket-label">Archived Ticket</span>
+              <h3>{{ ticket.title }}</h3>
+            </div>
+
+            <span class="priority-badge" [ngClass]="getPriorityClass(ticket.priority)">
+              {{ ticket.priority }}
+            </span>
+          </div>
+
+          <p>
+            {{ getPlainText(ticket.description) || 'No description provided.' }}
+          </p>
+
+          <div class="ticket-meta">
+            <span>#{{ ticket.id }}</span>
+            <span>Assignee: {{ getPersonName(ticket.assignee) }}</span>
+            <span *ngIf="ticket.due_date">Due: {{ ticket.due_date }}</span>
+            <span class="completed-badge">Completed</span>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="empty-state" *ngIf="!loadingTickets && tickets.length === 0">
+      <div class="empty-icon">▣</div>
+      <h3>No archived tickets</h3>
+      <p>Completed tickets will appear here once they are marked as completed.</p>
+    </section>
+  </main>
+</div>
+
+<app-ticket-modal
+  *ngIf="showTicketDetailsModal && selectedTicket"
+  [ticket]="selectedTicket"
+  [workspaceMembers]="workspaceMembers"
+  [canEdit]="canEditTicket()"
+  [canComment]="canCommentTicket()"
+  [apiUrl]="apiUrl"
+  (closeModal)="closeTicketDetails()"
+  (ticketUpdated)="handleTicketUpdated($event)"
+></app-ticket-modal>

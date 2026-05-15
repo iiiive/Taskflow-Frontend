@@ -510,17 +510,18 @@ export class TicketModal implements OnChanges {
   }
 
   formatStatus(status: string | null | undefined): string {
-    const labels: Record<string, string> = {
-      todo: 'To Do / Backlog',
-      ready_for_development: 'Ready for Development',
-      dev_in_progress: 'Dev in Progress',
-      ready_for_testing: 'Ready for Testing',
-      ready_for_uat: 'Ready for UAT',
-      done: 'Done'
-    };
+  const labels: Record<string, string> = {
+    todo: 'To Do / Backlog',
+    ready_for_development: 'Ready for Development',
+    dev_in_progress: 'Dev in Progress',
+    ready_for_testing: 'Ready for Testing',
+    ready_for_uat: 'Ready for UAT',
+    done: 'Done',
+    completed: 'Completed / Archived'
+  };
 
-    return status ? labels[status] || status : '—';
-  }
+  return status ? labels[status] || status : '—';
+}
 
   formatPriority(priority: string | null | undefined): string {
     if (!priority) {
@@ -591,4 +592,13 @@ export class TicketModal implements OnChanges {
 
     return [];
   }
+
+  canShowCompletedStatus(): boolean {
+  return (
+    this.ticket?.status === 'done' ||
+    this.ticket?.status === 'completed' ||
+    this.editTicketData.status === 'done' ||
+    this.editTicketData.status === 'completed'
+  );
+}
 }

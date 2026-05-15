@@ -20,6 +20,7 @@ type SidebarPage =
   | 'backlog'
   | 'board'
   | 'activity'
+  | 'archive'
   | '';
 
 @Component({
@@ -133,12 +134,12 @@ export class AppSidebar implements OnInit {
   }
 
   hasSelectedWorkspace(): boolean {
-    return this.selectedWorkspaceId !== null;
-  }
+  return this.selectedWorkspaceId !== null || this.workspaceId !== null;
+}
 
-  getSelectedWorkspaceId(): number | null {
-    return this.selectedWorkspaceId;
-  }
+getSelectedWorkspaceId(): number | null {
+  return this.selectedWorkspaceId || this.workspaceId;
+}
 
   loadStoredUser(): void {
     const storedUser = localStorage.getItem('planora_user');

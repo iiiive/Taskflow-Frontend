@@ -510,6 +510,7 @@
 }
 
 .notification-header {
+  flex-shrink: 0;
   padding: 22px;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
@@ -535,6 +536,7 @@
 .notification-header button {
   width: 34px;
   height: 34px;
+  min-width: 34px;
   border: 1px solid #dbe3ea;
   border-radius: 10px;
   background: #ffffff;
@@ -597,11 +599,35 @@
   flex: 1;
   overflow-y: auto;
   padding: 16px;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.notification-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.notification-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.notification-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .notification-item {
+  width: 100%;
+  height: auto;
+  min-height: 120px;
+  max-height: 150px;
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -611,6 +637,7 @@
   background: #f8fafc;
   cursor: pointer;
   transition: 0.2s ease;
+  flex: 0 0 auto;
 }
 
 .notification-item:hover {
@@ -623,6 +650,7 @@
 .notification-icon {
   width: 36px;
   height: 36px;
+  min-width: 36px;
   border-radius: 12px;
   background: #e7f0f6;
   color: #3f637c;
@@ -640,6 +668,7 @@
 
 .notification-top {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 6px;
@@ -657,6 +686,7 @@
   color: #94a3b8;
   font-size: 10px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .notification-content h3 {
@@ -672,9 +702,10 @@
   color: #475569;
   font-size: 13px;
   line-height: 1.45;
+  max-height: 56px;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -687,6 +718,7 @@
 }
 
 .notification-meta span {
+  max-width: 100%;
   padding: 4px 8px;
   border-radius: 999px;
   background: #ffffff;
@@ -694,6 +726,9 @@
   color: #64748b;
   font-size: 11px;
   font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (max-width: 1400px) {

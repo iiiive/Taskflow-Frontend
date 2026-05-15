@@ -19,14 +19,6 @@
       </div>
 
       <div class="header-actions">
-        <button type="button" class="secondary-btn" (click)="goBackToWorkspaces()">
-          Workspaces
-        </button>
-
-        <button type="button" class="secondary-btn" (click)="goToBoard()">
-          Board
-        </button>
-
         <button
           type="button"
           class="primary-btn"
@@ -37,6 +29,29 @@
         </button>
       </div>
     </header>
+
+    <nav class="ticket-nav" aria-label="Ticket navigation">
+  <button type="button" class="ticket-nav-item active">
+    <span class="nav-icon">☰</span>
+    <span>Backlog</span>
+    <strong>{{ tickets.length }}</strong>
+  </button>
+
+  <button type="button" class="ticket-nav-item" (click)="goToBoard()">
+    <span class="nav-icon">▦</span>
+    <span>Development Board</span>
+  </button>
+
+  <button type="button" class="ticket-nav-item" (click)="goToActivityLog()">
+    <span class="nav-icon">↻</span>
+    <span>Activity Log</span>
+  </button>
+
+   <button type="button" class="ticket-nav-item" (click)="goToArchive()">
+    <span class="nav-icon">▣</span>
+    <span>Archive</span>
+  </button>
+</nav>
 
     <section class="status-card error-card" *ngIf="errorMessage && !showCreateModal">
       <p>{{ errorMessage }}</p>
@@ -108,6 +123,7 @@
             <span>#{{ ticket.id }}</span>
             <span>Assignee: {{ getPersonName(ticket.assignee) }}</span>
             <span *ngIf="ticket.due_date">Due: {{ ticket.due_date }}</span>
+
             <span
               class="warning"
               *ngIf="ticket.due_date_warning && ticket.due_date_warning !== 'none'"

@@ -13,7 +13,6 @@ import {
   ApiResponse,
   Ticket,
   TicketFormData,
-  TicketPriority,
   TicketStatus,
   Workspace,
   WorkspaceMember
@@ -440,21 +439,29 @@ export class WorkspaceBoard implements OnInit {
   }
 
   handleTicketUpdated(updatedTicket: Ticket): void {
-    if (updatedTicket.status === 'todo') {
-      this.tickets = this.tickets.filter(ticket => ticket.id !== updatedTicket.id);
-      this.closeTicketDetails();
-      this.successMessage = 'Ticket moved back to backlog.';
-      this.cdr.detectChanges();
-      return;
-    }
-
-    this.tickets = this.tickets.map(ticket =>
-      ticket.id === updatedTicket.id ? updatedTicket : ticket
-    );
-
-    this.selectedTicket = updatedTicket;
+  if (updatedTicket.status === 'todo') {
+    this.tickets = this.tickets.filter(ticket => ticket.id !== updatedTicket.id);
+    this.closeTicketDetails();
+    this.successMessage = 'Ticket moved back to backlog.';
     this.cdr.detectChanges();
+    return;
   }
+
+  if (updatedTicket.status === 'completed') {
+    this.tickets = this.tickets.filter(ticket => ticket.id !== updatedTicket.id);
+    this.closeTicketDetails();
+    this.successMessage = 'Ticket moved to archive.';
+    this.cdr.detectChanges();
+    return;
+  }
+
+  this.tickets = this.tickets.map(ticket =>
+    ticket.id === updatedTicket.id ? updatedTicket : ticket
+  );
+
+  this.selectedTicket = updatedTicket;
+  this.cdr.detectChanges();
+}
 
   openMembersModal(): void {
     this.showMembersModal = true;
@@ -468,8 +475,16 @@ export class WorkspaceBoard implements OnInit {
     this.cdr.detectChanges();
   }
 
+  goToArchive(): void {
+  this.router.navigate(['/workspaces', this.workspaceId, 'archive']);
+}
+
   goToBacklog(): void {
     this.router.navigate(['/workspaces', this.workspaceId, 'backlog']);
+  }
+
+  goToActivityLog(): void {
+    this.router.navigate(['/workspaces', this.workspaceId, 'activity']);
   }
 
   goBackToWorkspaces(): void {

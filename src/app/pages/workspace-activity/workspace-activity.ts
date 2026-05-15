@@ -51,6 +51,7 @@ export class WorkspaceActivity implements OnInit {
   readyForTestingCount = 0;
   readyForUatCount = 0;
   doneCount = 0;
+  completedCount = 0;
 
   ticketStatusChartType: 'doughnut' = 'doughnut';
 
@@ -61,18 +62,20 @@ export class WorkspaceActivity implements OnInit {
       'Dev in Progress',
       'Ready for Testing',
       'Ready for UAT',
-      'Done'
+      'Done',
+      'Archived'
     ],
     datasets: [
       {
-        data: [0, 0, 0, 0, 0, 0],
+        data: [0, 0, 0, 0, 0, 0, 0],
         backgroundColor: [
           '#94a3b8',
           '#547A95',
           '#f59e0b',
           '#7c3aed',
           '#0891b2',
-          '#16a34a'
+          '#16a34a',
+          '#334155'
         ],
         borderColor: '#ffffff',
         borderWidth: 3
@@ -212,7 +215,9 @@ export class WorkspaceActivity implements OnInit {
   buildTicketStatusStats(): void {
     this.totalTickets = this.tickets.length;
 
-    this.todoCount = this.tickets.filter(ticket => ticket.status === 'todo').length;
+    this.todoCount = this.tickets.filter(
+      ticket => ticket.status === 'todo'
+    ).length;
 
     this.readyForDevelopmentCount = this.tickets.filter(
       ticket => ticket.status === 'ready_for_development'
@@ -230,7 +235,13 @@ export class WorkspaceActivity implements OnInit {
       ticket => ticket.status === 'ready_for_uat'
     ).length;
 
-    this.doneCount = this.tickets.filter(ticket => ticket.status === 'done').length;
+    this.doneCount = this.tickets.filter(
+      ticket => ticket.status === 'done'
+    ).length;
+
+    this.completedCount = this.tickets.filter(
+      ticket => ticket.status === 'completed'
+    ).length;
   }
 
   buildTicketStatusChart(): void {
@@ -241,7 +252,8 @@ export class WorkspaceActivity implements OnInit {
         'Dev in Progress',
         'Ready for Testing',
         'Ready for UAT',
-        'Done'
+        'Done',
+        'Archived'
       ],
       datasets: [
         {
@@ -251,7 +263,8 @@ export class WorkspaceActivity implements OnInit {
             this.devInProgressCount,
             this.readyForTestingCount,
             this.readyForUatCount,
-            this.doneCount
+            this.doneCount,
+            this.completedCount
           ],
           backgroundColor: [
             '#94a3b8',
@@ -259,7 +272,8 @@ export class WorkspaceActivity implements OnInit {
             '#f59e0b',
             '#7c3aed',
             '#0891b2',
-            '#16a34a'
+            '#16a34a',
+            '#334155'
           ],
           borderColor: '#ffffff',
           borderWidth: 3
@@ -304,6 +318,8 @@ export class WorkspaceActivity implements OnInit {
     const labels: Record<string, string> = {
       ticket_created: 'Ticket Created',
       ticket_updated: 'Ticket Updated',
+      ticket_completed: 'Ticket Archived',
+      ticket_archived: 'Ticket Archived',
       status_changed: 'Status Changed',
       priority_changed: 'Priority Changed',
       assignee_changed: 'Assignee Changed',
@@ -328,6 +344,10 @@ export class WorkspaceActivity implements OnInit {
 
   goBackToBacklog(): void {
     this.router.navigate(['/workspaces', this.workspaceId, 'backlog']);
+  }
+
+  goToArchive(): void {
+    this.router.navigate(['/workspaces', this.workspaceId, 'archive']);
   }
 
   goBackToWorkspaces(): void {

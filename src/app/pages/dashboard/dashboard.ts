@@ -440,40 +440,43 @@ export class Dashboard implements OnInit {
     this.selectedWorkspaceChartId = this.selectedWorkspaceChart.id;
 
     this.workspaceBarChartData = {
-      labels: [
-        'Backlog / To Do',
-        'Ready for Dev',
-        'Dev in Progress',
-        'Ready for Testing',
-        'Ready for UAT',
-        'Done'
+  labels: [
+    'Backlog / To Do',
+    'Ready for Dev',
+    'Dev in Progress',
+    'Ready for Testing',
+    'Ready for UAT',
+    'Done'
+  ],
+  datasets: [
+    {
+      label: this.selectedWorkspaceChart.name,
+      data: [
+        this.selectedWorkspaceChart.todoCount,
+        this.selectedWorkspaceChart.readyForDevelopmentCount,
+        this.selectedWorkspaceChart.devInProgressCount,
+        this.selectedWorkspaceChart.readyForTestingCount,
+        this.selectedWorkspaceChart.readyForUatCount,
+        this.selectedWorkspaceChart.doneCount
       ],
-      datasets: [
-        {
-          label: this.selectedWorkspaceChart.name,
-          data: [
-            this.selectedWorkspaceChart.todoCount,
-            this.selectedWorkspaceChart.readyForDevelopmentCount,
-            this.selectedWorkspaceChart.devInProgressCount,
-            this.selectedWorkspaceChart.readyForTestingCount,
-            this.selectedWorkspaceChart.readyForUatCount,
-            this.selectedWorkspaceChart.doneCount
-          ],
-          backgroundColor: [
-            this.monochromePalette.todo,
-            this.monochromePalette.readyForDevelopment,
-            this.monochromePalette.devInProgress,
-            this.monochromePalette.readyForTesting,
-            this.monochromePalette.readyForUat,
-            this.monochromePalette.done
-          ],
-          borderColor: '#ffffff',
-          borderWidth: 2,
-          borderRadius: 12,
-          borderSkipped: false
-        }
-      ]
-    };
+      backgroundColor: [
+        this.monochromePalette.todo,
+        this.monochromePalette.readyForDevelopment,
+        this.monochromePalette.devInProgress,
+        this.monochromePalette.readyForTesting,
+        this.monochromePalette.readyForUat,
+        this.monochromePalette.done
+      ],
+      borderColor: '#ffffff',
+      borderWidth: 2,
+      borderSkipped: false,
+
+      barPercentage: 0.45,
+      categoryPercentage: 0.5,
+      maxBarThickness: 52
+    }
+  ]
+};
   }
 
   onWorkspaceChartChange(event: Event): void {

@@ -340,10 +340,18 @@ export class WorkspaceBacklog implements OnInit {
     return `priority-${priority}`;
   }
 
+  goToActivityLog(): void {
+  this.router.navigate(['/workspaces', this.workspaceId, 'activity']);
+}
+
   getPersonName(person: any): string {
     if (!person) return 'Unassigned';
     return person.name || person.email || 'Unknown user';
   }
+
+  goToArchive(): void {
+  this.router.navigate(['/workspaces', this.workspaceId, 'archive']);
+}
 
   extractSingle<T>(res: ApiResponse<T> | T | any): T {
     return res?.data ? res.data as T : res as T;

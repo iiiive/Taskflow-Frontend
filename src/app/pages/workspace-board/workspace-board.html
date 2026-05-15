@@ -19,14 +19,6 @@
       </div>
 
       <div class="header-actions">
-        <button type="button" class="secondary-btn" (click)="goBackToWorkspaces()">
-          Back
-        </button>
-
-        <button type="button" class="secondary-btn" (click)="goToBacklog()">
-          Backlog
-        </button>
-
         <button
           type="button"
           class="secondary-btn"
@@ -45,6 +37,28 @@
         </button>
       </div>
     </header>
+
+    <nav class="ticket-nav" aria-label="Ticket navigation">
+  <button type="button" class="ticket-nav-item" (click)="goToBacklog()">
+    <span class="nav-icon">☰</span>
+    <span>Backlog</span>
+  </button>
+
+  <button type="button" class="ticket-nav-item active">
+    <span class="nav-icon">▦</span>
+    <span>Development Board</span>
+  </button>
+
+  <button type="button" class="ticket-nav-item" (click)="goToActivityLog()">
+    <span class="nav-icon">↻</span>
+    <span>Activity Log</span>
+  </button>
+
+  <button type="button" class="ticket-nav-item" (click)="goToArchive()">
+    <span class="nav-icon">▣</span>
+    <span>Archive</span>
+  </button>
+</nav>
 
     <section class="status-card error-card" *ngIf="errorMessage && !showCreateModal">
       <p>{{ errorMessage }}</p>
@@ -179,28 +193,17 @@
             </span>
           </div>
 
-          <div class="suggestion" *ngIf="ticket.suggested_priority">
-            Suggested: {{ ticket.suggested_priority }}
-          </div>
+          <!-- <div class="ticket-bottom">
+            <div class="suggestion" *ngIf="ticket.suggested_priority">
+              Suggested: {{ ticket.suggested_priority }}
+            </div>
 
-          <div class="ticket-actions" (click)="$event.stopPropagation()" *ngIf="canEditTicket()">
-            <select
-              [ngModel]="ticket.status"
-              (ngModelChange)="changeTicketStatus(ticket, $event)"
-              name="status-{{ ticket.id }}"
-            >
-              <option value="todo">Move to Backlog</option>
-              <option value="ready_for_development">Ready for Development</option>
-              <option value="dev_in_progress">Dev in Progress</option>
-              <option value="ready_for_testing">Ready for Testing</option>
-              <option value="ready_for_uat">Ready for UAT</option>
-              <option value="done">Done</option>
-            </select>
-
-            <button type="button" (click)="deleteTicket(ticket)">
-              Delete
-            </button>
-          </div>
+            <div class="ticket-actions" (click)="$event.stopPropagation()" *ngIf="canEditTicket()">
+              <button type="button" (click)="deleteTicket(ticket)">
+                Delete
+              </button>
+            </div>
+          </div> -->
         </article>
       </article>
     </section>

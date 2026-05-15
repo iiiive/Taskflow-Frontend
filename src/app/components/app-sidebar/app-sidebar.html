@@ -89,6 +89,15 @@
         <span>◷</span>
         <strong>Activity</strong>
       </a>
+
+      <a
+        [routerLink]="['/workspaces', getSelectedWorkspaceId(), 'archive']"
+        [class.active]="activePage === 'archive'"
+        title="Archive"
+      >
+        <span>▣</span>
+        <strong>Archive</strong>
+      </a>
     </div>
   </nav>
 

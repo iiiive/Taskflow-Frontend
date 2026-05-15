@@ -291,17 +291,24 @@
           </strong>
 
           <select
-            *ngIf="editingTicket"
-            name="editStatus"
-            [(ngModel)]="editTicketData.status"
-          >
-            <option value="todo">To Do / Backlog</option>
-            <option value="ready_for_development">Ready for Development</option>
-            <option value="dev_in_progress">Dev in Progress</option>
-            <option value="ready_for_testing">Ready for Testing</option>
-            <option value="ready_for_uat">Ready for UAT</option>
-            <option value="done">Done</option>
-          </select>
+  *ngIf="editingTicket"
+  name="editStatus"
+  [(ngModel)]="editTicketData.status"
+>
+  <option value="todo">To Do / Backlog</option>
+  <option value="ready_for_development">Ready for Development</option>
+  <option value="dev_in_progress">Dev in Progress</option>
+  <option value="ready_for_testing">Ready for Testing</option>
+  <option value="ready_for_uat">Ready for UAT</option>
+  <option value="done">Done</option>
+
+  <option
+    value="completed"
+    *ngIf="canShowCompletedStatus()"
+  >
+    Completed / Archive
+  </option>
+</select>
         </div>
 
         <div class="details-field">

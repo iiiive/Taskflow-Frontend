@@ -4,7 +4,8 @@ export type TicketStatus =
   | 'dev_in_progress'
   | 'ready_for_testing'
   | 'ready_for_uat'
-  | 'done';
+  | 'done'
+  | 'completed';
 
 export type TicketPriority =
   | 'low'

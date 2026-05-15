@@ -17,21 +17,29 @@
           Track ticket progress and recent workspace activity.
         </p>
       </div>
-
-      <div class="header-actions">
-        <button type="button" class="secondary-btn" (click)="goBackToBacklog()">
-          Backlog
-        </button>
-
-        <button type="button" class="secondary-btn" (click)="goBackToBoard()">
-          Board
-        </button>
-
-        <button type="button" class="secondary-btn" (click)="goBackToWorkspaces()">
-          Workspaces
-        </button>
-      </div>
     </header>
+
+    <nav class="ticket-nav" aria-label="Ticket navigation">
+      <button type="button" class="ticket-nav-item" (click)="goBackToBacklog()">
+        <span class="nav-icon">☰</span>
+        <span>Backlog</span>
+      </button>
+
+      <button type="button" class="ticket-nav-item" (click)="goBackToBoard()">
+        <span class="nav-icon">▦</span>
+        <span>Development Board</span>
+      </button>
+
+      <button type="button" class="ticket-nav-item active">
+        <span class="nav-icon">↻</span>
+        <span>Activity Log</span>
+      </button>
+
+      <button type="button" class="ticket-nav-item" (click)="goToArchive()">
+        <span class="nav-icon">▣</span>
+        <span>Archive</span>
+      </button>
+    </nav>
 
     <section class="status-card error-card" *ngIf="errorMessage">
       <p>{{ errorMessage }}</p>
@@ -60,156 +68,169 @@
         <span>Done</span>
         <strong>{{ doneCount }}</strong>
       </article>
+
+      <article class="stat-card">
+        <span>Archived</span>
+        <strong>{{ completedCount }}</strong>
+      </article>
     </section>
 
-    <section
-      class="chart-panel"
-      *ngIf="!loadingTickets && tickets.length > 0"
-    >
-      <div class="chart-header">
-        <div>
-          <h2>Ticket Progress</h2>
-          <p>
-            Visual summary of tickets by current status inside this workspace.
-          </p>
-        </div>
-
-        <button type="button" class="refresh-btn" (click)="loadWorkspaceTickets()">
-          Refresh
-        </button>
-      </div>
-
-      <div class="chart-layout">
-        <div class="chart-box">
-          <canvas
-            baseChart
-            [type]="ticketStatusChartType"
-            [data]="ticketStatusChartData"
-            [options]="ticketStatusChartOptions"
-          ></canvas>
-        </div>
-
-        <div class="chart-note">
-          <h3>Workspace Progress</h3>
-
-          <p>
-            This chart shows how many tickets are currently in To Do, Ready for Development,
-            Dev in Progress, Ready for Testing, Ready for UAT, and Done.
-          </p>
-
-          <div class="status-breakdown">
-            <div>
-              <span>To Do</span>
-              <strong>{{ todoCount }}</strong>
-            </div>
-
-            <div>
-              <span>Ready for Development</span>
-              <strong>{{ readyForDevelopmentCount }}</strong>
-            </div>
-
-            <div>
-              <span>Dev in Progress</span>
-              <strong>{{ devInProgressCount }}</strong>
-            </div>
-
-            <div>
-              <span>Ready for Testing</span>
-              <strong>{{ readyForTestingCount }}</strong>
-            </div>
-
-            <div>
-              <span>Ready for UAT</span>
-              <strong>{{ readyForUatCount }}</strong>
-            </div>
-
-            <div>
-              <span>Done</span>
-              <strong>{{ doneCount }}</strong>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section
-      class="empty-state"
-      *ngIf="!loadingTickets && tickets.length === 0"
-    >
-      <div class="empty-icon">▤</div>
-
-      <h3>No tickets yet</h3>
-
-      <p>
-        Once tickets are created in this workspace, progress charts will appear here.
-      </p>
-    </section>
-
-    <section class="activity-panel">
-      <div class="activity-panel-header">
-        <div>
-          <h2>Recent Activity</h2>
-          <p>
-            Ticket updates, comments, attachments, and workspace actions will appear here.
-          </p>
-        </div>
-
-        <button type="button" class="refresh-btn" (click)="loadWorkspaceActivity()">
-          Refresh
-        </button>
-      </div>
-
-      <div class="loading-card" *ngIf="loadingActivity">
-        Loading activity...
-      </div>
-
-      <div class="empty-state" *ngIf="!loadingActivity && activityLogs.length === 0">
-        <div class="empty-icon">◷</div>
-
-        <h3>No activity yet</h3>
-
-        <p>
-          Once tickets are created or updated, the activity history will appear here.
-        </p>
-      </div>
-
-      <div class="activity-timeline" *ngIf="!loadingActivity && activityLogs.length > 0">
-        <article class="activity-item" *ngFor="let log of activityLogs">
-          <div class="activity-dot" [ngClass]="getActionClass(log.action)">
-            ◦
+    <section class="activity-content-grid">
+      <section
+        class="chart-panel"
+        *ngIf="!loadingTickets && tickets.length > 0"
+      >
+        <div class="chart-header">
+          <div>
+            <h2>Ticket Progress</h2>
+            <p>
+              Visual summary of tickets by current status inside this workspace.
+            </p>
           </div>
 
-          <div class="activity-card">
-            <div class="activity-card-top">
-              <span class="action-badge" [ngClass]="getActionClass(log.action)">
-                {{ getActionLabel(log.action) }}
-              </span>
+          <button type="button" class="refresh-btn" (click)="loadWorkspaceTickets()">
+            Refresh
+          </button>
+        </div>
 
-              <span class="activity-date">
-                {{ getDisplayValue(log.created_at) }}
-              </span>
-            </div>
+        <div class="chart-layout">
+          <div class="chart-box">
+            <canvas
+              baseChart
+              [type]="ticketStatusChartType"
+              [data]="ticketStatusChartData"
+              [options]="ticketStatusChartOptions"
+            ></canvas>
+          </div>
 
-            <p class="activity-description">
-              {{ log.description }}
+          <div class="chart-note">
+            <h3>Workspace Progress</h3>
+
+            <p>
+              Current ticket count by workflow status.
             </p>
 
-            <div class="activity-meta">
-              <span *ngIf="log.user">
-                By {{ log.user.name || log.user.email }}
-              </span>
+            <div class="status-breakdown">
+              <div>
+                <span>To Do</span>
+                <strong>{{ todoCount }}</strong>
+              </div>
 
-              <span *ngIf="log.ticket">
-                Ticket: {{ log.ticket.title }}
-              </span>
+              <div>
+                <span>Ready for Development</span>
+                <strong>{{ readyForDevelopmentCount }}</strong>
+              </div>
 
-              <span *ngIf="log.ticket_id && !log.ticket">
-                Ticket #{{ log.ticket_id }}
-              </span>
+              <div>
+                <span>Dev in Progress</span>
+                <strong>{{ devInProgressCount }}</strong>
+              </div>
+
+              <div>
+                <span>Ready for Testing</span>
+                <strong>{{ readyForTestingCount }}</strong>
+              </div>
+
+              <div>
+                <span>Ready for UAT</span>
+                <strong>{{ readyForUatCount }}</strong>
+              </div>
+
+              <div>
+                <span>Done</span>
+                <strong>{{ doneCount }}</strong>
+              </div>
+
+              <div>
+                <span>Archived</span>
+                <strong>{{ completedCount }}</strong>
+              </div>
             </div>
           </div>
-        </article>
-      </div>
+        </div>
+      </section>
+
+      <section
+        class="empty-state"
+        *ngIf="!loadingTickets && tickets.length === 0"
+      >
+        <div class="empty-icon">▤</div>
+
+        <h3>No tickets yet</h3>
+
+        <p>
+          Once tickets are created in this workspace, progress charts will appear here.
+        </p>
+      </section>
+
+      <section class="activity-panel">
+        <div class="activity-panel-header">
+          <div>
+            <h2>Recent Activity</h2>
+            <p>
+              Showing the latest 5 workspace actions.
+            </p>
+          </div>
+
+          <button type="button" class="refresh-btn" (click)="loadWorkspaceActivity()">
+            Refresh
+          </button>
+        </div>
+
+        <div class="loading-card" *ngIf="loadingActivity">
+          Loading activity...
+        </div>
+
+        <div class="empty-state" *ngIf="!loadingActivity && activityLogs.length === 0">
+          <div class="empty-icon">◷</div>
+
+          <h3>No activity yet</h3>
+
+          <p>
+            Once tickets are created or updated, the activity history will appear here.
+          </p>
+        </div>
+
+        <div class="activity-scroll-area" *ngIf="!loadingActivity && activityLogs.length > 0">
+          <div class="activity-timeline">
+            <article class="activity-item" *ngFor="let log of activityLogs | slice:0:5">
+              <div class="activity-dot" [ngClass]="getActionClass(log.action)">
+                ◦
+              </div>
+
+              <div class="activity-card">
+                <div class="activity-card-top">
+                  <span class="action-badge" [ngClass]="getActionClass(log.action)">
+                    {{ getActionLabel(log.action) }}
+                  </span>
+
+                  <span class="activity-date">
+                    {{ getDisplayValue(log.created_at) }}
+                  </span>
+                </div>
+
+                <p class="activity-description">
+                  {{ log.description }}
+                </p>
+
+                <div class="activity-meta">
+                  <span *ngIf="log.user">
+                    By {{ log.user.name || log.user.email }}
+                  </span>
+
+                  <span *ngIf="log.ticket">
+                    Ticket: {{ log.ticket.title }}
+                  </span>
+
+                  <span *ngIf="log.ticket_id && !log.ticket">
+                    Ticket #{{ log.ticket_id }}
+                  </span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
     </section>
   </main>
 </div>
