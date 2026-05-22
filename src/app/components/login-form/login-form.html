@@ -14,16 +14,30 @@
     <div class="logo-mark">P</div>
 
     <div>
-      <p class="eyebrow">Welcome back</p>
-      <h2>Sign in to Planora</h2>
+      <p class="eyebrow">
+        {{ requiresTwoFactorStep ? 'Secure sign in' : 'Welcome back' }}
+      </p>
+
+      <h2>
+        {{ requiresTwoFactorStep ? 'Verify it is you' : 'Sign in to Planora' }}
+      </h2>
     </div>
   </div>
 
-  <p class="subtitle">
+  <p class="subtitle" *ngIf="!requiresTwoFactorStep">
     Continue managing your workspaces, tickets, deadlines, and project activity.
   </p>
 
-  <form (ngSubmit)="Login()" #loginForm="ngForm" novalidate>
+  <p class="subtitle" *ngIf="requiresTwoFactorStep">
+    Open Microsoft Authenticator and enter the 6-digit code linked to your Planora account.
+  </p>
+
+  <form
+    *ngIf="!requiresTwoFactorStep"
+    (ngSubmit)="Login()"
+    #loginForm="ngForm"
+    novalidate
+  >
     <div class="form-group">
       <label for="email">Email Address</label>
 
@@ -87,24 +101,85 @@
     </a>
   </form>
 
-  <div class="divider">
-    <span></span>
-    <p>or</p>
-    <span></span>
-  </div>
+  <form
+    *ngIf="requiresTwoFactorStep"
+    (ngSubmit)="verifyTwoFactorLogin()"
+    #twoFactorForm="ngForm"
+    novalidate
+  >
+    <div class="two-factor-panel">
+      <div class="two-factor-icon">🔐</div>
 
-  <button type="button" class="google-btn" (click)="loginWithGoogle()">
-    Continue with Google
-  </button>
+      <div>
+        <h3>Two-factor authentication</h3>
+        <p>
+          This extra step protects your account even if someone knows your password.
+        </p>
+      </div>
+    </div>
 
-  <div class="divider">
-    <span></span>
-    <p>New to Planora?</p>
-    <span></span>
-  </div>
+    <div class="form-group">
+      <label for="twoFactorCode">Authenticator Code</label>
 
-  <p class="register-text">
-    Create a workspace, invite members, and start tracking tickets.
-    <a routerLink="/register" class="link">Create account</a>
-  </p>
+      <input
+        id="twoFactorCode"
+        type="text"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        maxlength="6"
+        [(ngModel)]="twoFactorCode"
+        name="twoFactorCode"
+        placeholder="Enter 6-digit code"
+        autocomplete="one-time-code"
+        required
+        [class.input-error]="shouldShowTwoFactorCodeRequired() || shouldShowTwoFactorCodeInvalid()"
+        (input)="onTwoFactorInput()"
+      />
+
+      <small class="field-error" *ngIf="shouldShowTwoFactorCodeRequired()">
+        Authenticator code is required.
+      </small>
+
+      <small class="field-error" *ngIf="shouldShowTwoFactorCodeInvalid()">
+        Authenticator code must be 6 digits.
+      </small>
+    </div>
+
+    <button type="submit" class="login-btn" [disabled]="loading">
+      <span *ngIf="!loading">Verify and continue</span>
+      <span *ngIf="loading">Verifying...</span>
+    </button>
+
+    <button
+      type="button"
+      class="back-login-btn"
+      [disabled]="loading"
+      (click)="backToPasswordLogin()"
+    >
+      Back to email and password
+    </button>
+  </form>
+
+  <ng-container *ngIf="!requiresTwoFactorStep">
+    <div class="divider">
+      <span></span>
+      <p>or</p>
+      <span></span>
+    </div>
+
+    <button type="button" class="google-btn" (click)="loginWithGoogle()">
+      Continue with Google
+    </button>
+
+    <div class="divider">
+      <span></span>
+      <p>New to Planora?</p>
+      <span></span>
+    </div>
+
+    <p class="register-text">
+      Create a workspace, invite members, and start tracking tickets.
+      <a routerLink="/register" class="link">Create account</a>
+    </p>
+  </ng-container>
 </div>

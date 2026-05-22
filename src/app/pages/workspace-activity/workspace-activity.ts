@@ -353,4 +353,9 @@ export class WorkspaceActivity implements OnInit {
   goBackToWorkspaces(): void {
     this.router.navigate(['/workspaces']);
   }
+
+  goToTimesheet(): void {
+  this.router.navigate(['/workspaces', this.workspaceId, 'timesheet']);
+}
+
 }

@@ -1,0 +1,288 @@
+<div class="timesheet-page">
+  <app-sidebar
+    activePage="timesheet"
+    [workspaceId]="workspaceId"
+  ></app-sidebar>
+
+  <main class="timesheet-main">
+    <header class="page-header">
+      <div>
+        <p class="breadcrumb">Workspace Timesheet</p>
+
+        <h1>
+          {{ loadingWorkspace ? 'Loading workspace...' : workspace?.name }}
+        </h1>
+
+        <p class="header-text">
+          Track all logged work hours from tickets inside this workspace.
+        </p>
+      </div>
+    </header>
+
+    <nav class="ticket-nav" aria-label="Ticket navigation">
+
+      <button type="button" class="ticket-nav-item" (click)="goBackToBoard()">
+        <span class="nav-icon">▦</span>
+        <span>Development Board</span>
+      </button>
+
+      <button type="button" class="ticket-nav-item" (click)="goToActivity()">
+        <span class="nav-icon">↻</span>
+        <span>Activity Log</span>
+      </button>
+
+      <button type="button" class="ticket-nav-item active">
+        <span class="nav-icon">◴</span>
+        <span>Timesheet</span>
+      </button>
+
+      <button type="button" class="ticket-nav-item" (click)="goToArchive()">
+        <span class="nav-icon">▣</span>
+        <span>Archive</span>
+      </button>
+    </nav>
+
+    <section class="status-card error-card" *ngIf="errorMessage">
+      <p>{{ errorMessage }}</p>
+    </section>
+
+    <section class="timesheet-toolbar">
+  <article class="summary-card">
+    <span>Total Logged Hours</span>
+    <strong>{{ formatHoursWithLabel(totalHours) }}</strong>
+    <p>{{ getSelectedMonthLabel() }} · {{ getSelectedUserLabel() }}</p>
+  </article>
+
+  <div class="timesheet-filters">
+    <label>
+      <span>Month</span>
+      <input
+        type="month"
+        name="selectedMonth"
+        [(ngModel)]="selectedMonth"
+        (change)="onMonthChanged()"
+      />
+    </label>
+
+    <label>
+      <span>User</span>
+      <select
+        name="selectedUserId"
+        [(ngModel)]="selectedUserId"
+        (change)="onUserChanged()"
+      >
+        <option [ngValue]="null">All Users</option>
+
+        <option
+          *ngFor="let user of userOptions"
+          [ngValue]="user.id"
+        >
+          {{ user.name }}
+        </option>
+      </select>
+    </label>
+
+    <label>
+      <span>Required Hrs / Day</span>
+      <input
+        type="number"
+        name="requiredDailyHours"
+        min="0"
+        step="0.5"
+        [(ngModel)]="requiredDailyHours"
+        (input)="onRequiredHoursChanged()"
+      />
+    </label>
+
+    <div class="filter-actions">
+      <button type="button" class="refresh-btn" (click)="loadTimesheet()">
+        Refresh
+      </button>
+
+      <button type="button" class="secondary-btn" (click)="clearFilters()">
+        Clear
+      </button>
+    </div>
+  </div>
+</section>
+
+    <section class="status-card" *ngIf="loadingTimesheet">
+      <p>Loading workspace timesheet...</p>
+    </section>
+
+    <section
+      class="empty-state"
+      *ngIf="!loadingTimesheet && !errorMessage && ticketRows.length === 0"
+    >
+      <h2>No time logs yet</h2>
+      <p>
+        Time logs will appear here once users log hours inside ticket details.
+      </p>
+    </section>
+
+    <section
+      class="timesheet-table-card"
+      *ngIf="!loadingTimesheet && ticketRows.length > 0"
+    >
+      <div class="table-card-header">
+        <div>
+          <h2>{{ getSelectedMonthLabel() }}</h2>
+          <p>
+            Ticket hours are grouped by day.
+            The bottom rows show daily totals, required hours, and completion status.
+          </p>
+        </div>
+
+        <strong>{{ formatHoursWithLabel(totalHours) }}</strong>
+      </div>
+
+      <div class="timesheet-scroll">
+        <table class="timesheet-table">
+          <thead>
+            <tr class="month-row">
+              <th class="sticky-ticket-col" rowspan="2">Ticket</th>
+              <th class="meta-col" rowspan="2">Status</th>
+              <th class="meta-col" rowspan="2">Priority</th>
+              <th
+                class="month-heading"
+                [attr.colspan]="dayColumns.length"
+              >
+                {{ getSelectedMonthLabel() }}
+              </th>
+              <th class="total-col" rowspan="2">Total</th>
+            </tr>
+
+            <tr class="days-row">
+              <th
+                class="day-col"
+                *ngFor="let day of dayColumns"
+              >
+                <span>{{ day.dayNumber }}</span>
+                <small>{{ day.dayName }}</small>
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let row of ticketRows">
+              <td class="sticky-ticket-col ticket-cell">
+                <strong>{{ row.ticketTitle }}</strong>
+                <small>Ticket #{{ row.ticketId }}</small>
+              </td>
+
+              <td class="meta-col">
+                {{ formatStatus(row.status) }}
+              </td>
+
+              <td class="meta-col">
+                {{ formatPriority(row.priority) }}
+              </td>
+
+              <td
+                class="hours-cell"
+                *ngFor="let day of dayColumns"
+                [class.has-hours]="hasDayHours(row, day.date)"
+              >
+                {{ formatHours(getDayHours(row, day.date)) }}
+              </td>
+
+              <td class="total-col row-total">
+                {{ formatHoursWithLabel(row.totalHours) }}
+              </td>
+            </tr>
+          </tbody>
+
+          <tfoot>
+            <tr class="daily-total-row">
+              <td class="sticky-ticket-col footer-label">
+                Daily Total
+              </td>
+
+              <td class="meta-col footer-muted">—</td>
+              <td class="meta-col footer-muted">—</td>
+
+              <td
+                class="footer-hours-cell"
+                *ngFor="let day of dayColumns"
+                [class.has-total]="getDailyTotal(day.date) > 0"
+              >
+                {{ formatHours(getDailyTotal(day.date)) }}
+              </td>
+
+              <td class="total-col footer-grand-total">
+                {{ formatHoursWithLabel(totalHours) }}
+              </td>
+            </tr>
+
+            <tr class="required-row">
+              <td class="sticky-ticket-col footer-label">
+                Required
+              </td>
+
+              <td class="meta-col footer-muted">—</td>
+              <td class="meta-col footer-muted">—</td>
+
+              <td
+                class="footer-hours-cell required-cell"
+                *ngFor="let day of dayColumns"
+              >
+                {{ requiredDailyHours }}
+              </td>
+
+              <td class="total-col footer-grand-total">
+                {{ formatHoursWithLabel(getMonthlyRequiredHours()) }}
+              </td>
+            </tr>
+
+            <tr class="balance-row">
+              <td class="sticky-ticket-col footer-label">
+                Balance
+              </td>
+
+              <td class="meta-col footer-muted">—</td>
+              <td class="meta-col footer-muted">—</td>
+
+              <td
+                class="footer-hours-cell balance-cell"
+                *ngFor="let day of dayColumns"
+                [class.balance-good]="getDailyBalance(day.date) >= 0 && getDailyTotal(day.date) > 0"
+                [class.balance-short]="getDailyBalance(day.date) < 0"
+              >
+                {{ getDailyTotal(day.date) === 0 ? '—' : formatSignedHours(getDailyBalance(day.date)) }}
+              </td>
+
+              <td
+                class="total-col footer-grand-total"
+                [class.balance-good]="getMonthlyBalance() >= 0"
+                [class.balance-short]="getMonthlyBalance() < 0"
+              >
+                {{ formatSignedHours(getMonthlyBalance()) }} hrs
+              </td>
+            </tr>
+
+            <tr class="status-row">
+              <td class="sticky-ticket-col footer-label">
+                Status
+              </td>
+
+              <td class="meta-col footer-muted">—</td>
+              <td class="meta-col footer-muted">—</td>
+
+              <td
+                class="status-cell"
+                *ngFor="let day of dayColumns"
+                [ngClass]="getDailyStatusClass(day.date)"
+              >
+                {{ getDailyStatusLabel(day.date) }}
+              </td>
+
+              <td class="total-col footer-muted">
+                —
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>

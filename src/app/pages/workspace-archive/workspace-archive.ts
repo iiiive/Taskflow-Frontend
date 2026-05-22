@@ -216,4 +216,9 @@ export class WorkspaceArchive implements OnInit {
 
     return [];
   }
+
+  goToTimesheet(): void {
+  this.router.navigate(['/workspaces', this.workspaceId, 'timesheet']);
+}
+
 }

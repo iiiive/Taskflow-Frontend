@@ -132,7 +132,151 @@
           </button>
         </form>
 
-        <div class="password-divider"></div>
+        <div class="security-section-divider"></div>
+
+        <div class="card-heading">
+          <div>
+            <p class="breadcrumb">Security</p>
+            <h2>Two-Factor Authentication</h2>
+          </div>
+        </div>
+
+        <section class="two-factor-card">
+          <div class="two-factor-status">
+            <div>
+              <strong>Microsoft Authenticator</strong>
+              <p>
+                Add a 6-digit authenticator code after password login. This helps protect the account even if the
+                password is compromised.
+              </p>
+            </div>
+
+            <span class="two-factor-badge" [class.enabled]="isTwoFactorEnabled()">
+              {{ isTwoFactorEnabled() ? 'Enabled' : 'Disabled' }}
+            </span>
+          </div>
+
+          <div class="info-box" *ngIf="!isTwoFactorEnabled() && !twoFactorQrCode">
+            <strong>How setup works</strong>
+            <p>
+              Click setup, scan the QR code using Microsoft Authenticator, then enter the 6-digit code to confirm.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            class="primary-btn save-btn"
+            *ngIf="!isTwoFactorEnabled() && !twoFactorQrCode"
+            [disabled]="settingUpTwoFactor"
+            (click)="startTwoFactorSetup()"
+          >
+            {{ settingUpTwoFactor ? 'Preparing QR...' : 'Set Up Authenticator' }}
+          </button>
+
+          <div class="qr-setup-box" *ngIf="!isTwoFactorEnabled() && twoFactorQrCode">
+            <div class="qr-code-box" [innerHTML]="twoFactorQrCode"></div>
+
+            <div class="manual-key-box" *ngIf="manualSetupKey">
+              <strong>Manual setup key</strong>
+              <code>{{ manualSetupKey }}</code>
+              <p>
+                Use this only if scanning the QR code does not work.
+              </p>
+            </div>
+
+            <form class="profile-form" (ngSubmit)="confirmTwoFactor()">
+              <div class="form-group">
+                <label for="twoFactorCode">Enter 6-digit code</label>
+
+                <input
+                  id="twoFactorCode"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  maxlength="6"
+                  name="twoFactorCode"
+                  [(ngModel)]="twoFactorCode"
+                  placeholder="123456"
+                  autocomplete="one-time-code"
+                  (input)="onTwoFactorCodeInput()"
+                />
+              </div>
+
+              <button
+                type="submit"
+                class="primary-btn save-btn"
+                [disabled]="confirmingTwoFactor"
+              >
+                {{ confirmingTwoFactor ? 'Confirming...' : 'Confirm and Enable' }}
+              </button>
+            </form>
+          </div>
+
+          <div class="disable-two-factor-box" *ngIf="isTwoFactorEnabled()">
+            <div class="info-box">
+              <strong>2FA is active</strong>
+              <p>
+                The next time you sign in, Planora will ask for your Microsoft Authenticator code after your password.
+              </p>
+            </div>
+
+            <form class="profile-form" (ngSubmit)="disableTwoFactor()">
+              <div class="form-group">
+                <label for="disableTwoFactorPassword">Password</label>
+
+                <input
+                  id="disableTwoFactorPassword"
+                  type="password"
+                  name="disableTwoFactorPassword"
+                  [(ngModel)]="disableTwoFactorPassword"
+                  placeholder="Enter password to disable 2FA"
+                  autocomplete="current-password"
+                />
+              </div>
+
+              <button
+                type="submit"
+                class="danger-btn save-btn"
+                [disabled]="disablingTwoFactor"
+              >
+                {{ disablingTwoFactor ? 'Disabling...' : 'Disable 2FA' }}
+              </button>
+            </form>
+
+            <button
+              type="button"
+              class="secondary-btn"
+              [disabled]="regeneratingRecoveryCodes"
+              (click)="regenerateRecoveryCodes()"
+            >
+              {{ regeneratingRecoveryCodes ? 'Generating...' : 'Regenerate Recovery Codes' }}
+            </button>
+          </div>
+
+          <div class="recovery-codes-box" *ngIf="recoveryCodes.length">
+            <strong>Save these recovery codes</strong>
+            <p>
+              Store these somewhere safe. You can use them if you lose access to Microsoft Authenticator.
+            </p>
+
+            <div class="recovery-code-grid">
+              <code *ngFor="let code of recoveryCodes">
+                {{ code }}
+              </code>
+            </div>
+          </div>
+
+          <p
+            class="message"
+            *ngIf="twoFactorMessage"
+            [class.success]="twoFactorSuccess"
+            [class.error]="!twoFactorSuccess"
+          >
+            {{ twoFactorMessage }}
+          </p>
+        </section>
+
+        <div class="security-section-divider password-section-gap"></div>
 
         <div class="card-heading">
           <div>
@@ -145,7 +289,8 @@
           <div class="info-box" *ngIf="!userHasPassword()">
             <strong>Google account password setup</strong>
             <p>
-              Your account was created through Google. You can set a Planora password here if you also want to sign in using email and password.
+              Your account was created through Google. You can set a Planora password here if you also want to sign in
+              using email and password.
             </p>
           </div>
 

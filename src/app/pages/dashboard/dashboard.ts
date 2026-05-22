@@ -19,11 +19,14 @@ Chart.register(...registerables);
 
 type TicketStatus =
   | 'todo'
+  | 'in_progress'
+  | 'in_review'
   | 'ready_for_development'
   | 'dev_in_progress'
   | 'ready_for_testing'
   | 'ready_for_uat'
-  | 'done';
+  | 'done'
+  | 'completed';
 
 type TicketPriority =
   | 'low'
@@ -36,11 +39,25 @@ interface Workspace {
   name: string;
   description?: string | null;
   role?: 'owner' | 'editor' | 'viewer';
+  kanban_columns?: KanbanColumn[];
+}
+
+interface KanbanColumn {
+  id: number;
+  workspace_id: number;
+  name: string;
+  slug: string;
+  position: number;
+  status_key?: TicketStatus | string | null;
+  is_backlog_column: boolean;
+  is_done_column: boolean;
+  tickets?: Ticket[];
 }
 
 interface Ticket {
   id: number;
   workspace_id: number;
+  kanban_column_id?: number | null;
   title: string;
   description?: string | null;
   status: TicketStatus;
@@ -54,37 +71,38 @@ interface Ticket {
     name?: string | null;
     email?: string | null;
   } | null;
+  kanban_column?: KanbanColumn | null;
   created_at?: string | null;
   updated_at?: string | null;
 }
 
 interface WorkspaceDashboardItem extends Workspace {
+  columns: KanbanColumn[];
   tickets: Ticket[];
   totalTickets: number;
-  todoCount: number;
-  readyForDevelopmentCount: number;
-  devInProgressCount: number;
-  readyForTestingCount: number;
-  readyForUatCount: number;
+  backlogCount: number;
+  activeCount: number;
   doneCount: number;
+  completedCount: number;
   urgentCount: number;
+  overdueCount: number;
   completionPercentage: number;
 }
 
 interface DashboardTotals {
   total_workspaces: number;
   total_tickets: number;
-  todo_tickets: number;
-  ready_for_development_tickets: number;
-  dev_in_progress_tickets: number;
-  ready_for_testing_tickets: number;
-  ready_for_uat_tickets: number;
+  backlog_tickets: number;
+  active_tickets: number;
   done_tickets: number;
+  completed_tickets: number;
   urgent_tickets: number;
+  overdue_tickets: number;
 }
 
 interface NeedsAttentionTicket extends Ticket {
   workspace_name: string;
+  column_name: string;
   reason: string;
   reason_class: string;
 }
@@ -98,6 +116,8 @@ interface DashboardNotification {
   ticket_title: string;
   workspace_id: number;
   workspace_name: string;
+  kanban_column_id?: number | null;
+  kanban_column_name?: string | null;
   status: TicketStatus;
   priority: TicketPriority;
   created_at: string;
@@ -131,26 +151,18 @@ export class Dashboard implements OnInit {
   totals: DashboardTotals = {
     total_workspaces: 0,
     total_tickets: 0,
-    todo_tickets: 0,
-    ready_for_development_tickets: 0,
-    dev_in_progress_tickets: 0,
-    ready_for_testing_tickets: 0,
-    ready_for_uat_tickets: 0,
+    backlog_tickets: 0,
+    active_tickets: 0,
     done_tickets: 0,
+    completed_tickets: 0,
     urgent_tickets: 0,
+    overdue_tickets: 0,
   };
 
   workspaceBarChartType: 'bar' = 'bar';
 
   workspaceBarChartData: ChartData<'bar'> = {
-    labels: [
-      'Backlog / To Do',
-      'Ready for Dev',
-      'Dev in Progress',
-      'Ready for Testing',
-      'Ready for UAT',
-      'Done'
-    ],
+    labels: [],
     datasets: []
   };
 
@@ -200,14 +212,17 @@ export class Dashboard implements OnInit {
     }
   };
 
-  private monochromePalette = {
-    todo: '#dbe7ef',
-    readyForDevelopment: '#b9ccd9',
-    devInProgress: '#8faabd',
-    readyForTesting: '#6f8ea5',
-    readyForUat: '#547a95',
-    done: '#18394f'
-  };
+  private chartColors = [
+    '#dbe7ef',
+    '#c7d6e2',
+    '#b9ccd9',
+    '#9fb5c7',
+    '#8faabd',
+    '#6f8ea5',
+    '#547a95',
+    '#3f637c',
+    '#18394f',
+  ];
 
   constructor(
     private http: HttpClient,
@@ -249,23 +264,24 @@ export class Dashboard implements OnInit {
           return;
         }
 
-        const ticketRequests = this.workspaces.map(workspace =>
-          this.http.get<any>(`${this.apiUrl}/workspaces/${workspace.id}/tickets`, {
+        const columnRequests = this.workspaces.map(workspace =>
+          this.http.get<any>(`${this.apiUrl}/workspaces/${workspace.id}/kanban-columns`, {
             headers: this.getAuthHeaders()
           }).pipe(
             catchError((err) => {
-              console.error(`Tickets API error for workspace ${workspace.id}:`, err);
+              console.error(`Kanban columns API error for workspace ${workspace.id}:`, err);
               return of([]);
             })
           )
         );
 
-        forkJoin(ticketRequests).subscribe({
-          next: (ticketResponses) => {
+        forkJoin(columnRequests).subscribe({
+          next: (columnResponses) => {
             this.workspaceDashboards = this.workspaces.map((workspace, index) => {
-              const tickets = this.extractTicketArray(ticketResponses[index]);
+              const columns = this.extractColumnArray(columnResponses[index])
+                .sort((a, b) => a.position - b.position);
 
-              return this.buildWorkspaceDashboardItem(workspace, tickets);
+              return this.buildWorkspaceDashboardItem(workspace, columns);
             });
 
             this.recalculateTotals();
@@ -276,11 +292,11 @@ export class Dashboard implements OnInit {
             this.cdr.detectChanges();
           },
           error: (err) => {
-            console.error('Dashboard ticket loading error:', err);
+            console.error('Dashboard Kanban loading error:', err);
 
             this.errorMessage =
               err?.error?.message ||
-              'Unable to load workspace ticket data. Please try again.';
+              'Unable to load workspace Kanban data. Please try again.';
 
             this.loading = false;
             this.cdr.detectChanges();
@@ -355,55 +371,72 @@ export class Dashboard implements OnInit {
 
   openNotification(notification: DashboardNotification): void {
     this.closeNotifications();
-
-    if (notification.status === 'todo') {
-      this.openWorkspaceBacklog(notification.workspace_id);
-      return;
-    }
-
     this.openWorkspaceBoard(notification.workspace_id);
   }
 
   buildWorkspaceDashboardItem(
     workspace: Workspace,
-    tickets: Ticket[]
+    columns: KanbanColumn[]
   ): WorkspaceDashboardItem {
-    const todoCount = tickets.filter(ticket => ticket.status === 'todo').length;
-
-    const readyForDevelopmentCount = tickets.filter(
-      ticket => ticket.status === 'ready_for_development'
-    ).length;
-
-    const devInProgressCount = tickets.filter(
-      ticket => ticket.status === 'dev_in_progress'
-    ).length;
-
-    const readyForTestingCount = tickets.filter(
-      ticket => ticket.status === 'ready_for_testing'
-    ).length;
-
-    const readyForUatCount = tickets.filter(
-      ticket => ticket.status === 'ready_for_uat'
-    ).length;
-
-    const doneCount = tickets.filter(ticket => ticket.status === 'done').length;
-    const urgentCount = tickets.filter(ticket => ticket.priority === 'urgent').length;
+    const tickets = columns.flatMap(column => {
+      return (column.tickets || []).map(ticket => ({
+        ...ticket,
+        workspace_id: ticket.workspace_id || workspace.id,
+        kanban_column_id: ticket.kanban_column_id || column.id,
+        kanban_column: ticket.kanban_column || column
+      }));
+    });
 
     const totalTickets = tickets.length;
+
+    const backlogColumnIds = columns
+      .filter(column => column.is_backlog_column)
+      .map(column => column.id);
+
+    const doneColumnIds = columns
+      .filter(column => column.is_done_column)
+      .map(column => column.id);
+
+    const backlogCount = tickets.filter(ticket =>
+      ticket.status === 'todo' ||
+      backlogColumnIds.includes(Number(ticket.kanban_column_id))
+    ).length;
+
+    const doneCount = tickets.filter(ticket =>
+      ticket.status === 'done' ||
+      doneColumnIds.includes(Number(ticket.kanban_column_id))
+    ).length;
+
+    const completedCount = tickets.filter(ticket => ticket.status === 'completed').length;
+
+    const activeCount = tickets.filter(ticket =>
+      ticket.status !== 'done' &&
+      ticket.status !== 'completed' &&
+      !doneColumnIds.includes(Number(ticket.kanban_column_id))
+    ).length;
+
+    const urgentCount = tickets.filter(ticket => ticket.priority === 'urgent').length;
+
+    const overdueCount = tickets.filter(ticket =>
+      ticket.due_date_warning === 'overdue' &&
+      ticket.status !== 'done' &&
+      ticket.status !== 'completed'
+    ).length;
+
     const completionPercentage =
-      totalTickets > 0 ? Math.round((doneCount / totalTickets) * 100) : 0;
+      totalTickets > 0 ? Math.round(((doneCount + completedCount) / totalTickets) * 100) : 0;
 
     return {
       ...workspace,
+      columns,
       tickets,
       totalTickets,
-      todoCount,
-      readyForDevelopmentCount,
-      devInProgressCount,
-      readyForTestingCount,
-      readyForUatCount,
+      backlogCount,
+      activeCount,
       doneCount,
+      completedCount,
       urgentCount,
+      overdueCount,
       completionPercentage,
     };
   }
@@ -414,14 +447,7 @@ export class Dashboard implements OnInit {
       this.selectedWorkspaceChart = null;
 
       this.workspaceBarChartData = {
-        labels: [
-          'Backlog / To Do',
-          'Ready for Dev',
-          'Dev in Progress',
-          'Ready for Testing',
-          'Ready for UAT',
-          'Done'
-        ],
+        labels: [],
         datasets: []
       };
 
@@ -439,44 +465,24 @@ export class Dashboard implements OnInit {
     this.selectedWorkspaceChart = selectedWorkspace || this.workspaceDashboards[0];
     this.selectedWorkspaceChartId = this.selectedWorkspaceChart.id;
 
-    this.workspaceBarChartData = {
-  labels: [
-    'Backlog / To Do',
-    'Ready for Dev',
-    'Dev in Progress',
-    'Ready for Testing',
-    'Ready for UAT',
-    'Done'
-  ],
-  datasets: [
-    {
-      label: this.selectedWorkspaceChart.name,
-      data: [
-        this.selectedWorkspaceChart.todoCount,
-        this.selectedWorkspaceChart.readyForDevelopmentCount,
-        this.selectedWorkspaceChart.devInProgressCount,
-        this.selectedWorkspaceChart.readyForTestingCount,
-        this.selectedWorkspaceChart.readyForUatCount,
-        this.selectedWorkspaceChart.doneCount
-      ],
-      backgroundColor: [
-        this.monochromePalette.todo,
-        this.monochromePalette.readyForDevelopment,
-        this.monochromePalette.devInProgress,
-        this.monochromePalette.readyForTesting,
-        this.monochromePalette.readyForUat,
-        this.monochromePalette.done
-      ],
-      borderColor: '#ffffff',
-      borderWidth: 2,
-      borderSkipped: false,
+    const columns = this.selectedWorkspaceChart.columns;
 
-      barPercentage: 0.45,
-      categoryPercentage: 0.5,
-      maxBarThickness: 52
-    }
-  ]
-};
+    this.workspaceBarChartData = {
+      labels: columns.map(column => column.name),
+      datasets: [
+        {
+          label: this.selectedWorkspaceChart.name,
+          data: columns.map(column => this.getColumnTicketCount(column)),
+          backgroundColor: columns.map((_, index) => this.chartColors[index % this.chartColors.length]),
+          borderColor: '#ffffff',
+          borderWidth: 2,
+          borderSkipped: false,
+          barPercentage: 0.42,
+          categoryPercentage: 0.55,
+          maxBarThickness: 46
+        }
+      ]
+    };
   }
 
   onWorkspaceChartChange(event: Event): void {
@@ -492,26 +498,28 @@ export class Dashboard implements OnInit {
     this.totals = {
       total_workspaces: this.workspaceDashboards.length,
       total_tickets: allTickets.length,
-      todo_tickets: allTickets.filter(ticket => ticket.status === 'todo').length,
 
-      ready_for_development_tickets: allTickets.filter(
-        ticket => ticket.status === 'ready_for_development'
-      ).length,
+      backlog_tickets: this.workspaceDashboards.reduce((total, workspace) => {
+        return total + workspace.backlogCount;
+      }, 0),
 
-      dev_in_progress_tickets: allTickets.filter(
-        ticket => ticket.status === 'dev_in_progress'
-      ).length,
+      active_tickets: this.workspaceDashboards.reduce((total, workspace) => {
+        return total + workspace.activeCount;
+      }, 0),
 
-      ready_for_testing_tickets: allTickets.filter(
-        ticket => ticket.status === 'ready_for_testing'
-      ).length,
+      done_tickets: this.workspaceDashboards.reduce((total, workspace) => {
+        return total + workspace.doneCount;
+      }, 0),
 
-      ready_for_uat_tickets: allTickets.filter(
-        ticket => ticket.status === 'ready_for_uat'
-      ).length,
+      completed_tickets: allTickets.filter(ticket => ticket.status === 'completed').length,
 
-      done_tickets: allTickets.filter(ticket => ticket.status === 'done').length,
       urgent_tickets: allTickets.filter(ticket => ticket.priority === 'urgent').length,
+
+      overdue_tickets: allTickets.filter(ticket =>
+        ticket.due_date_warning === 'overdue' &&
+        ticket.status !== 'done' &&
+        ticket.status !== 'completed'
+      ).length,
     };
   }
 
@@ -529,6 +537,7 @@ export class Dashboard implements OnInit {
         attentionTickets.push({
           ...ticket,
           workspace_name: workspace.name,
+          column_name: this.getTicketColumnName(workspace, ticket),
           reason: reason.label,
           reason_class: reason.className
         });
@@ -541,7 +550,7 @@ export class Dashboard implements OnInit {
   }
 
   getAttentionReason(ticket: Ticket): { label: string; className: string } | null {
-    if (ticket.status === 'done') {
+    if (ticket.status === 'done' || ticket.status === 'completed') {
       return null;
     }
 
@@ -585,6 +594,20 @@ export class Dashboard implements OnInit {
     return 5;
   }
 
+  getColumnTicketCount(column: KanbanColumn): number {
+    return column.tickets?.length || 0;
+  }
+
+  getTicketColumnName(workspace: WorkspaceDashboardItem, ticket: Ticket): string {
+    if (ticket.kanban_column?.name) {
+      return ticket.kanban_column.name;
+    }
+
+    const column = workspace.columns.find(item => item.id === Number(ticket.kanban_column_id));
+
+    return column?.name || this.getStatusLabel(ticket.status);
+  }
+
   extractWorkspaceArray(res: any): Workspace[] {
     if (Array.isArray(res)) {
       return res;
@@ -609,7 +632,7 @@ export class Dashboard implements OnInit {
     return [];
   }
 
-  extractTicketArray(res: any): Ticket[] {
+  extractColumnArray(res: any): KanbanColumn[] {
     if (Array.isArray(res)) {
       return res;
     }
@@ -622,12 +645,20 @@ export class Dashboard implements OnInit {
       return res.data.data;
     }
 
-    if (Array.isArray(res?.tickets)) {
-      return res.tickets;
+    if (Array.isArray(res?.columns)) {
+      return res.columns;
     }
 
-    if (Array.isArray(res?.data?.tickets)) {
-      return res.data.tickets;
+    if (Array.isArray(res?.data?.columns)) {
+      return res.data.columns;
+    }
+
+    if (Array.isArray(res?.kanban_columns)) {
+      return res.kanban_columns;
+    }
+
+    if (Array.isArray(res?.data?.kanban_columns)) {
+      return res.data.kanban_columns;
     }
 
     return [];
@@ -653,14 +684,17 @@ export class Dashboard implements OnInit {
     return `${workspace.completionPercentage}% complete`;
   }
 
-  getStatusLabel(status: TicketStatus): string {
-    const labels: Record<TicketStatus, string> = {
-      todo: 'To Do / Backlog',
+  getStatusLabel(status: TicketStatus | string): string {
+    const labels: Record<string, string> = {
+      todo: 'Backlog',
+      in_progress: 'In Progress',
+      in_review: 'In Review',
       ready_for_development: 'Ready for Development',
       dev_in_progress: 'Dev in Progress',
       ready_for_testing: 'Ready for Testing',
       ready_for_uat: 'Ready for UAT',
-      done: 'Done'
+      done: 'Done',
+      completed: 'Completed / Archived'
     };
 
     return labels[status] || status;
@@ -672,10 +706,6 @@ export class Dashboard implements OnInit {
 
   openWorkspaceBoard(workspaceId: number): void {
     this.router.navigate(['/workspaces', workspaceId, 'board']);
-  }
-
-  openWorkspaceBacklog(workspaceId: number): void {
-    this.router.navigate(['/workspaces', workspaceId, 'backlog']);
   }
 
   openWorkspaceActivity(workspaceId: number): void {

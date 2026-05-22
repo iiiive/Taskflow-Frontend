@@ -370,3 +370,26 @@
     width: 100%;
   }
 }
+
+.ticket-epic-row {
+  display: flex;
+  align-items: center;
+  margin: 8px 0 6px;
+}
+
+.epic-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px 9px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

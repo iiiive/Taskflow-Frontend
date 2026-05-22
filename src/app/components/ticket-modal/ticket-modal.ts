@@ -15,14 +15,42 @@ import { EditorModule, TINYMCE_SCRIPT_SRC } from '@tinymce/tinymce-angular';
 import {
   ActivityLog,
   ApiResponse,
+  Epic,
+  KanbanColumn,
   Ticket,
   TicketAttachment,
   TicketComment,
   TicketFormData,
-  TicketPriority,
   TicketStatus,
   WorkspaceMember
 } from '../../interfaces/planora.interface';
+
+interface TicketTimeLog {
+  id: number;
+  workspace_id: number;
+  ticket_id: number;
+  user_id: number;
+  hours: number;
+  description?: string | null;
+  work_date: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+  user?: {
+    id: number;
+    name?: string | null;
+    email?: string | null;
+  } | null;
+  ticket?: {
+    id: number;
+    title?: string | null;
+  } | null;
+}
+
+interface TimeLogFormData {
+  hours: number | null;
+  description: string;
+  work_date: string;
+}
 
 @Component({
   selector: 'app-ticket-modal',
@@ -37,6 +65,8 @@ import {
 export class TicketModal implements OnChanges {
   @Input() ticket: Ticket | null = null;
   @Input() workspaceMembers: WorkspaceMember[] = [];
+  @Input() kanbanColumns: KanbanColumn[] = [];
+  @Input() epics: Epic[] = [];
   @Input() canEdit = false;
   @Input() canComment = false;
   @Input() apiUrl = 'http://127.0.0.1:8000/api';
@@ -65,10 +95,23 @@ export class TicketModal implements OnChanges {
   activityLogError = '';
   ticketActivityLogs: ActivityLog[] = [];
 
+  loadingTimeLogs = false;
+  submittingTimeLog = false;
+  timeLogError = '';
+  ticketTimeLogs: TicketTimeLog[] = [];
+
+  timeLogForm: TimeLogFormData = {
+    hours: null,
+    description: '',
+    work_date: this.getTodayDate()
+  };
+
   editTicketData: TicketFormData = {
     title: '',
     description: '',
     status: 'todo',
+    kanban_column_id: null,
+    epic_id: null,
     priority: 'medium',
     due_date: null,
     assigned_to: null
@@ -132,11 +175,20 @@ export class TicketModal implements OnChanges {
     this.commentText = '';
     this.attachmentError = '';
     this.activityLogError = '';
+    this.timeLogError = '';
+
+    this.timeLogForm = {
+      hours: null,
+      description: '',
+      work_date: this.getTodayDate()
+    };
 
     this.editTicketData = {
       title: this.ticket.title || '',
       description: this.ticket.description || '',
       status: this.ticket.status || 'todo',
+      kanban_column_id: this.ticket.kanban_column_id || null,
+      epic_id: this.ticket.epic_id || null,
       priority: this.ticket.priority || 'medium',
       due_date: this.ticket.due_date || null,
       assigned_to: this.ticket.assigned_to || null
@@ -145,6 +197,7 @@ export class TicketModal implements OnChanges {
     this.loadTicketComments(this.ticket.id);
     this.loadTicketAttachments(this.ticket.id);
     this.loadTicketActivityLogs(this.ticket.id);
+    this.loadTicketTimeLogs(this.ticket.id);
   }
 
   close(): void {
@@ -164,6 +217,8 @@ export class TicketModal implements OnChanges {
       title: this.ticket.title || '',
       description: this.ticket.description || '',
       status: this.ticket.status || 'todo',
+      kanban_column_id: this.ticket.kanban_column_id || null,
+      epic_id: this.ticket.epic_id || null,
       priority: this.ticket.priority || 'medium',
       due_date: this.ticket.due_date || null,
       assigned_to: this.ticket.assigned_to || null
@@ -181,11 +236,69 @@ export class TicketModal implements OnChanges {
         title: this.ticket.title || '',
         description: this.ticket.description || '',
         status: this.ticket.status || 'todo',
+        kanban_column_id: this.ticket.kanban_column_id || null,
+        epic_id: this.ticket.epic_id || null,
         priority: this.ticket.priority || 'medium',
         due_date: this.ticket.due_date || null,
         assigned_to: this.ticket.assigned_to || null
       };
     }
+
+    this.cdr.detectChanges();
+  }
+
+  getEditedColumn(): KanbanColumn | null {
+    if (!this.editTicketData.kanban_column_id) {
+      return null;
+    }
+
+    return this.kanbanColumns.find(
+      column => Number(column.id) === Number(this.editTicketData.kanban_column_id)
+    ) || null;
+  }
+
+  getEditedColumnName(): string {
+    const column = this.getEditedColumn();
+
+    if (column?.name) {
+      return column.name;
+    }
+
+    return this.getColumnName(this.ticket);
+  }
+
+  getEditedStatusKey(): TicketStatus {
+    if (this.editTicketData.status === 'completed') {
+      return 'completed';
+    }
+
+    const column = this.getEditedColumn();
+
+    return (column?.status_key as TicketStatus) || this.editTicketData.status || 'todo';
+  }
+
+  getEditedStatusLabel(): string {
+    return this.formatStatus(this.getEditedStatusKey());
+  }
+
+  onEditKanbanColumnChange(columnId: number | null): void {
+    const selectedColumn = this.kanbanColumns.find(
+      column => Number(column.id) === Number(columnId)
+    );
+
+    if (!selectedColumn) {
+      this.editTicketData.kanban_column_id = null;
+      return;
+    }
+
+    this.editTicketData.kanban_column_id = selectedColumn.id;
+
+    /**
+     * Custom Kanban columns can be renamed by the user, but the system still
+     * needs a stable status key for dashboard counts, backlog logic, done logic,
+     * due-date warnings, and archive behavior.
+     */
+    this.editTicketData.status = (selectedColumn.status_key as TicketStatus) || 'todo';
 
     this.cdr.detectChanges();
   }
@@ -207,10 +320,21 @@ export class TicketModal implements OnChanges {
       return;
     }
 
+    const selectedColumn = this.kanbanColumns.find(
+      column => column.id === Number(this.editTicketData.kanban_column_id)
+    );
+
+    const resolvedStatus: TicketStatus =
+      this.editTicketData.status === 'completed'
+        ? 'completed'
+        : ((selectedColumn?.status_key as TicketStatus) || this.editTicketData.status || 'todo');
+
     const payload = {
       title: this.editTicketData.title.trim(),
       description: this.editTicketData.description || '',
-      status: this.editTicketData.status,
+      status: resolvedStatus,
+      kanban_column_id: selectedColumn?.id || this.editTicketData.kanban_column_id || null,
+      epic_id: this.editTicketData.epic_id || null,
       priority: this.editTicketData.priority,
       due_date: this.editTicketData.due_date || null,
       assigned_to: this.editTicketData.assigned_to
@@ -438,7 +562,7 @@ export class TicketModal implements OnChanges {
     }
 
     this.http.delete(
-      `${this.apiUrl}/tickets/${this.ticket.id}/attachments/${attachment.id}`
+      `${this.apiUrl}/attachments/${attachment.id}`
     ).subscribe({
       next: () => {
         this.ticketAttachments = this.ticketAttachments.filter(
@@ -461,6 +585,168 @@ export class TicketModal implements OnChanges {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  loadTicketTimeLogs(ticketId: number): void {
+    this.loadingTimeLogs = true;
+    this.timeLogError = '';
+
+    this.http.get<ApiResponse<TicketTimeLog[]> | TicketTimeLog[] | any>(
+      `${this.apiUrl}/tickets/${ticketId}/time-logs`
+    ).subscribe({
+      next: (res) => {
+        this.ticketTimeLogs = this.extractArray<TicketTimeLog>(res);
+        this.loadingTimeLogs = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Load ticket time logs error:', err);
+
+        this.ticketTimeLogs = [];
+        this.loadingTimeLogs = false;
+        this.timeLogError =
+          err?.error?.message ||
+          'Unable to load time logs.';
+
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  addTicketTimeLog(): void {
+    if (!this.ticket) {
+      return;
+    }
+
+    if (!this.canLogTime()) {
+      this.timeLogError = 'You do not have permission to log time on this ticket.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const hours = Number(this.timeLogForm.hours);
+
+    if (!hours || hours <= 0) {
+      this.timeLogError = 'Please enter valid hours greater than 0.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (hours > 24) {
+      this.timeLogError = 'You cannot log more than 24 hours in one entry.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (!this.timeLogForm.work_date) {
+      this.timeLogError = 'Please select a work date.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const payload = {
+      hours,
+      description: this.timeLogForm.description?.trim() || null,
+      work_date: this.timeLogForm.work_date
+    };
+
+    this.submittingTimeLog = true;
+    this.timeLogError = '';
+    this.successMessage = '';
+
+    this.http.post<ApiResponse<TicketTimeLog> | TicketTimeLog | any>(
+      `${this.apiUrl}/tickets/${this.ticket.id}/time-logs`,
+      payload
+    ).subscribe({
+      next: (res) => {
+        const newTimeLog = res?.data ? res.data : res;
+
+        this.ticketTimeLogs = [newTimeLog, ...this.ticketTimeLogs];
+
+        this.timeLogForm = {
+          hours: null,
+          description: '',
+          work_date: this.getTodayDate()
+        };
+
+        this.submittingTimeLog = false;
+        this.successMessage = 'Time logged successfully.';
+
+        if (this.ticket) {
+          this.loadTicketActivityLogs(this.ticket.id);
+        }
+
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Add ticket time log error:', err);
+
+        this.submittingTimeLog = false;
+        this.timeLogError =
+          err?.error?.message ||
+          'Unable to add time log.';
+
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  canLogTime(): boolean {
+    if (!this.ticket) {
+      return false;
+    }
+
+    const currentUserId = this.getCurrentUserId();
+    const assignedTo = Number(this.ticket.assigned_to);
+
+    return this.canEdit || (!!currentUserId && assignedTo === currentUserId);
+  }
+
+  getCurrentUserId(): number | null {
+    const userJson =
+      localStorage.getItem('user') ||
+      localStorage.getItem('currentUser') ||
+      localStorage.getItem('auth_user');
+
+    if (!userJson) {
+      return null;
+    }
+
+    try {
+      const user = JSON.parse(userJson);
+      return user?.id ? Number(user.id) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  getTodayDate(): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
+
+  getTotalLoggedHours(): number {
+    return this.ticketTimeLogs.reduce((total, log) => {
+      return total + Number(log.hours || 0);
+    }, 0);
+  }
+
+  formatHours(hours: number | string | null | undefined): string {
+    const value = Number(hours || 0);
+
+    if (Number.isInteger(value)) {
+      return `${value} hr${value === 1 ? '' : 's'}`;
+    }
+
+    return `${value.toFixed(2).replace(/\.?0+$/, '')} hrs`;
+  }
+
+  getTimeLogAuthor(log: TicketTimeLog): string {
+    return log.user?.name || log.user?.email || `User #${log.user_id}`;
   }
 
   loadTicketActivityLogs(ticketId: number): void {
@@ -509,19 +795,69 @@ export class TicketModal implements OnChanges {
     return String(value);
   }
 
-  formatStatus(status: string | null | undefined): string {
-  const labels: Record<string, string> = {
-    todo: 'To Do / Backlog',
-    ready_for_development: 'Ready for Development',
-    dev_in_progress: 'Dev in Progress',
-    ready_for_testing: 'Ready for Testing',
-    ready_for_uat: 'Ready for UAT',
-    done: 'Done',
-    completed: 'Completed / Archived'
-  };
+  getColumnName(ticket: Ticket | null | undefined): string {
+    if (!ticket) {
+      return '—';
+    }
 
-  return status ? labels[status] || status : '—';
-}
+    if (ticket.kanban_column?.name) {
+      return ticket.kanban_column.name;
+    }
+
+    const column = this.kanbanColumns.find(
+      item => item.id === Number(ticket.kanban_column_id)
+    );
+
+    return column?.name || this.formatStatus(ticket.status);
+  }
+
+  getEpicName(ticket: Ticket | null | undefined): string {
+    if (!ticket) {
+      return 'No Epic';
+    }
+
+    if (ticket.epic?.name) {
+      return ticket.epic.name;
+    }
+
+    const epic = this.epics.find(item => item.id === Number(ticket.epic_id));
+
+    return epic?.name || 'No Epic';
+  }
+
+  getEpicColor(ticket: Ticket | null | undefined): string {
+    if (!ticket) {
+      return '#64748b';
+    }
+
+    if (ticket.epic?.color) {
+      return ticket.epic.color;
+    }
+
+    const epic = this.epics.find(item => item.id === Number(ticket.epic_id));
+
+    return epic?.color || '#64748b';
+  }
+
+  hasEpic(ticket: Ticket | null | undefined): boolean {
+    return !!ticket?.epic_id || !!ticket?.epic;
+  }
+
+  formatStatus(status: string | null | undefined): string {
+    const labels: Record<string, string> = {
+      todo: 'To Do / Backlog',
+      in_progress: 'In Progress',
+      in_review: 'In Review',
+      ready_for_development: 'Ready for Development',
+      dev_in_progress: 'Dev in Progress',
+      ready_for_testing: 'Ready for Testing',
+      ready_for_uat: 'Ready for UAT',
+      done: 'Done',
+      completed: 'Completed / Archived'
+    };
+
+    return status ? labels[status] || status : '—';
+  }
 
   formatPriority(priority: string | null | undefined): string {
     if (!priority) {
@@ -589,16 +925,17 @@ export class TicketModal implements OnChanges {
     if (Array.isArray(res?.comments)) return res.comments;
     if (Array.isArray(res?.attachments)) return res.attachments;
     if (Array.isArray(res?.logs)) return res.logs;
+    if (Array.isArray(res?.time_logs)) return res.time_logs;
 
     return [];
   }
 
   canShowCompletedStatus(): boolean {
-  return (
-    this.ticket?.status === 'done' ||
-    this.ticket?.status === 'completed' ||
-    this.editTicketData.status === 'done' ||
-    this.editTicketData.status === 'completed'
-  );
-}
+    return (
+      this.ticket?.status === 'done' ||
+      this.ticket?.status === 'completed' ||
+      this.editTicketData.status === 'done' ||
+      this.editTicketData.status === 'completed'
+    );
+  }
 }

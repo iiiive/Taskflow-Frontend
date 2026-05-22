@@ -14,7 +14,7 @@
         </h1>
 
         <p class="header-text">
-          {{ workspace?.description || 'Manage development tickets using a structured Kanban workflow.' }}
+          {{ workspace?.description || 'Manage all tickets using a flexible Kanban workflow. Backlog is now part of the board.' }}
         </p>
       </div>
 
@@ -29,36 +29,54 @@
 
         <button
           type="button"
+          class="secondary-btn"
+          (click)="openCreateEpicModal()"
+          *ngIf="canEditTicket()"
+        >
+          + Add Epic
+        </button>
+
+        <button
+          type="button"
+          class="secondary-btn"
+          (click)="showAddColumnForm = !showAddColumnForm"
+          *ngIf="canEditTicket()"
+        >
+          + Add Column
+        </button>
+
+        <button
+          type="button"
           class="primary-btn"
           (click)="openCreateModal()"
           *ngIf="canEditTicket()"
         >
-          + New Board Ticket
+          + New Ticket
         </button>
       </div>
     </header>
 
     <nav class="ticket-nav" aria-label="Ticket navigation">
-  <button type="button" class="ticket-nav-item" (click)="goToBacklog()">
-    <span class="nav-icon">☰</span>
-    <span>Backlog</span>
-  </button>
+      <button type="button" class="ticket-nav-item active">
+        <span class="nav-icon">▦</span>
+        <span>Development Board</span>
+      </button>
 
-  <button type="button" class="ticket-nav-item active">
-    <span class="nav-icon">▦</span>
-    <span>Development Board</span>
-  </button>
+      <button type="button" class="ticket-nav-item" (click)="goToActivityLog()">
+        <span class="nav-icon">↻</span>
+        <span>Activity Log</span>
+      </button>
 
-  <button type="button" class="ticket-nav-item" (click)="goToActivityLog()">
-    <span class="nav-icon">↻</span>
-    <span>Activity Log</span>
-  </button>
+      <button type="button" class="ticket-nav-item" (click)="goToTimesheet()">
+        <span class="nav-icon">◴</span>
+        <span>Timesheet</span>
+      </button>
 
-  <button type="button" class="ticket-nav-item" (click)="goToArchive()">
-    <span class="nav-icon">▣</span>
-    <span>Archive</span>
-  </button>
-</nav>
+      <button type="button" class="ticket-nav-item" (click)="goToArchive()">
+        <span class="nav-icon">▣</span>
+        <span>Archive</span>
+      </button>
+    </nav>
 
     <section class="status-card error-card" *ngIf="errorMessage && !showCreateModal">
       <p>{{ errorMessage }}</p>
@@ -68,8 +86,44 @@
       <p>{{ successMessage }}</p>
     </section>
 
+    <section class="status-card loading-card" *ngIf="reorderingColumns">
+      <p>Saving column order...</p>
+    </section>
+
     <section class="status-card viewer-card" *ngIf="!canEditTicket() && !loadingWorkspace">
       <p>You have viewer access. You can view tickets and comments, but editing is disabled.</p>
+    </section>
+
+    <section class="add-column-card" *ngIf="showAddColumnForm && canEditTicket()">
+      <div>
+        <label>Add Kanban Column</label>
+        <input
+          type="text"
+          name="newColumnName"
+          [(ngModel)]="newColumnName"
+          placeholder="Example: Blockers, For Review, On Hold"
+          (keyup.enter)="addKanbanColumn()"
+        />
+      </div>
+
+      <div class="add-column-actions">
+        <button
+          type="button"
+          class="secondary-btn"
+          (click)="showAddColumnForm = false; newColumnName = ''"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          class="primary-btn"
+          [disabled]="addingColumn"
+          (click)="addKanbanColumn()"
+        >
+          {{ addingColumn ? 'Adding...' : 'Add Column' }}
+        </button>
+      </div>
     </section>
 
     <section class="toolbar">
@@ -80,23 +134,38 @@
           name="search"
           [(ngModel)]="search"
           placeholder="Search board tickets..."
-          (input)="loadTickets()"
         />
       </div>
 
       <div class="filter-box">
-        <label>Status</label>
+        <label>Column</label>
         <select
-          name="status"
-          [(ngModel)]="selectedStatus"
-          (change)="loadTickets()"
+          name="selectedColumn"
+          [(ngModel)]="selectedColumnId"
         >
-          <option value="">All Board Statuses</option>
-          <option value="ready_for_development">Ready for Development</option>
-          <option value="dev_in_progress">Dev in Progress</option>
-          <option value="ready_for_testing">Ready for Testing</option>
-          <option value="ready_for_uat">Ready for UAT</option>
-          <option value="done">Done</option>
+          <option value="">All Columns</option>
+          <option
+            *ngFor="let column of kanbanColumns"
+            [ngValue]="column.id"
+          >
+            {{ column.name }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-box">
+        <label>Epic</label>
+        <select
+          name="selectedEpic"
+          [(ngModel)]="selectedEpicId"
+        >
+          <option value="">All Epics</option>
+          <option
+            *ngFor="let epic of epics"
+            [ngValue]="epic.id"
+          >
+            {{ epic.name }}
+          </option>
         </select>
       </div>
 
@@ -105,7 +174,6 @@
         <select
           name="priority"
           [(ngModel)]="selectedPriority"
-          (change)="loadTickets()"
         >
           <option value="">All Priorities</option>
           <option value="low">Low</option>
@@ -116,56 +184,149 @@
       </div>
     </section>
 
-    <section class="status-card loading-card" *ngIf="loadingTickets">
-      <p>Loading tickets...</p>
+    <section class="status-card loading-card" *ngIf="loadingBoard">
+      <p>Loading Kanban board...</p>
     </section>
 
-    <section class="kanban-board" *ngIf="!loadingTickets">
+    <section
+      class="status-card empty-board-card"
+      *ngIf="!loadingBoard && kanbanColumns.length === 0"
+    >
+      <p>No Kanban columns found. Add a column to start organizing tickets.</p>
+    </section>
+
+    <section class="kanban-board" *ngIf="!loadingBoard && kanbanColumns.length > 0">
       <article
         class="kanban-column"
-        *ngFor="let column of columns"
-        (dragover)="canEditTicket() ? onDragOver($event) : null"
-        (drop)="canEditTicket() ? onDrop(column.value) : null"
+        *ngFor="let column of getVisibleColumns()"
+        [ngClass]="{
+          'backlog-column': column.is_backlog_column,
+          'done-column': column.is_done_column,
+          'column-drag-over': columnDragOverId === column.id,
+          'column-being-dragged': draggedColumn?.id === column.id
+        }"
+        (dragover)="canEditTicket() ? onDragOver($event, column) : null"
+        (drop)="canEditTicket() ? onDrop(column) : null"
       >
         <header class="column-header">
-          <div>
-            <h2>{{ column.label }}</h2>
-            <p>
-              {{ column.description }} · {{ getTicketsByStatus(column.value).length }} tickets
-            </p>
+          <div class="column-title-area">
+            <ng-container *ngIf="editingColumnId !== column.id">
+              <h2
+                title="Double-click to rename"
+                (dblclick)="startEditingColumn(column)"
+              >
+                {{ column.name }}
+              </h2>
+
+              <p>
+                {{ formatColumnSubtitle(column) }} · {{ getTicketCount(column) }} tickets
+              </p>
+            </ng-container>
+
+            <div class="column-edit" *ngIf="editingColumnId === column.id">
+              <input
+                type="text"
+                name="editingColumnName"
+                [(ngModel)]="editingColumnName"
+                (keyup.enter)="saveColumnName(column)"
+                (keyup.escape)="cancelEditingColumn()"
+                autofocus
+              />
+
+              <div class="column-edit-actions">
+                <button
+                  type="button"
+                  class="mini-save"
+                  [disabled]="savingColumn"
+                  (click)="saveColumnName(column)"
+                >
+                  Save
+                </button>
+
+                <button
+                  type="button"
+                  class="mini-cancel"
+                  (click)="cancelEditingColumn()"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
 
-          <button
-            type="button"
-            (click)="openCreateModal(column.value)"
-            *ngIf="canEditTicket()"
-          >
-            +
-          </button>
+          <div class="column-actions" *ngIf="canEditTicket()">
+            <button
+              type="button"
+              class="column-drag-handle"
+              title="Drag to reorder column"
+              draggable="true"
+              (dragstart)="onColumnDragStart($event, column)"
+              (dragend)="onColumnDragEnd()"
+              (click)="$event.stopPropagation()"
+            >
+              ⋮⋮
+            </button>
+
+            <button
+              type="button"
+              title="Add ticket to this column"
+              (click)="openCreateModal(column)"
+            >
+              +
+            </button>
+
+            <button
+              type="button"
+              class="delete-column-btn"
+              title="Delete empty custom column"
+              *ngIf="canDeleteColumn(column)"
+              (click)="deleteKanbanColumn(column)"
+            >
+              ×
+            </button>
+          </div>
         </header>
 
         <div
           class="empty-column"
-          *ngIf="getTicketsByStatus(column.value).length === 0"
+          *ngIf="getTicketsByColumn(column.id).length === 0"
         >
           No tickets in this column.
         </div>
 
         <article
-          class="ticket-card"
-          *ngFor="let ticket of getTicketsByStatus(column.value)"
+          class="ticket-card premium-ticket-card"
+          *ngFor="let ticket of getTicketsByColumn(column.id)"
           [attr.draggable]="canEditTicket() ? true : false"
           (click)="openTicketDetails(ticket)"
           (dragstart)="canEditTicket() ? onDragStart(ticket) : null"
           (dragend)="canEditTicket() ? onDragEnd() : null"
         >
-          <div class="ticket-top">
-            <h3 [title]="ticket.title">
-              {{ ticket.title }}
-            </h3>
+          <div class="ticket-card-glow"></div>
 
-            <span class="priority-badge" [ngClass]="getPriorityClass(ticket.priority)">
+          <div class="ticket-card-header">
+            <span class="ticket-id-pill">
+              #{{ ticket.id }}
+            </span>
+
+            <span
+              class="priority-badge"
+              [ngClass]="getPriorityClass(ticket.priority)"
+            >
               {{ ticket.priority }}
+            </span>
+          </div>
+
+          <h3 class="premium-ticket-title" [title]="ticket.title">
+            {{ ticket.title }}
+          </h3>
+
+          <div class="ticket-epic-row" *ngIf="hasEpic(ticket)">
+            <span
+              class="epic-badge"
+              [style.background]="getEpicColor(ticket)"
+            >
+              {{ getEpicName(ticket) }}
             </span>
           </div>
 
@@ -173,50 +334,123 @@
             {{ getPlainText(ticket.description) || 'No description provided.' }}
           </p>
 
-          <div class="ticket-meta">
-            <span class="ticket-id">#{{ ticket.id }}</span>
+          <div class="ticket-meta-grid">
+            <div class="ticket-meta-item">
+              <span class="meta-icon">👤</span>
 
-            <span>
-              Assignee:
-              {{ ticket.assignee?.name || 'Unassigned' }}
-            </span>
+              <div>
+                <small>Assignee</small>
+                <strong>{{ ticket.assignee?.name || 'Unassigned' }}</strong>
+              </div>
+            </div>
 
-            <span *ngIf="ticket.due_date">
-              Due: {{ ticket.due_date }}
-            </span>
-
-            <span
-              class="warning"
-              *ngIf="ticket.due_date_warning && ticket.due_date_warning !== 'none'"
+            <div
+              class="ticket-meta-item"
+              [class.ticket-meta-warning]="ticket.due_date_warning && ticket.due_date_warning !== 'none'"
             >
-              {{ ticket.due_date_warning }}
-            </span>
+              <span class="meta-icon">◷</span>
+
+              <div>
+                <small>Due Date</small>
+                <strong>{{ ticket.due_date || 'No due date' }}</strong>
+              </div>
+            </div>
           </div>
 
-          <!-- <div class="ticket-bottom">
-            <div class="suggestion" *ngIf="ticket.suggested_priority">
-              Suggested: {{ ticket.suggested_priority }}
-            </div>
-
-            <div class="ticket-actions" (click)="$event.stopPropagation()" *ngIf="canEditTicket()">
-              <button type="button" (click)="deleteTicket(ticket)">
-                Delete
-              </button>
-            </div>
-          </div> -->
+          <div
+            class="ticket-warning-strip"
+            *ngIf="ticket.due_date_warning && ticket.due_date_warning !== 'none'"
+          >
+            {{ ticket.due_date_warning }}
+          </div>
         </article>
       </article>
     </section>
   </main>
 </div>
 
+<div class="modal-backdrop" *ngIf="showCreateEpicModal" (click)="closeCreateEpicModal()">
+  <section class="ticket-modal epic-modal" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <div>
+        <p class="breadcrumb">Workspace Epic</p>
+        <h2>Create Epic</h2>
+        <p>
+          Create a larger feature group that tickets can be assigned to.
+        </p>
+      </div>
+
+      <button type="button" class="modal-close" (click)="closeCreateEpicModal()">
+        ×
+      </button>
+    </header>
+
+    <form (ngSubmit)="createEpic()" class="modal-form">
+      <div class="form-group">
+        <label>Epic Name</label>
+        <input
+          type="text"
+          name="epicName"
+          [(ngModel)]="newEpic.name"
+          placeholder="Example: Authentication Module"
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <textarea
+          name="epicDescription"
+          [(ngModel)]="newEpic.description"
+          placeholder="Example: Login, register, profile, and account security tickets."
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Epic Color</label>
+
+        <div class="color-field">
+          <input
+            type="color"
+            name="epicColor"
+            [(ngModel)]="newEpic.color"
+          />
+
+          <input
+            type="text"
+            name="epicColorText"
+            [(ngModel)]="newEpic.color"
+            placeholder="#547A95"
+          />
+        </div>
+      </div>
+
+      <p class="modal-error" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </p>
+
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeCreateEpicModal()">
+          Cancel
+        </button>
+
+        <button type="submit" class="primary-btn" [disabled]="creatingEpic">
+          {{ creatingEpic ? 'Creating...' : 'Create Epic' }}
+        </button>
+      </div>
+    </form>
+  </section>
+</div>
+
 <div class="modal-backdrop" *ngIf="showCreateModal" (click)="closeCreateModal()">
   <section class="ticket-modal" (click)="$event.stopPropagation()">
     <header class="modal-header">
       <div>
-        <p class="breadcrumb">New Board Ticket</p>
-        <h2>Create Development Ticket</h2>
-        <p>Add a task directly to the development board.</p>
+        <p class="breadcrumb">New Ticket</p>
+        <h2>Create Board Ticket</h2>
+        <p>
+          Add a task directly to
+          <strong>{{ selectedCreateColumn?.name || 'Backlog' }}</strong>.
+        </p>
       </div>
 
       <button type="button" class="modal-close" (click)="closeCreateModal()">
@@ -249,14 +483,31 @@
 
       <div class="form-grid">
         <div class="form-group">
-          <label>Status</label>
-          <select name="newStatus" [(ngModel)]="newTicket.status">
-            <option value="todo">To Do</option>
-            <option value="ready_for_development">Ready for Development</option>
-            <option value="dev_in_progress">Dev in Progress</option>
-            <option value="ready_for_testing">Ready for Testing</option>
-            <option value="ready_for_uat">Ready for UAT</option>
-            <option value="done">Done</option>
+          <label>Kanban Column</label>
+          <select
+            name="newKanbanColumn"
+            [(ngModel)]="newTicket.kanban_column_id"
+          >
+            <option
+              *ngFor="let column of kanbanColumns"
+              [ngValue]="column.id"
+            >
+              {{ column.name }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Epic</label>
+          <select name="newEpic" [(ngModel)]="newTicket.epic_id">
+            <option [ngValue]="null">No Epic</option>
+
+            <option
+              *ngFor="let epic of epics"
+              [ngValue]="epic.id"
+            >
+              {{ epic.name }}
+            </option>
           </select>
         </div>
 
@@ -315,6 +566,8 @@
   *ngIf="showTicketDetailsModal && selectedTicket"
   [ticket]="selectedTicket"
   [workspaceMembers]="workspaceMembers"
+  [kanbanColumns]="kanbanColumns"
+  [epics]="epics"
   [canEdit]="canEditTicket()"
   [canComment]="canCommentTicket()"
   [apiUrl]="apiUrl"

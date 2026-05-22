@@ -1,10 +1,16 @@
 <div class="modal-backdrop" (click)="close()">
-  <section class="ticket-details-modal" (click)="$event.stopPropagation()">
+  <section class="ticket-details-modal premium-ticket-modal" (click)="$event.stopPropagation()">
     <header class="modal-header">
-      <div>
+      <div class="modal-title-group">
         <p class="breadcrumb">Ticket Details</p>
 
-        <h2 *ngIf="!editingTicket">{{ ticket?.title }}</h2>
+        <div class="title-row" *ngIf="!editingTicket">
+          <h2>{{ ticket?.title }}</h2>
+
+          <span class="ticket-code-pill">
+            #{{ ticket?.id }}
+          </span>
+        </div>
 
         <input
           *ngIf="editingTicket"
@@ -14,8 +20,8 @@
           [(ngModel)]="editTicketData.title"
         />
 
-        <p>
-          {{ editingTicket ? 'Edit ticket information.' : 'Full information about this ticket.' }}
+        <p class="modal-subtitle">
+          {{ editingTicket ? 'Edit ticket information, workflow, ownership, and planning details.' : 'View complete ticket information, activity, files, and collaboration history.' }}
         </p>
       </div>
 
@@ -24,10 +30,39 @@
       </button>
     </header>
 
+    <section class="ticket-summary-strip">
+      <article class="summary-card">
+        <span class="summary-label">Workflow</span>
+        <strong>{{ editingTicket ? getEditedColumnName() : getColumnName(ticket) }}</strong>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-label">Priority</span>
+        <strong class="details-priority" [ngClass]="getPriorityClass(editingTicket ? editTicketData.priority : ticket?.priority)">
+          {{ formatPriority(editingTicket ? editTicketData.priority : ticket?.priority) }}
+        </strong>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-label">Assignee</span>
+        <strong>{{ getPersonName(ticket?.assignee) }}</strong>
+      </article>
+
+      <article class="summary-card" [class.warning-summary]="ticket?.due_date_warning && ticket?.due_date_warning !== 'none'">
+        <span class="summary-label">Due Date</span>
+        <strong>{{ getDisplayValue(ticket?.due_date) }}</strong>
+      </article>
+    </section>
+
     <div class="ticket-details-body">
       <section class="details-main">
-        <div class="details-section">
-          <h3>Description</h3>
+        <div class="details-section description-section">
+          <div class="section-heading">
+            <div>
+              <p>Description</p>
+              <h3>Ticket Overview</h3>
+            </div>
+          </div>
 
           <div
             class="details-description rich-description"
@@ -35,7 +70,7 @@
             [innerHTML]="ticket?.description || ''"
           ></div>
 
-          <p class="details-description" *ngIf="!editingTicket && !ticket?.description">
+          <p class="details-description empty-description" *ngIf="!editingTicket && !ticket?.description">
             No description provided.
           </p>
 
@@ -50,7 +85,12 @@
         </div>
 
         <div class="details-section">
-          <h3>Ticket Timeline</h3>
+          <div class="section-heading">
+            <div>
+              <p>Schedule</p>
+              <h3>Ticket Timeline</h3>
+            </div>
+          </div>
 
           <div class="timeline-list">
             <div class="timeline-item">
@@ -80,23 +120,106 @@
           </div>
         </div>
 
+        <div class="details-section time-log-section">
+          <div class="section-heading time-log-header">
+            <div>
+              <p>Work Tracking</p>
+              <h3>Time Logs</h3>
+            </div>
+
+            <div class="total-hours-pill">
+              <span>Total Logged</span>
+              <strong>{{ formatHours(getTotalLoggedHours()) }}</strong>
+            </div>
+          </div>
+
+          <div class="time-log-form" *ngIf="canLogTime()">
+            <div class="time-log-grid">
+              <label>
+                <span>Work Date</span>
+                <input type="date" name="timeLogWorkDate" [(ngModel)]="timeLogForm.work_date" />
+              </label>
+
+              <label>
+                <span>Hours</span>
+                <input
+                  type="number"
+                  name="timeLogHours"
+                  min="0.25"
+                  max="24"
+                  step="0.25"
+                  placeholder="Example: 3"
+                  [(ngModel)]="timeLogForm.hours"
+                />
+              </label>
+            </div>
+
+            <label class="time-log-description">
+              <span>Work Description</span>
+              <textarea
+                name="timeLogDescription"
+                [(ngModel)]="timeLogForm.description"
+                placeholder="Example: Fixed dashboard layout and tested ticket cards."
+              ></textarea>
+            </label>
+
+            <div class="time-log-actions">
+              <button type="button" class="primary-btn" [disabled]="submittingTimeLog" (click)="addTicketTimeLog()">
+                {{ submittingTimeLog ? 'Saving...' : 'Add Time Log' }}
+              </button>
+            </div>
+          </div>
+
+          <p class="viewer-note inline-note" *ngIf="!canLogTime()">
+            You can view time logs, but your permission does not allow logging time on this ticket.
+          </p>
+
+          <p class="modal-error" *ngIf="timeLogError">
+            {{ timeLogError }}
+          </p>
+
+          <div class="time-logs-loading" *ngIf="loadingTimeLogs">
+            Loading time logs...
+          </div>
+
+          <div class="empty-time-logs" *ngIf="!loadingTimeLogs && ticketTimeLogs.length === 0">
+            No time logs yet.
+          </div>
+
+          <div class="time-log-list" *ngIf="!loadingTimeLogs && ticketTimeLogs.length > 0">
+            <article class="time-log-item" *ngFor="let log of ticketTimeLogs">
+              <div class="time-log-hours">
+                {{ formatHours(log.hours) }}
+              </div>
+
+              <div class="time-log-content">
+                <div class="time-log-meta">
+                  <strong>{{ getTimeLogAuthor(log) }}</strong>
+                  <span>{{ getDisplayValue(log.work_date) }}</span>
+                </div>
+
+                <p *ngIf="log.description">{{ log.description }}</p>
+                <p *ngIf="!log.description" class="muted-text">
+                  No description provided.
+                </p>
+              </div>
+            </article>
+          </div>
+        </div>
+
         <div class="details-section comments-section">
-          <h3>Comments</h3>
+          <div class="section-heading">
+            <div>
+              <p>Collaboration</p>
+              <h3>Comments</h3>
+            </div>
+          </div>
 
           <div class="comment-box" *ngIf="canComment">
-            <textarea
-              name="commentText"
-              [(ngModel)]="commentText"
-              placeholder="Write a comment..."
-            ></textarea>
+            <textarea name="commentText" [(ngModel)]="commentText" placeholder="Write a comment..."></textarea>
 
             <div class="comment-actions">
-              <button
-                type="button"
-                class="primary-btn"
-                [disabled]="sendingComment"
-                (click)="addTicketComment()"
-              >
+              <button type="button" class="primary-btn" [disabled]="sendingComment" (click)="addTicketComment()">
                 {{ sendingComment ? 'Posting...' : 'Post Comment' }}
               </button>
             </div>
@@ -110,10 +233,7 @@
             Loading comments...
           </div>
 
-          <div
-            class="empty-comments"
-            *ngIf="!loadingComments && ticketComments.length === 0"
-          >
+          <div class="empty-comments" *ngIf="!loadingComments && ticketComments.length === 0">
             No comments yet.
           </div>
 
@@ -136,14 +256,15 @@
         </div>
 
         <div class="details-section attachments-section">
-          <h3>Attachments</h3>
+          <div class="section-heading">
+            <div>
+              <p>Files</p>
+              <h3>Attachments</h3>
+            </div>
+          </div>
 
           <div class="attachment-upload" *ngIf="canEdit">
-            <input
-              #attachmentInput
-              type="file"
-              (change)="onAttachmentSelected($event)"
-            />
+            <input #attachmentInput type="file" (change)="onAttachmentSelected($event)" />
 
             <button
               type="button"
@@ -167,21 +288,12 @@
             Loading attachments...
           </div>
 
-          <div
-            class="empty-attachments"
-            *ngIf="!loadingAttachments && ticketAttachments.length === 0"
-          >
+          <div class="empty-attachments" *ngIf="!loadingAttachments && ticketAttachments.length === 0">
             No attachments yet.
           </div>
 
-          <div
-            class="attachments-grid"
-            *ngIf="!loadingAttachments && ticketAttachments.length > 0"
-          >
-            <article
-              class="attachment-preview-card"
-              *ngFor="let attachment of ticketAttachments"
-            >
+          <div class="attachments-grid" *ngIf="!loadingAttachments && ticketAttachments.length > 0">
+            <article class="attachment-preview-card" *ngFor="let attachment of ticketAttachments">
               <a
                 class="attachment-image-preview"
                 *ngIf="isImageAttachment(attachment)"
@@ -189,16 +301,10 @@
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <img
-                  [src]="attachment.file_url"
-                  [alt]="attachment.file_name"
-                />
+                <img [src]="attachment.file_url" [alt]="attachment.file_name" />
               </a>
 
-              <div
-                class="attachment-file-preview"
-                *ngIf="!isImageAttachment(attachment)"
-              >
+              <div class="attachment-file-preview" *ngIf="!isImageAttachment(attachment)">
                 <div class="attachment-file-icon">
                   {{ getAttachmentIcon(attachment) }}
                 </div>
@@ -226,21 +332,11 @@
               </div>
 
               <div class="attachment-preview-actions">
-                <a
-                  class="attachment-open-btn"
-                  [href]="attachment.file_url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <a class="attachment-open-btn" [href]="attachment.file_url" target="_blank" rel="noopener noreferrer">
                   Open
                 </a>
 
-                <button
-                  type="button"
-                  class="attachment-delete"
-                  *ngIf="canEdit"
-                  (click)="deleteAttachment(attachment)"
-                >
+                <button type="button" class="attachment-delete" *ngIf="canEdit" (click)="deleteAttachment(attachment)">
                   Delete
                 </button>
               </div>
@@ -249,7 +345,12 @@
         </div>
 
         <div class="details-section activity-section">
-          <h3>Activity Logs</h3>
+          <div class="section-heading">
+            <div>
+              <p>History</p>
+              <h3>Activity Logs</h3>
+            </div>
+          </div>
 
           <div class="activity-loading" *ngIf="loadingActivityLogs">
             Loading activity logs...
@@ -259,17 +360,11 @@
             {{ activityLogError }}
           </p>
 
-          <div
-            class="empty-activity"
-            *ngIf="!loadingActivityLogs && ticketActivityLogs.length === 0"
-          >
+          <div class="empty-activity" *ngIf="!loadingActivityLogs && ticketActivityLogs.length === 0">
             No activity yet.
           </div>
 
-          <div
-            class="activity-list"
-            *ngIf="!loadingActivityLogs && ticketActivityLogs.length > 0"
-          >
+          <div class="activity-list" *ngIf="!loadingActivityLogs && ticketActivityLogs.length > 0">
             <article class="activity-item" *ngFor="let log of ticketActivityLogs">
               <div class="activity-dot"></div>
 
@@ -283,50 +378,92 @@
       </section>
 
       <aside class="details-sidebar">
-        <div class="details-field">
-          <span>Status</span>
+        <div class="details-field workflow-card">
+          <div class="workflow-header">
+            <div>
+              <span>Workflow</span>
+
+              <strong>
+                {{ editingTicket ? getEditedColumnName() : getColumnName(ticket) }}
+              </strong>
+            </div>
+
+            <span class="workflow-status-pill">
+              {{ editingTicket ? getEditedStatusLabel() : formatStatus(ticket?.status) }}
+            </span>
+          </div>
+
+          <div class="workflow-control" *ngIf="editingTicket">
+            <label for="editKanbanColumn">Kanban Column</label>
+
+            <select
+              id="editKanbanColumn"
+              name="editKanbanColumn"
+              [(ngModel)]="editTicketData.kanban_column_id"
+              (ngModelChange)="onEditKanbanColumnChange($event)"
+            >
+              <option *ngFor="let column of kanbanColumns" [ngValue]="column.id">
+                {{ column.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="workflow-mapping">
+            <span>Status Key</span>
+
+            <strong>
+              {{ editingTicket ? getEditedStatusLabel() : formatStatus(ticket?.status) }}
+            </strong>
+          </div>
+
+          <div class="workflow-control archive-control" *ngIf="editingTicket && canShowCompletedStatus()">
+            <label for="editArchiveStatus">Archive Status</label>
+
+            <select id="editArchiveStatus" name="editArchiveStatus" [(ngModel)]="editTicketData.status">
+              <option value="done">Done / Still on Board</option>
+              <option value="completed">Completed / Archive</option>
+            </select>
+
+            <p>
+              Use this only when a done ticket should be moved to the archive.
+            </p>
+          </div>
+        </div>
+
+        <div class="details-field epic-field">
+          <span>Epic</span>
 
           <strong *ngIf="!editingTicket">
-            {{ formatStatus(ticket?.status) }}
+            <span class="epic-badge" *ngIf="hasEpic(ticket)" [style.background]="getEpicColor(ticket)">
+              {{ getEpicName(ticket) }}
+            </span>
+
+            <span class="empty-value" *ngIf="!hasEpic(ticket)">
+              No Epic
+            </span>
           </strong>
 
-          <select
-  *ngIf="editingTicket"
-  name="editStatus"
-  [(ngModel)]="editTicketData.status"
->
-  <option value="todo">To Do / Backlog</option>
-  <option value="ready_for_development">Ready for Development</option>
-  <option value="dev_in_progress">Dev in Progress</option>
-  <option value="ready_for_testing">Ready for Testing</option>
-  <option value="ready_for_uat">Ready for UAT</option>
-  <option value="done">Done</option>
+          <select *ngIf="editingTicket" name="editEpic" [(ngModel)]="editTicketData.epic_id">
+            <option [ngValue]="null">No Epic</option>
 
-  <option
-    value="completed"
-    *ngIf="canShowCompletedStatus()"
-  >
-    Completed / Archive
-  </option>
-</select>
+            <option *ngFor="let epic of epics" [ngValue]="epic.id">
+              {{ epic.name }}
+            </option>
+          </select>
+
+          <p class="field-hint" *ngIf="editingTicket && epics.length === 0">
+            No epics created for this workspace yet.
+          </p>
         </div>
 
         <div class="details-field">
           <span>Priority</span>
 
-          <strong
-            *ngIf="!editingTicket"
-            class="details-priority"
-            [ngClass]="getPriorityClass(ticket?.priority)"
-          >
+          <strong *ngIf="!editingTicket" class="details-priority" [ngClass]="getPriorityClass(ticket?.priority)">
             {{ formatPriority(ticket?.priority) }}
           </strong>
 
-          <select
-            *ngIf="editingTicket"
-            name="editPriority"
-            [(ngModel)]="editTicketData.priority"
-          >
+          <select *ngIf="editingTicket" name="editPriority" [(ngModel)]="editTicketData.priority">
             <option value="low">Low</option>
             <option value="medium">Medium</option>
             <option value="high">High</option>
@@ -341,23 +478,16 @@
             {{ getPersonName(ticket?.assignee) }}
           </strong>
 
-          <select
-            *ngIf="editingTicket"
-            name="editAssignee"
-            [(ngModel)]="editTicketData.assigned_to"
-          >
+          <select *ngIf="editingTicket" name="editAssignee" [(ngModel)]="editTicketData.assigned_to">
             <option [ngValue]="null">Unassigned</option>
 
-            <option
-              *ngFor="let member of workspaceMembers"
-              [ngValue]="member.user?.id || member.user_id"
-            >
+            <option *ngFor="let member of workspaceMembers" [ngValue]="member.user?.id || member.user_id">
               {{ member.user?.name || member.user?.email || ('User #' + member.user_id) }}
             </option>
           </select>
         </div>
 
-        <div class="details-field">
+        <div class="details-field warning-field">
           <span>Due Date Warning</span>
           <strong>{{ getDisplayValue(ticket?.due_date_warning) }}</strong>
         </div>
@@ -392,40 +522,19 @@
         {{ successMessage }}
       </p>
 
-      <button
-        type="button"
-        class="secondary-btn"
-        *ngIf="!editingTicket"
-        (click)="close()"
-      >
+      <button type="button" class="secondary-btn" *ngIf="!editingTicket" (click)="close()">
         Close
       </button>
 
-      <button
-        type="button"
-        class="primary-btn"
-        *ngIf="!editingTicket && canEdit"
-        (click)="startEditingTicket()"
-      >
+      <button type="button" class="primary-btn" *ngIf="!editingTicket && canEdit" (click)="startEditingTicket()">
         Edit Ticket
       </button>
 
-      <button
-        type="button"
-        class="secondary-btn"
-        *ngIf="editingTicket"
-        (click)="cancelEditingTicket()"
-      >
+      <button type="button" class="secondary-btn" *ngIf="editingTicket" (click)="cancelEditingTicket()">
         Cancel
       </button>
 
-      <button
-        type="button"
-        class="primary-btn"
-        *ngIf="editingTicket"
-        [disabled]="savingTicket"
-        (click)="saveTicketChanges()"
-      >
+      <button type="button" class="primary-btn" *ngIf="editingTicket" [disabled]="savingTicket" (click)="saveTicketChanges()">
         {{ savingTicket ? 'Saving...' : 'Save Changes' }}
       </button>
     </footer>

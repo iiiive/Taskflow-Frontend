@@ -20,6 +20,7 @@ type SidebarPage =
   | 'backlog'
   | 'board'
   | 'activity'
+  | 'timesheet'
   | 'archive'
   | '';
 
@@ -104,7 +105,7 @@ export class AppSidebar implements OnInit {
     const cleanUrl = this.currentUrl.split('?')[0];
 
     const workspaceSectionMatch = cleanUrl.match(
-      /^\/workspaces\/(\d+)\/(backlog|board|activity)(\/)?$/
+      /^\/workspaces\/(\d+)\/(backlog|board|activity|timesheet|archive)(\/)?$/
     );
 
     if (workspaceSectionMatch) {
@@ -134,12 +135,12 @@ export class AppSidebar implements OnInit {
   }
 
   hasSelectedWorkspace(): boolean {
-  return this.selectedWorkspaceId !== null || this.workspaceId !== null;
-}
+    return this.selectedWorkspaceId !== null || this.workspaceId !== null;
+  }
 
-getSelectedWorkspaceId(): number | null {
-  return this.selectedWorkspaceId || this.workspaceId;
-}
+  getSelectedWorkspaceId(): number | null {
+    return this.selectedWorkspaceId || this.workspaceId;
+  }
 
   loadStoredUser(): void {
     const storedUser = localStorage.getItem('planora_user');

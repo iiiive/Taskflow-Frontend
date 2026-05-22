@@ -6,6 +6,7 @@ import { Dashboard } from './pages/dashboard/dashboard';
 import { Workspaces } from './pages/workspaces/workspaces';
 import { WorkspaceBoard } from './pages/workspace-board/workspace-board';
 import { WorkspaceArchive } from './pages/workspace-archive/workspace-archive';
+import { WorkspaceTimesheet } from './pages/workspace-timesheet/workspace-timesheet';
 
 import { authGuard } from './guards/auth.guard';
 
@@ -92,6 +93,11 @@ export const routes: Routes = [
   loadComponent: () =>
     import('./pages/workspace-archive/workspace-archive')
       .then(m => m.WorkspaceArchive)
+},
+
+{
+  path: 'workspaces/:id/timesheet',
+  component: WorkspaceTimesheet
 },
 
   {

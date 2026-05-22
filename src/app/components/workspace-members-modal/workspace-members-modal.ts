@@ -100,7 +100,7 @@ export class WorkspaceMembersModal implements OnInit, OnChanges {
 
   addMember(): void {
     if (!this.canManage) {
-      this.errorMessage = 'Only the workspace owner can add members.';
+      this.errorMessage = 'Only the project manager can add members.';
       this.cdr.detectChanges();
       return;
     }
@@ -154,7 +154,7 @@ export class WorkspaceMembersModal implements OnInit, OnChanges {
 
   updateMemberRole(member: WorkspaceMember, role: WorkspaceRole): void {
     if (!this.canManage) {
-      this.errorMessage = 'Only the workspace owner can update member roles.';
+      this.errorMessage = 'Only the project manager can update member roles.';
       this.cdr.detectChanges();
       return;
     }
@@ -166,13 +166,13 @@ export class WorkspaceMembersModal implements OnInit, OnChanges {
     }
 
     if (member.role === 'owner') {
-      this.errorMessage = 'Owner role cannot be changed.';
+      this.errorMessage = 'Project manager role cannot be changed.';
       this.cdr.detectChanges();
       return;
     }
 
     if (role === 'owner') {
-      this.errorMessage = 'You cannot assign owner role from this modal.';
+      this.errorMessage = 'You cannot assign project manager role from this modal.';
       this.cdr.detectChanges();
       return;
     }
@@ -216,7 +216,7 @@ export class WorkspaceMembersModal implements OnInit, OnChanges {
 
   removeMember(member: WorkspaceMember): void {
     if (!this.canManage) {
-      this.errorMessage = 'Only the workspace owner can remove members.';
+      this.errorMessage = 'Only the project manager can remove members.';
       this.cdr.detectChanges();
       return;
     }
@@ -228,7 +228,7 @@ export class WorkspaceMembersModal implements OnInit, OnChanges {
     }
 
     if (member.role === 'owner') {
-      this.errorMessage = 'Workspace owner cannot be removed.';
+      this.errorMessage = 'Project manager cannot be removed.';
       this.cdr.detectChanges();
       return;
     }
@@ -291,8 +291,13 @@ export class WorkspaceMembersModal implements OnInit, OnChanges {
   }
 
   formatRole(role: string | undefined): string {
-    if (!role) return 'Member';
-    return role.charAt(0).toUpperCase() + role.slice(1);
+    const labels: Record<string, string> = {
+      owner: 'Project Manager',
+      editor: 'User',
+      viewer: 'Viewer / Read Only'
+    };
+
+    return role ? labels[role] || role : 'Member';
   }
 
   isBusy(member: WorkspaceMember): boolean {

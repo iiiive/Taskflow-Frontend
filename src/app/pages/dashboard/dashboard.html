@@ -9,7 +9,7 @@
         <h1>Workspace Overview</h1>
 
         <p class="header-text">
-          View ticket progress for every workspace you are part of.
+          View ticket progress based on each workspace's actual Kanban workflow.
         </p>
       </div>
 
@@ -78,20 +78,20 @@
       </article>
 
       <article class="stat-card">
-        <p>To Do</p>
+        <p>Backlog</p>
 
         <div>
-          <h2>{{ totals.todo_tickets }}</h2>
-          <span>In backlog</span>
+          <h2>{{ totals.backlog_tickets }}</h2>
+          <span>Tickets not started yet</span>
         </div>
       </article>
 
       <article class="stat-card">
-        <p>Dev in Progress</p>
+        <p>Active Tickets</p>
 
         <div>
-          <h2>{{ totals.dev_in_progress_tickets }}</h2>
-          <span>Currently active</span>
+          <h2>{{ totals.active_tickets }}</h2>
+          <span>Currently in workflow</span>
         </div>
       </article>
 
@@ -100,16 +100,16 @@
 
         <div>
           <h2>{{ totals.done_tickets }}</h2>
-          <span>Finished work</span>
+          <span>Finished board work</span>
         </div>
       </article>
 
       <article class="stat-card urgent">
-        <p>Urgent Tickets</p>
+        <p>Needs Action</p>
 
         <div>
-          <h2>{{ totals.urgent_tickets }}</h2>
-          <span>High priority</span>
+          <h2>{{ totals.urgent_tickets + totals.overdue_tickets }}</h2>
+          <span>Urgent or overdue</span>
         </div>
       </article>
     </section>
@@ -122,9 +122,9 @@
         <header class="section-header compact-header">
           <div>
             <p class="breadcrumb">Needs Attention</p>
-            <h2> Critical Task  </h2>
+            <h2>Critical Tasks</h2>
             <span>
-              Showing only the 5 most important tickets.
+              Showing only the 5 most important active tickets.
             </span>
           </div>
         </header>
@@ -138,7 +138,7 @@
           <article
             class="attention-item"
             *ngFor="let ticket of needsAttentionTickets"
-            (click)="ticket.status === 'todo' ? openWorkspaceBacklog(ticket.workspace_id) : openWorkspaceBoard(ticket.workspace_id)"
+            (click)="openWorkspaceBoard(ticket.workspace_id)"
           >
             <div>
               <span class="attention-badge" [ngClass]="ticket.reason_class">
@@ -149,7 +149,7 @@
 
               <p>
                 {{ ticket.workspace_name }} ·
-                {{ getStatusLabel(ticket.status) }} ·
+                {{ ticket.column_name }} ·
                 {{ getPriorityLabel(ticket.priority) }}
               </p>
             </div>
@@ -165,9 +165,9 @@
         <header class="section-header compact-header chart-header">
           <div>
             <p class="breadcrumb">Workspace Progress</p>
-            <h2>Sprint Progress</h2>
+            <h2>Kanban Breakdown</h2>
             <span>
-              Select a workspace to view its ticket status breakdown.
+              Select a workspace to view its real column-based ticket count.
             </span>
           </div>
 
@@ -203,6 +203,19 @@
           </span>
         </div>
 
+        <div
+          class="column-summary-list"
+          *ngIf="selectedWorkspaceChart && selectedWorkspaceChart.columns.length > 0"
+        >
+          <span
+            class="column-summary-chip"
+            *ngFor="let column of selectedWorkspaceChart.columns"
+          >
+            {{ column.name }}:
+            <strong>{{ getColumnTicketCount(column) }}</strong>
+          </span>
+        </div>
+
         <div class="bar-chart-wrap">
           <canvas
             baseChart
@@ -223,7 +236,7 @@
       <h3>No workspaces yet</h3>
 
       <p>
-        Create or join a workspace first. Once you have workspaces, their ticket charts will appear here.
+        Create or join a workspace first. Once you have workspaces, their Kanban charts will appear here.
       </p>
 
       <button type="button" class="primary-btn" routerLink="/workspaces">
@@ -304,6 +317,9 @@
             <span>#{{ notification.ticket_id }}</span>
             <span>{{ notification.ticket_title }}</span>
             <span>{{ notification.workspace_name }}</span>
+            <span *ngIf="notification.kanban_column_name">
+              {{ notification.kanban_column_name }}
+            </span>
           </div>
         </div>
       </article>

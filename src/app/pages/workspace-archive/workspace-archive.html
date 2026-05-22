@@ -20,10 +20,6 @@
     </header>
 
     <nav class="ticket-nav" aria-label="Ticket navigation">
-      <button type="button" class="ticket-nav-item" (click)="goToBacklog()">
-        <span class="nav-icon">☰</span>
-        <span>Backlog</span>
-      </button>
 
       <button type="button" class="ticket-nav-item" (click)="goToBoard()">
         <span class="nav-icon">▦</span>
@@ -34,6 +30,11 @@
         <span class="nav-icon">↻</span>
         <span>Activity Log</span>
       </button>
+
+      <button type="button" class="ticket-nav-item" (click)="goToTimesheet()">
+  <span class="nav-icon">◴</span>
+  <span>Timesheet</span>
+</button>
 
       <button type="button" class="ticket-nav-item active">
         <span class="nav-icon">▣</span>

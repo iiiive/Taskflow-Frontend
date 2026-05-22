@@ -17,9 +17,9 @@
     </header>
 
     <section class="permission-note" *ngIf="!canManage">
-      <strong>View only access</strong>
+      <strong>Limited member management access</strong>
       <p>
-        You can view workspace members, but only the workspace owner can add,
+        You can view workspace members, but only the project manager can add,
         remove, or update member roles.
       </p>
     </section>
@@ -34,20 +34,15 @@
         <div class="form-group">
           <label>Email</label>
 
-          <input
-            type="email"
-            name="newMemberEmail"
-            [(ngModel)]="newMemberEmail"
-            placeholder="example@email.com"
-          />
+          <input type="email" name="newMemberEmail" [(ngModel)]="newMemberEmail" placeholder="example@email.com" />
         </div>
 
         <div class="form-group">
           <label>Role</label>
 
           <select name="newMemberRole" [(ngModel)]="newMemberRole">
-            <option value="viewer">Viewer</option>
-            <option value="editor">Editor</option>
+            <option value="viewer">Viewer / Read Only</option>
+            <option value="editor">User</option>
           </select>
         </div>
 
@@ -102,28 +97,18 @@
 
           <div class="member-role">
             <span class="owner-badge" *ngIf="member.role === 'owner'">
-              Owner
+              Project Manager
             </span>
 
-            <select
-              *ngIf="member.role !== 'owner'"
-              [ngModel]="member.role"
-              name="role-{{ member.id }}"
-              [disabled]="!canManage || isBusy(member)"
-              (ngModelChange)="updateMemberRole(member, $event)"
-            >
-              <option value="viewer">Viewer</option>
-              <option value="editor">Editor</option>
+            <select *ngIf="member.role !== 'owner'" [ngModel]="member.role" name="role-{{ member.id }}"
+              [disabled]="!canManage || isBusy(member)" (ngModelChange)="updateMemberRole(member, $event)">
+              <option value="viewer">Viewer / Read Only</option>
+              <option value="editor">User</option>
             </select>
           </div>
 
-          <button
-            type="button"
-            class="danger-btn"
-            *ngIf="member.role !== 'owner'"
-            [disabled]="!canManage || isBusy(member)"
-            (click)="removeMember(member)"
-          >
+          <button type="button" class="danger-btn" *ngIf="member.role !== 'owner'"
+            [disabled]="!canManage || isBusy(member)" (click)="removeMember(member)">
             {{ removingMemberId === member.id ? 'Removing...' : 'Remove' }}
           </button>
         </article>

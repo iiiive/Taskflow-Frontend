@@ -63,14 +63,6 @@
     >
       <p class="sidebar-section-label">Selected Workspace</p>
 
-      <a
-        [routerLink]="['/workspaces', getSelectedWorkspaceId(), 'backlog']"
-        [class.active]="activePage === 'backlog'"
-        title="Backlog"
-      >
-        <span>☰</span>
-        <strong>Backlog</strong>
-      </a>
 
       <a
         [routerLink]="['/workspaces', getSelectedWorkspaceId(), 'board']"
@@ -88,6 +80,15 @@
       >
         <span>◷</span>
         <strong>Activity</strong>
+      </a>
+
+      <a
+        [routerLink]="['/workspaces', getSelectedWorkspaceId(), 'timesheet']"
+        [class.active]="activePage === 'timesheet'"
+        title="Timesheet"
+      >
+        <span>◴</span>
+        <strong>Timesheet</strong>
       </a>
 
       <a

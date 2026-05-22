@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Auth } from '../../services/auth/auth';
 import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
 
@@ -30,6 +31,20 @@ export class Profile implements OnInit {
   uploadingAvatar = false;
   removingAvatar = false;
 
+  settingUpTwoFactor = false;
+  confirmingTwoFactor = false;
+  disablingTwoFactor = false;
+  regeneratingRecoveryCodes = false;
+
+  twoFactorQrCode: SafeHtml | null = null;
+  manualSetupKey = '';
+  twoFactorCode = '';
+  disableTwoFactorPassword = '';
+  recoveryCodes: string[] = [];
+
+  twoFactorMessage = '';
+  twoFactorSuccess = false;
+
   message = '';
   isSuccess = false;
 
@@ -38,7 +53,8 @@ export class Profile implements OnInit {
 
   constructor(
     private auth: Auth,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private sanitizer: DomSanitizer
   ) {}
 
   ngOnInit(): void {
@@ -49,6 +65,7 @@ export class Profile implements OnInit {
     this.loading = true;
     this.message = '';
     this.passwordMessage = '';
+    this.twoFactorMessage = '';
 
     this.auth.getProfile().subscribe({
       next: (res: any) => {
@@ -71,6 +88,215 @@ export class Profile implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  startTwoFactorSetup(): void {
+    if (this.settingUpTwoFactor) {
+      return;
+    }
+
+    this.settingUpTwoFactor = true;
+    this.twoFactorMessage = '';
+    this.twoFactorSuccess = false;
+    this.recoveryCodes = [];
+    this.twoFactorQrCode = null;
+    this.manualSetupKey = '';
+    this.twoFactorCode = '';
+
+    this.auth.setupTwoFactor().subscribe({
+      next: (res: any) => {
+        this.settingUpTwoFactor = false;
+
+        const qrSvg = res?.qr_code_svg || '';
+
+        this.twoFactorQrCode = qrSvg
+          ? this.sanitizer.bypassSecurityTrustHtml(qrSvg)
+          : null;
+
+        this.manualSetupKey = res?.manual_setup_key || '';
+        this.twoFactorSuccess = true;
+        this.twoFactorMessage = res?.message || 'Scan the QR code and enter the 6-digit code to confirm.';
+
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('2FA setup error:', err);
+
+        this.settingUpTwoFactor = false;
+        this.twoFactorSuccess = false;
+        this.twoFactorMessage = err?.error?.message || 'Unable to start 2FA setup.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  confirmTwoFactor(): void {
+    if (this.confirmingTwoFactor) {
+      return;
+    }
+
+    const cleanedCode = this.cleanTwoFactorCode(this.twoFactorCode);
+
+    this.twoFactorMessage = '';
+    this.twoFactorSuccess = false;
+
+    if (!cleanedCode) {
+      this.twoFactorMessage = 'Authenticator code is required.';
+      return;
+    }
+
+    if (!/^\d{6}$/.test(cleanedCode)) {
+      this.twoFactorMessage = 'Authenticator code must be 6 digits.';
+      return;
+    }
+
+    this.confirmingTwoFactor = true;
+
+    this.auth.confirmTwoFactor({ code: cleanedCode }).subscribe({
+      next: (res: any) => {
+        this.confirmingTwoFactor = false;
+
+        this.user = res?.user || this.user;
+        localStorage.setItem('planora_user', JSON.stringify(this.user));
+
+        this.recoveryCodes = Array.isArray(res?.recovery_codes)
+          ? res.recovery_codes
+          : [];
+
+        this.twoFactorQrCode = null;
+        this.manualSetupKey = '';
+        this.twoFactorCode = '';
+
+        this.twoFactorSuccess = true;
+        this.twoFactorMessage = res?.message || 'Two-factor authentication has been enabled.';
+
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('2FA confirm error:', err);
+
+        this.confirmingTwoFactor = false;
+        this.twoFactorSuccess = false;
+
+        const validationErrors = err?.error?.errors;
+
+        if (validationErrors?.code?.[0]) {
+          this.twoFactorMessage = validationErrors.code[0];
+        } else {
+          this.twoFactorMessage = err?.error?.message || 'Invalid authenticator code.';
+        }
+
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  disableTwoFactor(): void {
+    if (this.disablingTwoFactor) {
+      return;
+    }
+
+    this.twoFactorMessage = '';
+    this.twoFactorSuccess = false;
+
+    if (!this.disableTwoFactorPassword.trim()) {
+      this.twoFactorMessage = 'Enter your password to disable 2FA.';
+      return;
+    }
+
+    const confirmed = confirm('Disable two-factor authentication for this account?');
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.disablingTwoFactor = true;
+
+    this.auth.disableTwoFactor({
+      password: this.disableTwoFactorPassword
+    }).subscribe({
+      next: (res: any) => {
+        this.disablingTwoFactor = false;
+
+        this.user = res?.user || this.user;
+        localStorage.setItem('planora_user', JSON.stringify(this.user));
+
+        this.disableTwoFactorPassword = '';
+        this.twoFactorQrCode = null;
+        this.manualSetupKey = '';
+        this.recoveryCodes = [];
+
+        this.twoFactorSuccess = true;
+        this.twoFactorMessage = res?.message || 'Two-factor authentication has been disabled.';
+
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('2FA disable error:', err);
+
+        this.disablingTwoFactor = false;
+        this.twoFactorSuccess = false;
+
+        const validationErrors = err?.error?.errors;
+
+        if (validationErrors) {
+          const firstKey = Object.keys(validationErrors)[0];
+          this.twoFactorMessage = validationErrors[firstKey][0];
+        } else {
+          this.twoFactorMessage = err?.error?.message || 'Unable to disable 2FA.';
+        }
+
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  regenerateRecoveryCodes(): void {
+    if (this.regeneratingRecoveryCodes) {
+      return;
+    }
+
+    const confirmed = confirm('Generate new recovery codes? Your old recovery codes should no longer be used after this.');
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.regeneratingRecoveryCodes = true;
+    this.twoFactorMessage = '';
+    this.twoFactorSuccess = false;
+
+    this.auth.regenerateRecoveryCodes().subscribe({
+      next: (res: any) => {
+        this.regeneratingRecoveryCodes = false;
+
+        this.recoveryCodes = Array.isArray(res?.recovery_codes)
+          ? res.recovery_codes
+          : [];
+
+        this.twoFactorSuccess = true;
+        this.twoFactorMessage = res?.message || 'Recovery codes regenerated successfully.';
+
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Recovery codes error:', err);
+
+        this.regeneratingRecoveryCodes = false;
+        this.twoFactorSuccess = false;
+        this.twoFactorMessage = err?.error?.message || 'Unable to regenerate recovery codes.';
+
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  onTwoFactorCodeInput(): void {
+    this.twoFactorCode = this.cleanTwoFactorCode(this.twoFactorCode).slice(0, 6);
+  }
+
+  isTwoFactorEnabled(): boolean {
+    return this.user?.two_factor_enabled === true || this.user?.two_factor_enabled === 1;
   }
 
   updateProfile(): void {
@@ -361,5 +587,9 @@ export class Profile implements OnInit {
 
   userHasPassword(): boolean {
     return !this.user?.google_id || this.user?.has_password === true;
+  }
+
+  private cleanTwoFactorCode(value: string): string {
+    return String(value || '').replace(/\D/g, '');
   }
 }

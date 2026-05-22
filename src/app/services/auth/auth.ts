@@ -10,7 +10,9 @@ export class Auth {
   constructor(private http: HttpClient) {}
 
   private getAuthHeaders() {
-    const token = localStorage.getItem('token') || localStorage.getItem('planora_token');
+    const token =
+      localStorage.getItem('token') ||
+      localStorage.getItem('planora_token');
 
     return {
       Authorization: `Bearer ${token}`,
@@ -26,11 +28,55 @@ export class Auth {
     return this.http.post(`${this.apiUrl}/login`, data);
   }
 
-  forgotPassword(data: any) {
+  verifyTwoFactorLogin(data: {
+    two_factor_token: string;
+    code: string;
+  }) {
+    return this.http.post(`${this.apiUrl}/login/2fa`, data);
+  }
+
+  setupTwoFactor() {
+    return this.http.post(
+      `${this.apiUrl}/2fa/setup`,
+      {},
+      {
+        headers: this.getAuthHeaders()
+      }
+    );
+  }
+
+  confirmTwoFactor(data: { code: string }) {
+    return this.http.post(`${this.apiUrl}/2fa/confirm`, data, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  disableTwoFactor(data: { password: string }) {
+    return this.http.post(`${this.apiUrl}/2fa/disable`, data, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  regenerateRecoveryCodes() {
+    return this.http.post(
+      `${this.apiUrl}/2fa/recovery-codes/regenerate`,
+      {},
+      {
+        headers: this.getAuthHeaders()
+      }
+    );
+  }
+
+  forgotPassword(data: { email: string }) {
     return this.http.post(`${this.apiUrl}/forgot-password`, data);
   }
 
-  resetPassword(data: any) {
+  resetPassword(data: {
+    email: string;
+    code: string;
+    password: string;
+    password_confirmation: string;
+  }) {
     return this.http.post(`${this.apiUrl}/reset-password`, data);
   }
 
@@ -73,8 +119,8 @@ export class Auth {
   }
 
   updatePassword(data: any) {
-  return this.http.put(`${this.apiUrl}/profile/password`, data, {
-    headers: this.getAuthHeaders()
-  });
-}
+    return this.http.put(`${this.apiUrl}/profile/password`, data, {
+      headers: this.getAuthHeaders()
+    });
+  }
 }
