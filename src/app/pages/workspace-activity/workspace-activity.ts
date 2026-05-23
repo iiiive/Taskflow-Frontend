@@ -22,6 +22,26 @@ import {
 
 Chart.register(...registerables);
 
+interface ActivityWorkflowStat {
+  key: string;
+  name: string;
+  count: number;
+  position: number;
+  color: string;
+  is_done_column?: boolean;
+  is_backlog_column?: boolean;
+}
+
+interface KanbanColumnResponse {
+  id: number;
+  name: string;
+  slug?: string;
+  position?: number;
+  status_key?: string | null;
+  is_backlog_column?: boolean;
+  is_done_column?: boolean;
+}
+
 @Component({
   selector: 'app-workspace-activity',
   standalone: true,
@@ -30,53 +50,35 @@ Chart.register(...registerables);
   styleUrl: './workspace-activity.scss'
 })
 export class WorkspaceActivity implements OnInit {
-  apiUrl = 'http://127.0.0.1:8000/api';
-
+  // apiUrl = 'http://127.0.0.1:8000/api';
+apiUrl = '/api';
   workspaceId!: number;
   workspace: Workspace | null = null;
 
   tickets: Ticket[] = [];
   activityLogs: ActivityLog[] = [];
+  kanbanColumns: KanbanColumnResponse[] = [];
+
+  workflowStats: ActivityWorkflowStat[] = [];
 
   loadingWorkspace = true;
   loadingTickets = true;
   loadingActivity = true;
+  loadingColumns = true;
 
   errorMessage = '';
 
   totalTickets = 0;
-  todoCount = 0;
-  readyForDevelopmentCount = 0;
-  devInProgressCount = 0;
-  readyForTestingCount = 0;
-  readyForUatCount = 0;
-  doneCount = 0;
   completedCount = 0;
 
   ticketStatusChartType: 'doughnut' = 'doughnut';
 
   ticketStatusChartData: ChartData<'doughnut'> = {
-    labels: [
-      'To Do',
-      'Ready for Development',
-      'Dev in Progress',
-      'Ready for Testing',
-      'Ready for UAT',
-      'Done',
-      'Archived'
-    ],
+    labels: [],
     datasets: [
       {
-        data: [0, 0, 0, 0, 0, 0, 0],
-        backgroundColor: [
-          '#94a3b8',
-          '#547A95',
-          '#f59e0b',
-          '#7c3aed',
-          '#0891b2',
-          '#16a34a',
-          '#334155'
-        ],
+        data: [],
+        backgroundColor: [],
         borderColor: '#ffffff',
         borderWidth: 3
       }
@@ -104,7 +106,7 @@ export class WorkspaceActivity implements OnInit {
       tooltip: {
         callbacks: {
           label: (context) => {
-            const label = context.label || 'Status';
+            const label = context.label || 'Column';
             const value = context.parsed || 0;
 
             return `${label}: ${value}`;
@@ -113,6 +115,19 @@ export class WorkspaceActivity implements OnInit {
       }
     }
   };
+
+  private chartColors = [
+    '#94a3b8',
+    '#547A95',
+    '#f59e0b',
+    '#7c3aed',
+    '#0891b2',
+    '#16a34a',
+    '#334155',
+    '#db2777',
+    '#ea580c',
+    '#0f766e'
+  ];
 
   constructor(
     private route: ActivatedRoute,
@@ -130,6 +145,7 @@ export class WorkspaceActivity implements OnInit {
     }
 
     this.loadWorkspace();
+    this.loadWorkspaceKanbanColumns();
     this.loadWorkspaceTickets();
     this.loadWorkspaceActivity();
   }
@@ -152,6 +168,35 @@ export class WorkspaceActivity implements OnInit {
         this.errorMessage =
           err?.error?.message ||
           'Unable to load workspace.';
+
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  loadWorkspaceKanbanColumns(): void {
+    this.loadingColumns = true;
+
+    this.http.get<ApiResponse<KanbanColumnResponse[]> | KanbanColumnResponse[]>(
+      `${this.apiUrl}/workspaces/${this.workspaceId}/kanban-columns`
+    ).subscribe({
+      next: (res) => {
+        this.kanbanColumns = this.extractArray<KanbanColumnResponse>(res)
+          .sort((a, b) => Number(a.position ?? 0) - Number(b.position ?? 0));
+
+        this.loadingColumns = false;
+        this.buildTicketStatusStats();
+        this.buildTicketStatusChart();
+
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.warn('Kanban columns endpoint failed. Falling back to ticket kanbanColumn data.', err);
+
+        this.kanbanColumns = [];
+        this.loadingColumns = false;
+        this.buildTicketStatusStats();
+        this.buildTicketStatusChart();
 
         this.cdr.detectChanges();
       }
@@ -215,66 +260,74 @@ export class WorkspaceActivity implements OnInit {
   buildTicketStatusStats(): void {
     this.totalTickets = this.tickets.length;
 
-    this.todoCount = this.tickets.filter(
-      ticket => ticket.status === 'todo'
-    ).length;
+    const statsMap = new Map<string, ActivityWorkflowStat>();
 
-    this.readyForDevelopmentCount = this.tickets.filter(
-      ticket => ticket.status === 'ready_for_development'
-    ).length;
+    this.kanbanColumns.forEach((column, index) => {
+      const key = this.getColumnKeyFromColumn(column);
 
-    this.devInProgressCount = this.tickets.filter(
-      ticket => ticket.status === 'dev_in_progress'
-    ).length;
+      statsMap.set(key, {
+        key,
+        name: column.name || this.formatStatusLabel(column.status_key || column.slug || key),
+        count: 0,
+        position: Number(column.position ?? index),
+        color: this.chartColors[index % this.chartColors.length],
+        is_done_column: Boolean(column.is_done_column),
+        is_backlog_column: Boolean(column.is_backlog_column)
+      });
+    });
 
-    this.readyForTestingCount = this.tickets.filter(
-      ticket => ticket.status === 'ready_for_testing'
-    ).length;
+    this.tickets.forEach((ticket: any) => {
+      const column = this.getTicketColumn(ticket);
+      const key = this.getTicketColumnKey(ticket);
+      const name = this.getTicketColumnName(ticket);
+      const position = Number(column?.position ?? statsMap.size);
 
-    this.readyForUatCount = this.tickets.filter(
-      ticket => ticket.status === 'ready_for_uat'
-    ).length;
+      if (!statsMap.has(key)) {
+        statsMap.set(key, {
+          key,
+          name,
+          count: 0,
+          position,
+          color: this.chartColors[statsMap.size % this.chartColors.length],
+          is_done_column: Boolean(column?.is_done_column),
+          is_backlog_column: Boolean(column?.is_backlog_column)
+        });
+      }
 
-    this.doneCount = this.tickets.filter(
-      ticket => ticket.status === 'done'
-    ).length;
+      const current = statsMap.get(key);
 
-    this.completedCount = this.tickets.filter(
-      ticket => ticket.status === 'completed'
-    ).length;
+      if (current) {
+        current.count += 1;
+
+        if (column?.is_done_column) {
+          current.is_done_column = true;
+        }
+      }
+    });
+
+    this.workflowStats = Array.from(statsMap.values())
+      .sort((a, b) => a.position - b.position);
+
+    this.completedCount = this.tickets.filter((ticket: any) => {
+      const column = this.getTicketColumn(ticket);
+      const columnName = String(column?.name || '').toLowerCase();
+      const status = String(ticket?.status || '').toLowerCase();
+
+      return Boolean(column?.is_done_column) ||
+        status === 'completed' ||
+        columnName === 'archived';
+    }).length;
   }
 
   buildTicketStatusChart(): void {
+    const visibleStats = this.workflowStats.filter(stat => stat.count > 0);
+
     this.ticketStatusChartData = {
-      labels: [
-        'To Do',
-        'Ready for Development',
-        'Dev in Progress',
-        'Ready for Testing',
-        'Ready for UAT',
-        'Done',
-        'Archived'
-      ],
+      labels: visibleStats.map(stat => stat.name),
       datasets: [
         {
-          data: [
-            this.todoCount,
-            this.readyForDevelopmentCount,
-            this.devInProgressCount,
-            this.readyForTestingCount,
-            this.readyForUatCount,
-            this.doneCount,
-            this.completedCount
-          ],
-          backgroundColor: [
-            '#94a3b8',
-            '#547A95',
-            '#f59e0b',
-            '#7c3aed',
-            '#0891b2',
-            '#16a34a',
-            '#334155'
-          ],
+          data: visibleStats.map(stat => stat.count),
+          backgroundColor: visibleStats.map(stat => stat.color),
           borderColor: '#ffffff',
           borderWidth: 3
         }
@@ -306,6 +359,65 @@ export class WorkspaceActivity implements OnInit {
     return [];
   }
 
+  getTicketColumn(ticket: any): any {
+    return ticket?.kanban_column || ticket?.kanbanColumn || null;
+  }
+
+  getTicketColumnKey(ticket: any): string {
+    const column = this.getTicketColumn(ticket);
+
+    if (column?.id) {
+      return `column_${column.id}`;
+    }
+
+    if (ticket?.kanban_column_id) {
+      return `column_${ticket.kanban_column_id}`;
+    }
+
+    if (ticket?.status) {
+      return `status_${ticket.status}`;
+    }
+
+    return 'unknown';
+  }
+
+  getTicketColumnName(ticket: any): string {
+    const column = this.getTicketColumn(ticket);
+
+    if (column?.name) {
+      return column.name;
+    }
+
+    return this.formatStatusLabel(ticket?.status || 'Unknown');
+  }
+
+  getColumnKeyFromColumn(column: KanbanColumnResponse): string {
+    if (column.id) {
+      return `column_${column.id}`;
+    }
+
+    if (column.status_key) {
+      return `status_${column.status_key}`;
+    }
+
+    if (column.slug) {
+      return `slug_${column.slug}`;
+    }
+
+    return `column_${column.name}`;
+  }
+
+  formatStatusLabel(value: string): string {
+    if (!value) {
+      return 'Unknown';
+    }
+
+    return value
+      .replaceAll('_', ' ')
+      .replaceAll('-', ' ')
+      .replace(/\b\w/g, char => char.toUpperCase());
+  }
+
   getDisplayValue(value: string | number | null | undefined): string {
     if (value === null || value === undefined || value === '') {
       return '—';
@@ -320,6 +432,14 @@ export class WorkspaceActivity implements OnInit {
       ticket_updated: 'Ticket Updated',
       ticket_completed: 'Ticket Archived',
       ticket_archived: 'Ticket Archived',
+      ticket_moved: 'Ticket Moved',
+      ticket_status_updated: 'Ticket Moved',
+      ticket_priority_updated: 'Priority Updated',
+      ticket_assignee_updated: 'Assignee Updated',
+      ticket_title_updated: 'Title Updated',
+      ticket_description_updated: 'Description Updated',
+      ticket_due_date_updated: 'Due Date Updated',
+      ticket_epic_updated: 'Epic Updated',
       status_changed: 'Status Changed',
       priority_changed: 'Priority Changed',
       assignee_changed: 'Assignee Changed',
@@ -328,10 +448,11 @@ export class WorkspaceActivity implements OnInit {
       attachment_deleted: 'Attachment Deleted',
       member_added: 'Member Added',
       member_updated: 'Member Updated',
-      member_removed: 'Member Removed'
+      member_removed: 'Member Removed',
+      time_logged: 'Time Logged'
     };
 
-    return labels[action] || action.replaceAll('_', ' ');
+    return labels[action] || this.formatStatusLabel(action);
   }
 
   getActionClass(action: string): string {
@@ -355,7 +476,6 @@ export class WorkspaceActivity implements OnInit {
   }
 
   goToTimesheet(): void {
-  this.router.navigate(['/workspaces', this.workspaceId, 'timesheet']);
-}
-
+    this.router.navigate(['/workspaces', this.workspaceId, 'timesheet']);
+  }
 }

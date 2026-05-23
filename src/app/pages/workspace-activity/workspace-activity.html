@@ -20,7 +20,6 @@
     </header>
 
     <nav class="ticket-nav" aria-label="Ticket navigation">
-
       <button type="button" class="ticket-nav-item" (click)="goBackToBoard()">
         <span class="nav-icon">▦</span>
         <span>Development Board</span>
@@ -32,9 +31,9 @@
       </button>
 
       <button type="button" class="ticket-nav-item" (click)="goToTimesheet()">
-  <span class="nav-icon">◴</span>
-  <span>Timesheet</span>
-</button>
+        <span class="nav-icon">◴</span>
+        <span>Timesheet</span>
+      </button>
 
       <button type="button" class="ticket-nav-item" (click)="goToArchive()">
         <span class="nav-icon">▣</span>
@@ -55,24 +54,9 @@
         <strong>{{ totalTickets }}</strong>
       </article>
 
-      <article class="stat-card">
-        <span>To Do</span>
-        <strong>{{ todoCount }}</strong>
-      </article>
-
-      <article class="stat-card">
-        <span>Dev in Progress</span>
-        <strong>{{ devInProgressCount }}</strong>
-      </article>
-
-      <article class="stat-card">
-        <span>Done</span>
-        <strong>{{ doneCount }}</strong>
-      </article>
-
-      <article class="stat-card">
-        <span>Archived</span>
-        <strong>{{ completedCount }}</strong>
+      <article class="stat-card" *ngFor="let stat of workflowStats | slice:0:4">
+        <span>{{ stat.name }}</span>
+        <strong>{{ stat.count }}</strong>
       </article>
     </section>
 
@@ -85,7 +69,7 @@
           <div>
             <h2>Ticket Progress</h2>
             <p>
-              Visual summary of tickets by current status inside this workspace.
+              Visual summary of tickets by current Kanban column inside this workspace.
             </p>
           </div>
 
@@ -108,43 +92,13 @@
             <h3>Workspace Progress</h3>
 
             <p>
-              Current ticket count by workflow status.
+              Current ticket count by your custom workflow columns.
             </p>
 
             <div class="status-breakdown">
-              <div>
-                <span>To Do</span>
-                <strong>{{ todoCount }}</strong>
-              </div>
-
-              <div>
-                <span>Ready for Development</span>
-                <strong>{{ readyForDevelopmentCount }}</strong>
-              </div>
-
-              <div>
-                <span>Dev in Progress</span>
-                <strong>{{ devInProgressCount }}</strong>
-              </div>
-
-              <div>
-                <span>Ready for Testing</span>
-                <strong>{{ readyForTestingCount }}</strong>
-              </div>
-
-              <div>
-                <span>Ready for UAT</span>
-                <strong>{{ readyForUatCount }}</strong>
-              </div>
-
-              <div>
-                <span>Done</span>
-                <strong>{{ doneCount }}</strong>
-              </div>
-
-              <div>
-                <span>Archived</span>
-                <strong>{{ completedCount }}</strong>
+              <div *ngFor="let stat of workflowStats">
+                <span>{{ stat.name }}</span>
+                <strong>{{ stat.count }}</strong>
               </div>
             </div>
           </div>
