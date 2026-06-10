@@ -3,6 +3,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 import { EditorModule, TINYMCE_SCRIPT_SRC } from '@tinymce/tinymce-angular';
 
 import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
@@ -39,7 +40,7 @@ import {
   styleUrl: './workspace-board.scss',
 })
 export class WorkspaceBoard implements OnInit {
-  apiUrl = 'http://127.0.0.1:8000/api';
+  apiUrl = environment.apiUrl;
 
   workspaceId!: number;
   workspace: Workspace | null = null;
@@ -66,6 +67,8 @@ export class WorkspaceBoard implements OnInit {
   selectedPriority: '' | TicketPriority = '';
   selectedColumnId: number | '' = '';
   selectedEpicId: number | '' = '';
+
+  swimlaneMode: '' | 'assignee' | 'epic' | 'priority' = '';
 
   showCreateModal = false;
   showTicketDetailsModal = false;
@@ -145,7 +148,7 @@ export class WorkspaceBoard implements OnInit {
     this.workspaceId = Number(this.route.snapshot.paramMap.get('id'));
 
     if (!this.workspaceId) {
-      this.router.navigate(['/workspaces']);
+      this.router.navigate(['/projects']);
       return;
     }
 
@@ -159,7 +162,7 @@ export class WorkspaceBoard implements OnInit {
     this.loadingWorkspace = true;
 
     this.http.get<ApiResponse<Workspace> | Workspace>(
-      `${this.apiUrl}/workspaces/${this.workspaceId}`
+      `${this.apiUrl}/projects/${this.workspaceId}`
     ).subscribe({
       next: (res) => {
         this.workspace = this.extractSingle<Workspace>(res);
@@ -179,7 +182,7 @@ export class WorkspaceBoard implements OnInit {
     this.loadingMembers = true;
 
     this.http.get<any>(
-      `${this.apiUrl}/workspaces/${this.workspaceId}/members`
+      `${this.apiUrl}/projects/${this.workspaceId}/members`
     ).subscribe({
       next: (res) => {
         this.workspaceMembers = this.extractArray<WorkspaceMember>(res);
@@ -199,7 +202,7 @@ export class WorkspaceBoard implements OnInit {
     this.loadingEpics = true;
 
     this.http.get<ApiResponse<Epic[]> | Epic[] | any>(
-      `${this.apiUrl}/workspaces/${this.workspaceId}/epics`
+      `${this.apiUrl}/projects/${this.workspaceId}/epics`
     ).subscribe({
       next: (res) => {
         this.epics = this.extractArray<Epic>(res);
@@ -220,7 +223,7 @@ export class WorkspaceBoard implements OnInit {
     this.errorMessage = '';
 
     this.http.get<ApiResponse<KanbanColumn[]> | KanbanColumn[]>(
-      `${this.apiUrl}/workspaces/${this.workspaceId}/kanban-columns`
+      `${this.apiUrl}/projects/${this.workspaceId}/kanban-columns`
     ).subscribe({
       next: (res) => {
         this.kanbanColumns = this.extractArray<KanbanColumn>(res)
@@ -287,6 +290,35 @@ export class WorkspaceBoard implements OnInit {
 
   getTicketCount(column: KanbanColumn): number {
     return this.getTicketsByColumn(column.id).length;
+  }
+
+  getSwimlaneGroups(columnId: number): { label: string; tickets: Ticket[] }[] {
+    const tickets = this.getTicketsByColumn(columnId);
+
+    if (!this.swimlaneMode) {
+      return [{ label: '', tickets }];
+    }
+
+    const groups = new Map<string, Ticket[]>();
+
+    for (const ticket of tickets) {
+      let key: string;
+
+      if (this.swimlaneMode === 'assignee') {
+        key = ticket.assignee?.name || 'Unassigned';
+      } else if (this.swimlaneMode === 'epic') {
+        key = this.getEpicName(ticket) || 'No Epic';
+      } else {
+        key = ticket.priority || 'none';
+      }
+
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)!.push(ticket);
+    }
+
+    return Array.from(groups.entries()).map(([label, t]) => ({ label, tickets: t }));
   }
 
   canEditTicket(): boolean {
@@ -366,7 +398,7 @@ export class WorkspaceBoard implements OnInit {
     };
 
     this.http.post<any>(
-      `${this.apiUrl}/workspaces/${this.workspaceId}/epics`,
+      `${this.apiUrl}/projects/${this.workspaceId}/epics`,
       payload
     ).subscribe({
       next: (res) => {
@@ -473,7 +505,7 @@ export class WorkspaceBoard implements OnInit {
     this.successMessage = '';
 
     this.http.post<any>(
-      `${this.apiUrl}/workspaces/${this.workspaceId}/tickets`,
+      `${this.apiUrl}/projects/${this.workspaceId}/tickets`,
       payload
     ).subscribe({
       next: () => {
@@ -514,7 +546,7 @@ export class WorkspaceBoard implements OnInit {
     | status_key = null.
     */
     this.http.post<any>(
-      `${this.apiUrl}/workspaces/${this.workspaceId}/kanban-columns`,
+      `${this.apiUrl}/projects/${this.workspaceId}/kanban-columns`,
       { name }
     ).subscribe({
       next: () => {
@@ -754,7 +786,7 @@ export class WorkspaceBoard implements OnInit {
     this.successMessage = '';
 
     this.http.put<any>(
-      `${this.apiUrl}/workspaces/${this.workspaceId}/kanban-columns/reorder`,
+      `${this.apiUrl}/projects/${this.workspaceId}/kanban-columns/reorder`,
       payload
     ).subscribe({
       next: (res) => {
@@ -918,15 +950,15 @@ export class WorkspaceBoard implements OnInit {
   }
 
   goToArchive(): void {
-    this.router.navigate(['/workspaces', this.workspaceId, 'archive']);
+    this.router.navigate(['/projects', this.workspaceId, 'archive']);
   }
 
   goToActivityLog(): void {
-    this.router.navigate(['/workspaces', this.workspaceId, 'activity']);
+    this.router.navigate(['/projects', this.workspaceId, 'activity']);
   }
 
   goToTimesheet(): void {
-    this.router.navigate(['/workspaces', this.workspaceId, 'timesheet']);
+    this.router.navigate(['/projects', this.workspaceId, 'timesheet']);
   }
 
   getBacklogColumn(): KanbanColumn | null {

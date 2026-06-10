@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { environment } from '../../../environments/environment';
 import {
   ChangeDetectorRef,
   Component,
@@ -29,7 +30,7 @@ import {
 export class WorkspaceMembersModal implements OnInit, OnChanges {
   @Input() workspaceId!: number;
   @Input() workspace: Workspace | null = null;
-  @Input() apiUrl = 'http://127.0.0.1:8000/api';
+  @Input() apiUrl = environment.apiUrl;
   @Input() canManage = false;
 
   @Output() closeModal = new EventEmitter<void>();
@@ -77,7 +78,7 @@ export class WorkspaceMembersModal implements OnInit, OnChanges {
 
     this.http
       .get<ApiResponse<WorkspaceMember[]> | WorkspaceMember[] | any>(
-        `${this.apiUrl}/workspaces/${this.workspaceId}/members`
+        `${this.apiUrl}/projects/${this.workspaceId}/members`
       )
       .subscribe({
         next: (res) => {
@@ -122,7 +123,7 @@ export class WorkspaceMembersModal implements OnInit, OnChanges {
 
     this.http
       .post<ApiResponse<WorkspaceMember> | WorkspaceMember | any>(
-        `${this.apiUrl}/workspaces/${this.workspaceId}/members`,
+        `${this.apiUrl}/projects/${this.workspaceId}/members`,
         payload
       )
       .subscribe({
@@ -186,7 +187,7 @@ export class WorkspaceMembersModal implements OnInit, OnChanges {
 
     this.http
       .put<ApiResponse<WorkspaceMember> | WorkspaceMember | any>(
-        `${this.apiUrl}/workspaces/${this.workspaceId}/members/${member.id}`,
+        `${this.apiUrl}/projects/${this.workspaceId}/members/${member.id}`,
         { role }
       )
       .subscribe({
@@ -244,7 +245,7 @@ export class WorkspaceMembersModal implements OnInit, OnChanges {
     this.successMessage = '';
 
     this.http
-      .delete(`${this.apiUrl}/workspaces/${this.workspaceId}/members/${member.id}`)
+      .delete(`${this.apiUrl}/projects/${this.workspaceId}/members/${member.id}`)
       .subscribe({
         next: () => {
           this.members = this.members.filter(item => item.id !== member.id);

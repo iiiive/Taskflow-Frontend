@@ -1,13 +1,4 @@
 import { Routes } from '@angular/router';
-
-import { Register } from './pages/register/register';
-import { Login } from './pages/login/login';
-import { Dashboard } from './pages/dashboard/dashboard';
-import { Workspaces } from './pages/workspaces/workspaces';
-import { WorkspaceBoard } from './pages/workspace-board/workspace-board';
-import { WorkspaceArchive } from './pages/workspace-archive/workspace-archive';
-import { WorkspaceTimesheet } from './pages/workspace-timesheet/workspace-timesheet';
-
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -19,86 +10,98 @@ export const routes: Routes = [
 
   {
     path: 'login',
-    component: Login
+    loadComponent: () => import('./pages/login/login').then(m => m.Login)
   },
 
   {
     path: 'register',
-    component: Register
+    loadComponent: () => import('./pages/register/register').then(m => m.Register)
   },
 
   {
     path: 'forgot-password',
     loadComponent: () =>
-      import('./pages/forgot-password/forgot-password').then(
-        m => m.ForgotPassword
-      )
+      import('./pages/forgot-password/forgot-password').then(m => m.ForgotPassword)
   },
 
   {
     path: 'reset-password',
     loadComponent: () =>
-      import('./pages/reset-password/reset-password').then(
-        m => m.ResetPassword
-      )
+      import('./pages/reset-password/reset-password').then(m => m.ResetPassword)
   },
 
   {
     path: 'dashboard',
-    component: Dashboard,
+    loadComponent: () => import('./pages/dashboard/dashboard').then(m => m.Dashboard),
     canActivate: [authGuard]
   },
 
   {
-    path: 'workspaces',
-    component: Workspaces,
+    path: 'projects',
+    loadComponent: () => import('./pages/workspaces/workspaces').then(m => m.Workspaces),
     canActivate: [authGuard]
   },
 
   {
     path: 'profile',
+    loadComponent: () => import('./pages/profile/profile').then(m => m.Profile),
+    canActivate: [authGuard]
+  },
+
+  {
+    path: 'projects/:id/board',
     loadComponent: () =>
-      import('./pages/profile/profile').then(
-        m => m.Profile
-      ),
+      import('./pages/workspace-board/workspace-board').then(m => m.WorkspaceBoard),
     canActivate: [authGuard]
   },
 
   {
-    path: 'workspaces/:id/backlog',
+    path: 'projects/:id/backlog',
     loadComponent: () =>
-      import('./pages/workspace-backlog/workspace-backlog').then(
-        m => m.WorkspaceBacklog
-      ),
+      import('./pages/workspace-backlog/workspace-backlog').then(m => m.WorkspaceBacklog),
     canActivate: [authGuard]
   },
 
   {
-    path: 'workspaces/:id/board',
-    component: WorkspaceBoard,
-    canActivate: [authGuard]
-  },
-
-  {
-    path: 'workspaces/:id/activity',
+    path: 'projects/:id/activity',
     loadComponent: () =>
-      import('./pages/workspace-activity/workspace-activity').then(
-        m => m.WorkspaceActivity
-      ),
+      import('./pages/workspace-activity/workspace-activity').then(m => m.WorkspaceActivity),
     canActivate: [authGuard]
   },
 
   {
-  path: 'workspaces/:id/archive',
-  loadComponent: () =>
-    import('./pages/workspace-archive/workspace-archive')
-      .then(m => m.WorkspaceArchive)
-},
+    path: 'projects/:id/archive',
+    loadComponent: () =>
+      import('./pages/workspace-archive/workspace-archive').then(m => m.WorkspaceArchive),
+    canActivate: [authGuard]
+  },
 
-{
-  path: 'workspaces/:id/timesheet',
-  component: WorkspaceTimesheet
-},
+  {
+    path: 'projects/:id/timesheet',
+    loadComponent: () =>
+      import('./pages/workspace-timesheet/workspace-timesheet').then(m => m.WorkspaceTimesheet),
+    canActivate: [authGuard]
+  },
+
+  {
+    path: 'teams',
+    loadComponent: () => import('./pages/teams/teams').then(m => m.Teams),
+    canActivate: [authGuard]
+  },
+
+  {
+    path: 'projects/:id/sprints',
+    loadComponent: () =>
+      import('./pages/workspace-sprints/workspace-sprints').then(m => m.WorkspaceSprints),
+    canActivate: [authGuard]
+  },
+
+  {
+    path: 'projects/:id/workflows',
+    loadComponent: () =>
+      import('./pages/workspace-workflows/workspace-workflows').then(m => m.WorkspaceWorkflows),
+    canActivate: [authGuard]
+  },
 
   {
     path: '**',

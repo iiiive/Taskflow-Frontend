@@ -15,13 +15,16 @@ import { Auth } from '../../services/auth/auth';
 
 type SidebarPage =
   | 'dashboard'
-  | 'workspaces'
+  | 'projects'
+  | 'teams'
   | 'profile'
   | 'backlog'
   | 'board'
   | 'activity'
   | 'timesheet'
   | 'archive'
+  | 'sprints'
+  | 'workflows'
   | '';
 
 @Component({
@@ -105,7 +108,7 @@ export class AppSidebar implements OnInit {
     const cleanUrl = this.currentUrl.split('?')[0];
 
     const workspaceSectionMatch = cleanUrl.match(
-      /^\/workspaces\/(\d+)\/(backlog|board|activity|timesheet|archive)(\/)?$/
+      /^\/projects\/(\d+)\/(backlog|board|activity|timesheet|archive|sprints|workflows)(\/)?$/
     );
 
     if (workspaceSectionMatch) {
@@ -121,8 +124,13 @@ export class AppSidebar implements OnInit {
       return;
     }
 
-    if (cleanUrl === '/workspaces' || cleanUrl.startsWith('/workspaces')) {
-      this.activePage = 'workspaces';
+    if (cleanUrl === '/projects' || cleanUrl.startsWith('/projects')) {
+      this.activePage = 'projects';
+      return;
+    }
+
+    if (cleanUrl === '/teams' || cleanUrl.startsWith('/teams')) {
+      this.activePage = 'teams';
       return;
     }
 

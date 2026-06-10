@@ -390,6 +390,29 @@ app-sidebar {
   line-height: 1.35;
 }
 
+.wip-badge {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  transition: background 0.15s, color 0.15s;
+
+  &.wip-exceeded {
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #fecaca;
+  }
+}
+
+.kanban-column.wip-exceeded > .column-header {
+  border-top: 3px solid #fecaca;
+}
+
 .column-actions {
   display: flex;
   gap: 6px;
@@ -476,6 +499,18 @@ app-sidebar {
   font-size: 13px;
   text-align: center;
   background: rgba(255, 255, 255, 0.58);
+}
+
+.swimlane-header {
+  padding: 5px 10px;
+  margin: 8px 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  background: #f1f5f9;
+  border-radius: 6px;
 }
 
 /* Premium Ticket Card */

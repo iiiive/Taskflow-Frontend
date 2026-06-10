@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
@@ -131,7 +132,7 @@ interface DashboardNotification {
   styleUrl: './dashboard.scss',
 })
 export class Dashboard implements OnInit {
-  apiUrl = 'http://127.0.0.1:8000/api';
+  apiUrl = environment.apiUrl;
 
   loading = true;
   errorMessage = '';
@@ -248,7 +249,7 @@ export class Dashboard implements OnInit {
     this.loading = true;
     this.errorMessage = '';
 
-    this.http.get<any>(`${this.apiUrl}/workspaces`, {
+    this.http.get<any>(`${this.apiUrl}/projects`, {
       headers: this.getAuthHeaders()
     }).subscribe({
       next: (res) => {
@@ -265,7 +266,7 @@ export class Dashboard implements OnInit {
         }
 
         const columnRequests = this.workspaces.map(workspace =>
-          this.http.get<any>(`${this.apiUrl}/workspaces/${workspace.id}/kanban-columns`, {
+          this.http.get<any>(`${this.apiUrl}/projects/${workspace.id}/kanban-columns`, {
             headers: this.getAuthHeaders()
           }).pipe(
             catchError((err) => {
@@ -705,14 +706,14 @@ export class Dashboard implements OnInit {
   }
 
   openWorkspaceBoard(workspaceId: number): void {
-    this.router.navigate(['/workspaces', workspaceId, 'board']);
+    this.router.navigate(['/projects', workspaceId, 'board']);
   }
 
   openWorkspaceActivity(workspaceId: number): void {
-    this.router.navigate(['/workspaces', workspaceId, 'activity']);
+    this.router.navigate(['/projects', workspaceId, 'activity']);
   }
 
   goToWorkspaces(): void {
-    this.router.navigate(['/workspaces']);
+    this.router.navigate(['/projects']);
   }
 }

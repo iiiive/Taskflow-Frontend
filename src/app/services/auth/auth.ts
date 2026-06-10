@@ -1,18 +1,17 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class Auth {
-  private apiUrl = 'http://127.0.0.1:8000/api';
+  private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
   private getAuthHeaders() {
-    const token =
-      localStorage.getItem('token') ||
-      localStorage.getItem('planora_token');
+    const token = localStorage.getItem('planora_token');
 
     return {
       Authorization: `Bearer ${token}`,

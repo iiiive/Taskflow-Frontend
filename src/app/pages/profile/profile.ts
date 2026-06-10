@@ -3,6 +3,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Auth } from '../../services/auth/auth';
+import { environment } from '../../../environments/environment';
 import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
 
 @Component({
@@ -571,7 +572,7 @@ export class Profile implements OnInit {
         return this.user.avatar;
       }
 
-      return `http://127.0.0.1:8000/storage/${this.user.avatar}`;
+      return `${environment.storageUrl}/${this.user.avatar}`;
     }
 
     return null;

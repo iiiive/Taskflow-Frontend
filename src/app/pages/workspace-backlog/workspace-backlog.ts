@@ -3,6 +3,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
 import { TicketModal } from '../../components/ticket-modal/ticket-modal';
@@ -24,7 +25,7 @@ import {
   styleUrl: './workspace-backlog.scss'
 })
 export class WorkspaceBacklog implements OnInit {
-  apiUrl = 'http://127.0.0.1:8000/api';
+  apiUrl = environment.apiUrl;
 
   workspaceId!: number;
   workspace: Workspace | null = null;
@@ -68,7 +69,7 @@ export class WorkspaceBacklog implements OnInit {
     this.workspaceId = Number(this.route.snapshot.paramMap.get('id'));
 
     if (!this.workspaceId) {
-      this.router.navigate(['/workspaces']);
+      this.router.navigate(['/projects']);
       return;
     }
 
@@ -81,7 +82,7 @@ export class WorkspaceBacklog implements OnInit {
     this.loadingWorkspace = true;
 
     this.http.get<ApiResponse<Workspace> | Workspace>(
-      `${this.apiUrl}/workspaces/${this.workspaceId}`
+      `${this.apiUrl}/projects/${this.workspaceId}`
     ).subscribe({
       next: (res) => {
         this.workspace = this.extractSingle<Workspace>(res);
@@ -101,7 +102,7 @@ export class WorkspaceBacklog implements OnInit {
     this.loadingMembers = true;
 
     this.http.get<any>(
-      `${this.apiUrl}/workspaces/${this.workspaceId}/members`
+      `${this.apiUrl}/projects/${this.workspaceId}/members`
     ).subscribe({
       next: (res) => {
         this.workspaceMembers = this.extractArray<WorkspaceMember>(res);
@@ -131,7 +132,7 @@ export class WorkspaceBacklog implements OnInit {
     }
 
     this.http.get<ApiResponse<Ticket[]> | Ticket[]>(
-      `${this.apiUrl}/workspaces/${this.workspaceId}/tickets`,
+      `${this.apiUrl}/projects/${this.workspaceId}/tickets`,
       { params }
     ).subscribe({
       next: (res) => {
@@ -193,7 +194,7 @@ export class WorkspaceBacklog implements OnInit {
     this.successMessage = '';
 
     this.http.post<any>(
-      `${this.apiUrl}/workspaces/${this.workspaceId}/tickets`,
+      `${this.apiUrl}/projects/${this.workspaceId}/tickets`,
       payload
     ).subscribe({
       next: (res) => {
@@ -320,11 +321,11 @@ export class WorkspaceBacklog implements OnInit {
   }
 
   goToBoard(): void {
-    this.router.navigate(['/workspaces', this.workspaceId, 'board']);
+    this.router.navigate(['/projects', this.workspaceId, 'board']);
   }
 
   goBackToWorkspaces(): void {
-    this.router.navigate(['/workspaces']);
+    this.router.navigate(['/projects']);
   }
 
   getPlainText(html: string | null | undefined): string {
@@ -341,7 +342,7 @@ export class WorkspaceBacklog implements OnInit {
   }
 
   goToActivityLog(): void {
-  this.router.navigate(['/workspaces', this.workspaceId, 'activity']);
+  this.router.navigate(['/projects', this.workspaceId, 'activity']);
 }
 
   getPersonName(person: any): string {
@@ -350,7 +351,7 @@ export class WorkspaceBacklog implements OnInit {
   }
 
   goToArchive(): void {
-  this.router.navigate(['/workspaces', this.workspaceId, 'archive']);
+  this.router.navigate(['/projects', this.workspaceId, 'archive']);
 }
 
   extractSingle<T>(res: ApiResponse<T> | T | any): T {
@@ -371,7 +372,7 @@ export class WorkspaceBacklog implements OnInit {
   }
 
   goToTimesheet(): void {
-  this.router.navigate(['/workspaces', this.workspaceId, 'timesheet']);
+  this.router.navigate(['/projects', this.workspaceId, 'timesheet']);
 }
 
 }

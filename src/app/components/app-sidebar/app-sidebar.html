@@ -40,12 +40,21 @@
     </a>
 
     <a
-      routerLink="/workspaces"
-      [class.active]="activePage === 'workspaces'"
-      title="Workspaces"
+      routerLink="/projects"
+      [class.active]="activePage === 'projects'"
+      title="Projects"
     >
       <span>□</span>
-      <strong>Workspaces</strong>
+      <strong>Projects</strong>
+    </a>
+
+    <a
+      routerLink="/teams"
+      [class.active]="activePage === 'teams'"
+      title="Teams"
+    >
+      <span>◈</span>
+      <strong>Teams</strong>
     </a>
 
     <a
@@ -61,11 +70,11 @@
       class="workspace-nav-group"
       *ngIf="hasSelectedWorkspace()"
     >
-      <p class="sidebar-section-label">Selected Workspace</p>
+      <p class="sidebar-section-label">Selected Project</p>
 
 
       <a
-        [routerLink]="['/workspaces', getSelectedWorkspaceId(), 'board']"
+        [routerLink]="['/projects', getSelectedWorkspaceId(), 'board']"
         [class.active]="activePage === 'board'"
         title="Board"
       >
@@ -74,7 +83,7 @@
       </a>
 
       <a
-        [routerLink]="['/workspaces', getSelectedWorkspaceId(), 'activity']"
+        [routerLink]="['/projects', getSelectedWorkspaceId(), 'activity']"
         [class.active]="activePage === 'activity'"
         title="Activity"
       >
@@ -83,7 +92,7 @@
       </a>
 
       <a
-        [routerLink]="['/workspaces', getSelectedWorkspaceId(), 'timesheet']"
+        [routerLink]="['/projects', getSelectedWorkspaceId(), 'timesheet']"
         [class.active]="activePage === 'timesheet'"
         title="Timesheet"
       >
@@ -92,12 +101,30 @@
       </a>
 
       <a
-        [routerLink]="['/workspaces', getSelectedWorkspaceId(), 'archive']"
+        [routerLink]="['/projects', getSelectedWorkspaceId(), 'archive']"
         [class.active]="activePage === 'archive'"
         title="Archive"
       >
         <span>▣</span>
         <strong>Archive</strong>
+      </a>
+
+      <a
+        [routerLink]="['/projects', getSelectedWorkspaceId(), 'sprints']"
+        [class.active]="activePage === 'sprints'"
+        title="Sprints"
+      >
+        <span>◎</span>
+        <strong>Sprints</strong>
+      </a>
+
+      <a
+        [routerLink]="['/projects', getSelectedWorkspaceId(), 'workflows']"
+        [class.active]="activePage === 'workflows'"
+        title="Workflows"
+      >
+        <span>⬡</span>
+        <strong>Workflows</strong>
       </a>
     </div>
   </nav>

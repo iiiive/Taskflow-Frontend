@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 import {
   ChangeDetectorRef,
   Component,
@@ -69,7 +70,7 @@ export class TicketModal implements OnChanges {
   @Input() epics: Epic[] = [];
   @Input() canEdit = false;
   @Input() canComment = false;
-  @Input() apiUrl = 'http://127.0.0.1:8000/api';
+  @Input() apiUrl = environment.apiUrl;
 
   @Output() closeModal = new EventEmitter<void>();
   @Output() ticketUpdated = new EventEmitter<Ticket>();

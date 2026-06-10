@@ -1,0 +1,91 @@
+<app-sidebar activePage="board" [workspaceId]="projectId"></app-sidebar>
+
+<main class="page-main">
+  <header class="page-header">
+    <div>
+      <button type="button" class="back-btn" (click)="goToBoard()">← Board</button>
+      <h1>Sprints</h1>
+    </div>
+    <button type="button" class="primary-btn" (click)="openCreateModal()">+ New Sprint</button>
+  </header>
+
+  <div class="alert alert-error" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
+
+  <div class="loading-state" *ngIf="loading">Loading sprints...</div>
+
+  <div class="sprints-list" *ngIf="!loading">
+    <div class="empty-state" *ngIf="sprints.length === 0">
+      <p>No sprints yet. Create your first sprint to start planning.</p>
+    </div>
+
+    <div class="sprint-card" *ngFor="let sprint of sprints" [class]="'sprint-' + sprint.status">
+      <div class="sprint-header">
+        <div>
+          <span class="status-badge status-{{ sprint.status }}">{{ statusLabel(sprint.status) }}</span>
+          <h3>{{ sprint.name }}</h3>
+          <p *ngIf="sprint.goal" class="sprint-goal">{{ sprint.goal }}</p>
+        </div>
+        <div class="sprint-actions">
+          <button type="button" class="start-btn"
+            *ngIf="sprint.status === 'planning'"
+            (click)="startSprint(sprint)">Start</button>
+          <button type="button" class="complete-btn"
+            *ngIf="sprint.status === 'active'"
+            (click)="completeSprint(sprint)">Complete</button>
+          <button type="button" class="danger-btn-sm"
+            *ngIf="sprint.status !== 'active'"
+            (click)="deleteSprint(sprint)">Delete</button>
+        </div>
+      </div>
+
+      <div class="sprint-meta">
+        <span *ngIf="sprint.start_date">{{ sprint.start_date | date:'mediumDate' }} →</span>
+        <span *ngIf="sprint.end_date">{{ sprint.end_date | date:'mediumDate' }}</span>
+        <span class="tickets-badge">{{ sprint.tickets_count ?? 0 }} ticket{{ (sprint.tickets_count ?? 0) === 1 ? '' : 's' }}</span>
+      </div>
+
+      <div class="progress-bar-wrap" *ngIf="(sprint.total_story_points ?? 0) > 0">
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="progressPercent(sprint)"></div>
+        </div>
+        <span>{{ sprint.completed_story_points ?? 0 }} / {{ sprint.total_story_points ?? 0 }} pts ({{ progressPercent(sprint) }}%)</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Create Sprint Modal -->
+<div class="modal-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h2>New Sprint</h2>
+
+    <div class="form-group">
+      <label>Sprint Name *</label>
+      <input type="text" [(ngModel)]="newSprint.name" placeholder="e.g. Sprint 1" />
+    </div>
+
+    <div class="form-group">
+      <label>Goal</label>
+      <textarea [(ngModel)]="newSprint.goal" placeholder="What does this sprint aim to achieve?" rows="2"></textarea>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Start Date</label>
+        <input type="date" [(ngModel)]="newSprint.start_date" />
+      </div>
+      <div class="form-group">
+        <label>End Date</label>
+        <input type="date" [(ngModel)]="newSprint.end_date" />
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="secondary-btn" (click)="closeCreateModal()">Cancel</button>
+      <button type="button" class="primary-btn" (click)="createSprint()" [disabled]="creating">
+        {{ creating ? 'Creating...' : 'Create Sprint' }}
+      </button>
+    </div>
+  </div>
+</div>

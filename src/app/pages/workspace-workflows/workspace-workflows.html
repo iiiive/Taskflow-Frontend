@@ -1,0 +1,188 @@
+<app-sidebar activePage="board" [workspaceId]="projectId"></app-sidebar>
+
+<main class="page-main">
+  <header class="page-header">
+    <div>
+      <button type="button" class="back-btn" (click)="goToBoard()">← Board</button>
+      <h1>Workflow Builder</h1>
+    </div>
+    <button type="button" class="primary-btn" (click)="showCreateWorkflowModal = true; errorMessage = ''">+ New Workflow</button>
+  </header>
+
+  <div class="alert alert-error" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
+
+  <div class="workflow-layout">
+    <!-- Sidebar: workflow list -->
+    <aside class="workflow-list-panel">
+      <h2>Workflows</h2>
+      <div class="loading-state" *ngIf="loading">Loading...</div>
+      <div class="empty-state" *ngIf="!loading && workflows.length === 0">No workflows yet.</div>
+      <ul class="workflow-list">
+        <li *ngFor="let wf of workflows"
+          class="workflow-list-item"
+          [class.active]="selectedWorkflow?.id === wf.id"
+          (click)="selectWorkflow(wf)">
+          <div class="wf-name">{{ wf.name }}</div>
+          <span class="active-badge" *ngIf="wf.is_active">Active</span>
+          <button type="button" class="danger-btn-sm" (click)="$event.stopPropagation(); deleteWorkflow(wf)" *ngIf="!wf.is_active">✕</button>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main: workflow editor -->
+    <section class="workflow-editor">
+      <div class="empty-state" *ngIf="!selectedWorkflow && !loadingDetail">
+        Select a workflow to edit, or create a new one.
+      </div>
+      <div class="loading-state" *ngIf="loadingDetail">Loading workflow...</div>
+
+      <ng-container *ngIf="selectedWorkflow">
+        <div class="editor-header">
+          <h2>{{ selectedWorkflow.name }}</h2>
+          <p *ngIf="selectedWorkflow.description">{{ selectedWorkflow.description }}</p>
+          <button type="button" class="activate-btn" (click)="activateWorkflow()" *ngIf="!selectedWorkflow.is_active">
+            Activate Workflow
+          </button>
+          <span class="active-badge large" *ngIf="selectedWorkflow.is_active">✓ Active Workflow</span>
+        </div>
+
+        <!-- States -->
+        <div class="section-block">
+          <div class="section-header">
+            <h3>States</h3>
+            <button type="button" class="secondary-btn-sm" (click)="showAddStateModal = true; errorMessage = ''">+ Add State</button>
+          </div>
+
+          <div class="states-flow">
+            <div class="state-node" *ngFor="let state of selectedWorkflow.states" [style.border-color]="state.color">
+              <div class="state-dot" [style.background]="state.color"></div>
+              <div class="state-details">
+                <strong>{{ state.name }}</strong>
+                <div class="state-flags">
+                  <span class="flag flag-initial" *ngIf="state.is_initial">Initial</span>
+                  <span class="flag flag-final"   *ngIf="state.is_final">Final</span>
+                  <span class="flag flag-approval" *ngIf="state.requires_approval">Needs Approval</span>
+                </div>
+              </div>
+              <button type="button" class="remove-btn" (click)="removeState(state)" title="Remove state">✕</button>
+            </div>
+            <div class="empty-state" *ngIf="(selectedWorkflow.states?.length ?? 0) === 0">
+              Add states to define your workflow steps.
+            </div>
+          </div>
+        </div>
+
+        <!-- Transitions -->
+        <div class="section-block">
+          <div class="section-header">
+            <h3>Allowed Transitions</h3>
+            <button type="button" class="secondary-btn-sm"
+              (click)="showAddTransitionModal = true; errorMessage = ''"
+              [disabled]="(selectedWorkflow.states?.length ?? 0) < 2">
+              + Add Transition
+            </button>
+          </div>
+
+          <table class="transitions-table" *ngIf="(selectedWorkflow.transitions?.length ?? 0) > 0">
+            <thead>
+              <tr>
+                <th>From</th>
+                <th></th>
+                <th>To</th>
+                <th>Label</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let t of selectedWorkflow.transitions">
+                <td>{{ getStateName(t.from_state_id) }}</td>
+                <td class="arrow">→</td>
+                <td>{{ getStateName(t.to_state_id) }}</td>
+                <td>{{ t.name ?? '—' }}</td>
+                <td><button type="button" class="danger-btn-sm" (click)="removeTransition(t)">Remove</button></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="empty-state" *ngIf="(selectedWorkflow.transitions?.length ?? 0) === 0">
+            No transitions yet. Add transitions to define allowed state movements.
+          </div>
+        </div>
+      </ng-container>
+    </section>
+  </div>
+</main>
+
+<!-- Create Workflow Modal -->
+<div class="modal-overlay" *ngIf="showCreateWorkflowModal" (click)="showCreateWorkflowModal = false">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h2>New Workflow</h2>
+    <div class="form-group">
+      <label>Name *</label>
+      <input type="text" [(ngModel)]="newWorkflow.name" placeholder="e.g. Bug Triage Flow" />
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea [(ngModel)]="newWorkflow.description" rows="2"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="secondary-btn" (click)="showCreateWorkflowModal = false">Cancel</button>
+      <button type="button" class="primary-btn" (click)="createWorkflow()" [disabled]="creating">
+        {{ creating ? 'Creating...' : 'Create' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Add State Modal -->
+<div class="modal-overlay" *ngIf="showAddStateModal" (click)="showAddStateModal = false">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h2>Add State</h2>
+    <div class="form-group">
+      <label>Name *</label>
+      <input type="text" [(ngModel)]="newState.name" placeholder="e.g. In Review" />
+    </div>
+    <div class="form-group">
+      <label>Color</label>
+      <input type="color" [(ngModel)]="newState.color" />
+    </div>
+    <div class="checkbox-group">
+      <label><input type="checkbox" [(ngModel)]="newState.is_initial" /> Initial state (entry point)</label>
+      <label><input type="checkbox" [(ngModel)]="newState.is_final" /> Final state (exit point)</label>
+      <label><input type="checkbox" [(ngModel)]="newState.requires_approval" /> Requires approval to enter</label>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="secondary-btn" (click)="showAddStateModal = false">Cancel</button>
+      <button type="button" class="primary-btn" (click)="addState()">Add State</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Transition Modal -->
+<div class="modal-overlay" *ngIf="showAddTransitionModal" (click)="showAddTransitionModal = false">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h2>Add Transition</h2>
+    <div class="form-group">
+      <label>From State *</label>
+      <select [(ngModel)]="newTransition.from_state_id">
+        <option [ngValue]="null">— Select —</option>
+        <option *ngFor="let s of selectedWorkflow?.states" [value]="s.id">{{ s.name }}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>To State *</label>
+      <select [(ngModel)]="newTransition.to_state_id">
+        <option [ngValue]="null">— Select —</option>
+        <option *ngFor="let s of selectedWorkflow?.states" [value]="s.id">{{ s.name }}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Label (optional)</label>
+      <input type="text" [(ngModel)]="newTransition.name" placeholder="e.g. Approve" />
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="secondary-btn" (click)="showAddTransitionModal = false">Cancel</button>
+      <button type="button" class="primary-btn" (click)="addTransition()">Add Transition</button>
+    </div>
+  </div>
+</div>

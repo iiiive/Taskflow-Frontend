@@ -50,6 +50,7 @@ export interface KanbanColumn {
   status_key?: TicketStatus | string | null;
   is_backlog_column: boolean;
   is_done_column: boolean;
+  wip_limit?: number | null;
   tickets?: Ticket[];
   created_at?: string | null;
   updated_at?: string | null;

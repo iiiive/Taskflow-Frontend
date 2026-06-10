@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 import { BaseChartDirective } from 'ng2-charts';
 import {
@@ -50,8 +51,7 @@ interface KanbanColumnResponse {
   styleUrl: './workspace-activity.scss'
 })
 export class WorkspaceActivity implements OnInit {
-  // apiUrl = 'http://127.0.0.1:8000/api';
-apiUrl = '/api';
+  apiUrl = environment.apiUrl;
   workspaceId!: number;
   workspace: Workspace | null = null;
 
@@ -140,7 +140,7 @@ apiUrl = '/api';
     this.workspaceId = Number(this.route.snapshot.paramMap.get('id'));
 
     if (!this.workspaceId) {
-      this.router.navigate(['/workspaces']);
+      this.router.navigate(['/projects']);
       return;
     }
 
@@ -154,7 +154,7 @@ apiUrl = '/api';
     this.loadingWorkspace = true;
 
     this.http.get<ApiResponse<Workspace> | Workspace>(
-      `${this.apiUrl}/workspaces/${this.workspaceId}`
+      `${this.apiUrl}/projects/${this.workspaceId}`
     ).subscribe({
       next: (res) => {
         this.workspace = this.extractSingle<Workspace>(res);
@@ -178,7 +178,7 @@ apiUrl = '/api';
     this.loadingColumns = true;
 
     this.http.get<ApiResponse<KanbanColumnResponse[]> | KanbanColumnResponse[]>(
-      `${this.apiUrl}/workspaces/${this.workspaceId}/kanban-columns`
+      `${this.apiUrl}/projects/${this.workspaceId}/kanban-columns`
     ).subscribe({
       next: (res) => {
         this.kanbanColumns = this.extractArray<KanbanColumnResponse>(res)
@@ -207,7 +207,7 @@ apiUrl = '/api';
     this.loadingTickets = true;
 
     this.http.get<ApiResponse<Ticket[]> | Ticket[]>(
-      `${this.apiUrl}/workspaces/${this.workspaceId}/tickets`
+      `${this.apiUrl}/projects/${this.workspaceId}/tickets`
     ).subscribe({
       next: (res) => {
         this.tickets = this.extractArray<Ticket>(res);
@@ -236,7 +236,7 @@ apiUrl = '/api';
     this.errorMessage = '';
 
     this.http.get<ApiResponse<ActivityLog[]> | ActivityLog[]>(
-      `${this.apiUrl}/workspaces/${this.workspaceId}/activity`
+      `${this.apiUrl}/projects/${this.workspaceId}/activity`
     ).subscribe({
       next: (res) => {
         this.activityLogs = this.extractArray<ActivityLog>(res);
@@ -460,22 +460,22 @@ apiUrl = '/api';
   }
 
   goBackToBoard(): void {
-    this.router.navigate(['/workspaces', this.workspaceId, 'board']);
+    this.router.navigate(['/projects', this.workspaceId, 'board']);
   }
 
   goBackToBacklog(): void {
-    this.router.navigate(['/workspaces', this.workspaceId, 'backlog']);
+    this.router.navigate(['/projects', this.workspaceId, 'backlog']);
   }
 
   goToArchive(): void {
-    this.router.navigate(['/workspaces', this.workspaceId, 'archive']);
+    this.router.navigate(['/projects', this.workspaceId, 'archive']);
   }
 
   goBackToWorkspaces(): void {
-    this.router.navigate(['/workspaces']);
+    this.router.navigate(['/projects']);
   }
 
   goToTimesheet(): void {
-    this.router.navigate(['/workspaces', this.workspaceId, 'timesheet']);
+    this.router.navigate(['/projects', this.workspaceId, 'timesheet']);
   }
 }

@@ -182,6 +182,19 @@
           <option value="urgent">Urgent</option>
         </select>
       </div>
+
+      <div class="filter-box">
+        <label>Swimlanes</label>
+        <select
+          name="swimlaneMode"
+          [(ngModel)]="swimlaneMode"
+        >
+          <option value="">None</option>
+          <option value="assignee">By Assignee</option>
+          <option value="epic">By Epic</option>
+          <option value="priority">By Priority</option>
+        </select>
+      </div>
     </section>
 
     <section class="status-card loading-card" *ngIf="loadingBoard">
@@ -203,7 +216,8 @@
           'backlog-column': column.is_backlog_column,
           'done-column': column.is_done_column,
           'column-drag-over': columnDragOverId === column.id,
-          'column-being-dragged': draggedColumn?.id === column.id
+          'column-being-dragged': draggedColumn?.id === column.id,
+          'wip-exceeded': column.wip_limit && getTicketCount(column) > column.wip_limit
         }"
         (dragover)="canEditTicket() ? onDragOver($event, column) : null"
         (drop)="canEditTicket() ? onDrop(column) : null"
@@ -221,6 +235,13 @@
               <p>
                 {{ formatColumnSubtitle(column) }} · {{ getTicketCount(column) }} tickets
               </p>
+              <span
+                class="wip-badge"
+                *ngIf="column.wip_limit"
+                [class.wip-exceeded]="getTicketCount(column) >= column.wip_limit"
+              >
+                WIP {{ getTicketCount(column) }}/{{ column.wip_limit }}
+              </span>
             </ng-container>
 
             <div class="column-edit" *ngIf="editingColumnId === column.id">
@@ -294,76 +315,82 @@
           No tickets in this column.
         </div>
 
-        <article
-          class="ticket-card premium-ticket-card"
-          *ngFor="let ticket of getTicketsByColumn(column.id)"
-          [attr.draggable]="canEditTicket() ? true : false"
-          (click)="openTicketDetails(ticket)"
-          (dragstart)="canEditTicket() ? onDragStart(ticket) : null"
-          (dragend)="canEditTicket() ? onDragEnd() : null"
-        >
-          <div class="ticket-card-glow"></div>
-
-          <div class="ticket-card-header">
-            <span class="ticket-id-pill">
-              #{{ ticket.id }}
-            </span>
-
-            <span
-              class="priority-badge"
-              [ngClass]="getPriorityClass(ticket.priority)"
-            >
-              {{ ticket.priority }}
-            </span>
+        <ng-container *ngFor="let group of getSwimlaneGroups(column.id)">
+          <div class="swimlane-header" *ngIf="swimlaneMode && group.label">
+            {{ group.label }}
           </div>
 
-          <h3 class="premium-ticket-title" [title]="ticket.title">
-            {{ ticket.title }}
-          </h3>
+          <article
+            class="ticket-card premium-ticket-card"
+            *ngFor="let ticket of group.tickets"
+            [attr.draggable]="canEditTicket() ? true : false"
+            (click)="openTicketDetails(ticket)"
+            (dragstart)="canEditTicket() ? onDragStart(ticket) : null"
+            (dragend)="canEditTicket() ? onDragEnd() : null"
+          >
+            <div class="ticket-card-glow"></div>
 
-          <div class="ticket-epic-row" *ngIf="hasEpic(ticket)">
-            <span
-              class="epic-badge"
-              [style.background]="getEpicColor(ticket)"
-            >
-              {{ getEpicName(ticket) }}
-            </span>
-          </div>
+            <div class="ticket-card-header">
+              <span class="ticket-id-pill">
+                #{{ ticket.id }}
+              </span>
 
-          <p class="ticket-description">
-            {{ getPlainText(ticket.description) || 'No description provided.' }}
-          </p>
+              <span
+                class="priority-badge"
+                [ngClass]="getPriorityClass(ticket.priority)"
+              >
+                {{ ticket.priority }}
+              </span>
+            </div>
 
-          <div class="ticket-meta-grid">
-            <div class="ticket-meta-item">
-              <span class="meta-icon">👤</span>
+            <h3 class="premium-ticket-title" [title]="ticket.title">
+              {{ ticket.title }}
+            </h3>
 
-              <div>
-                <small>Assignee</small>
-                <strong>{{ ticket.assignee?.name || 'Unassigned' }}</strong>
+            <div class="ticket-epic-row" *ngIf="hasEpic(ticket)">
+              <span
+                class="epic-badge"
+                [style.background]="getEpicColor(ticket)"
+              >
+                {{ getEpicName(ticket) }}
+              </span>
+            </div>
+
+            <p class="ticket-description">
+              {{ getPlainText(ticket.description) || 'No description provided.' }}
+            </p>
+
+            <div class="ticket-meta-grid">
+              <div class="ticket-meta-item">
+                <span class="meta-icon">👤</span>
+
+                <div>
+                  <small>Assignee</small>
+                  <strong>{{ ticket.assignee?.name || 'Unassigned' }}</strong>
+                </div>
+              </div>
+
+              <div
+                class="ticket-meta-item"
+                [class.ticket-meta-warning]="ticket.due_date_warning && ticket.due_date_warning !== 'none'"
+              >
+                <span class="meta-icon">◷</span>
+
+                <div>
+                  <small>Due Date</small>
+                  <strong>{{ ticket.due_date || 'No due date' }}</strong>
+                </div>
               </div>
             </div>
 
             <div
-              class="ticket-meta-item"
-              [class.ticket-meta-warning]="ticket.due_date_warning && ticket.due_date_warning !== 'none'"
+              class="ticket-warning-strip"
+              *ngIf="ticket.due_date_warning && ticket.due_date_warning !== 'none'"
             >
-              <span class="meta-icon">◷</span>
-
-              <div>
-                <small>Due Date</small>
-                <strong>{{ ticket.due_date || 'No due date' }}</strong>
-              </div>
+              {{ ticket.due_date_warning }}
             </div>
-          </div>
-
-          <div
-            class="ticket-warning-strip"
-            *ngIf="ticket.due_date_warning && ticket.due_date_warning !== 'none'"
-          >
-            {{ ticket.due_date_warning }}
-          </div>
-        </article>
+          </article>
+        </ng-container>
       </article>
     </section>
   </main>

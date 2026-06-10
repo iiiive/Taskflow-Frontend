@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { environment } from '../../../environments/environment';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -80,7 +81,7 @@ interface TimesheetTicketRow {
   styleUrl: './workspace-timesheet.scss'
 })
 export class WorkspaceTimesheet implements OnInit {
-  apiUrl = 'http://127.0.0.1:8000/api';
+  apiUrl = environment.apiUrl;
 
   workspaceId!: number;
   workspace: Workspace | null = null;
@@ -116,7 +117,7 @@ export class WorkspaceTimesheet implements OnInit {
     this.workspaceId = Number(this.route.snapshot.paramMap.get('id'));
 
     if (!this.workspaceId) {
-      this.router.navigate(['/workspaces']);
+      this.router.navigate(['/projects']);
       return;
     }
 
@@ -128,7 +129,7 @@ export class WorkspaceTimesheet implements OnInit {
     this.loadingWorkspace = true;
 
     this.http.get<ApiResponse<Workspace> | Workspace>(
-      `${this.apiUrl}/workspaces/${this.workspaceId}`
+      `${this.apiUrl}/projects/${this.workspaceId}`
     ).subscribe({
       next: (res) => {
         this.workspace = this.extractSingle<Workspace>(res);
@@ -163,7 +164,7 @@ export class WorkspaceTimesheet implements OnInit {
     }
 
     this.http.get<any>(
-      `${this.apiUrl}/workspaces/${this.workspaceId}/timesheet`,
+      `${this.apiUrl}/projects/${this.workspaceId}/timesheet`,
       { params }
     ).subscribe({
       next: (res) => {
@@ -510,18 +511,18 @@ export class WorkspaceTimesheet implements OnInit {
   }
 
   goBackToBoard(): void {
-    this.router.navigate(['/workspaces', this.workspaceId, 'board']);
+    this.router.navigate(['/projects', this.workspaceId, 'board']);
   }
 
   goBackToBacklog(): void {
-    this.router.navigate(['/workspaces', this.workspaceId, 'backlog']);
+    this.router.navigate(['/projects', this.workspaceId, 'backlog']);
   }
 
   goToActivity(): void {
-    this.router.navigate(['/workspaces', this.workspaceId, 'activity']);
+    this.router.navigate(['/projects', this.workspaceId, 'activity']);
   }
 
   goToArchive(): void {
-    this.router.navigate(['/workspaces', this.workspaceId, 'archive']);
+    this.router.navigate(['/projects', this.workspaceId, 'archive']);
   }
 }

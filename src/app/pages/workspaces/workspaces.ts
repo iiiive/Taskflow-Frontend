@@ -3,6 +3,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
 
 interface Workspace {
@@ -35,7 +36,7 @@ export class Workspaces implements OnInit {
 
   showCreateModal = false;
 
-  private apiUrl = 'http://127.0.0.1:8000/api';
+  private apiUrl = environment.apiUrl;
 
   constructor(
     private http: HttpClient,
@@ -52,7 +53,7 @@ export class Workspaces implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    this.http.get<any>(`${this.apiUrl}/workspaces`).subscribe({
+    this.http.get<any>(`${this.apiUrl}/projects`).subscribe({
       next: (res) => {
         this.workspaces = this.extractWorkspaceArray(res);
         this.loading = false;
@@ -128,7 +129,7 @@ export class Workspaces implements OnInit {
       description: cleanedDescription,
     };
 
-    this.http.post<any>(`${this.apiUrl}/workspaces`, payload).subscribe({
+    this.http.post<any>(`${this.apiUrl}/projects`, payload).subscribe({
       next: (res) => {
         const newWorkspace = res?.data ? res.data : res;
 
@@ -158,7 +159,7 @@ export class Workspaces implements OnInit {
   }
 
   openWorkspace(workspaceId: number): void {
-    this.router.navigate(['/workspaces', workspaceId, 'board']);
+    this.router.navigate(['/projects', workspaceId, 'board']);
   }
 
   deleteWorkspace(workspace: Workspace): void {
@@ -173,7 +174,7 @@ export class Workspaces implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    this.http.delete<any>(`${this.apiUrl}/workspaces/${workspace.id}`).subscribe({
+    this.http.delete<any>(`${this.apiUrl}/projects/${workspace.id}`).subscribe({
       next: () => {
         this.workspaces = this.workspaces.filter(
           item => item.id !== workspace.id
