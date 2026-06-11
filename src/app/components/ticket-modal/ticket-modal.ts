@@ -18,6 +18,7 @@ import {
   ApiResponse,
   Epic,
   KanbanColumn,
+  Label,
   Ticket,
   TicketAttachment,
   TicketComment,
@@ -25,6 +26,12 @@ import {
   TicketStatus,
   WorkspaceMember
 } from '../../interfaces/planora.interface';
+import {
+  ISSUE_TYPE_OPTIONS,
+  ISSUE_TYPE_LABELS,
+  PRIORITY_OPTIONS,
+  PRIORITY_LABELS
+} from '../../constants/planora.constants';
 
 interface TicketTimeLog {
   id: number;
@@ -68,12 +75,31 @@ export class TicketModal implements OnChanges {
   @Input() workspaceMembers: WorkspaceMember[] = [];
   @Input() kanbanColumns: KanbanColumn[] = [];
   @Input() epics: Epic[] = [];
+  @Input() labels: Label[] = [];
   @Input() canEdit = false;
   @Input() canComment = false;
   @Input() apiUrl = environment.apiUrl;
 
   @Output() closeModal = new EventEmitter<void>();
   @Output() ticketUpdated = new EventEmitter<Ticket>();
+
+  issueTypeOptions = ISSUE_TYPE_OPTIONS;
+  priorityOptions = PRIORITY_OPTIONS;
+
+  issueTypeLabel(type: string | null | undefined): string {
+    return ISSUE_TYPE_LABELS[type ?? ''] ?? (type ?? '');
+  }
+
+  toggleEditLabel(labelId: number): void {
+    const ids = this.editTicketData.label_ids ?? [];
+    this.editTicketData.label_ids = ids.includes(labelId)
+      ? ids.filter(id => id !== labelId)
+      : [...ids, labelId];
+  }
+
+  isEditLabelSelected(labelId: number): boolean {
+    return (this.editTicketData.label_ids ?? []).includes(labelId);
+  }
 
   editingTicket = false;
   savingTicket = false;
@@ -111,11 +137,13 @@ export class TicketModal implements OnChanges {
     title: '',
     description: '',
     status: 'todo',
+    issue_type: 'task',
     kanban_column_id: null,
     epic_id: null,
     priority: 'medium',
     due_date: null,
-    assigned_to: null
+    assigned_to: null,
+    label_ids: []
   };
 
   editorConfig = {
@@ -188,11 +216,13 @@ export class TicketModal implements OnChanges {
       title: this.ticket.title || '',
       description: this.ticket.description || '',
       status: this.ticket.status || 'todo',
+      issue_type: this.ticket.issue_type || 'task',
       kanban_column_id: this.ticket.kanban_column_id || null,
       epic_id: this.ticket.epic_id || null,
       priority: this.ticket.priority || 'medium',
       due_date: this.ticket.due_date || null,
-      assigned_to: this.ticket.assigned_to || null
+      assigned_to: this.ticket.assigned_to || null,
+      label_ids: (this.ticket.labels || []).map(label => label.id)
     };
 
     this.loadTicketComments(this.ticket.id);
@@ -218,11 +248,13 @@ export class TicketModal implements OnChanges {
       title: this.ticket.title || '',
       description: this.ticket.description || '',
       status: this.ticket.status || 'todo',
+      issue_type: this.ticket.issue_type || 'task',
       kanban_column_id: this.ticket.kanban_column_id || null,
       epic_id: this.ticket.epic_id || null,
       priority: this.ticket.priority || 'medium',
       due_date: this.ticket.due_date || null,
-      assigned_to: this.ticket.assigned_to || null
+      assigned_to: this.ticket.assigned_to || null,
+      label_ids: (this.ticket.labels || []).map(label => label.id)
     };
 
     this.cdr.detectChanges();
@@ -334,11 +366,13 @@ export class TicketModal implements OnChanges {
       title: this.editTicketData.title.trim(),
       description: this.editTicketData.description || '',
       status: resolvedStatus,
+      issue_type: this.editTicketData.issue_type || 'task',
       kanban_column_id: selectedColumn?.id || this.editTicketData.kanban_column_id || null,
       epic_id: this.editTicketData.epic_id || null,
       priority: this.editTicketData.priority,
       due_date: this.editTicketData.due_date || null,
-      assigned_to: this.editTicketData.assigned_to
+      assigned_to: this.editTicketData.assigned_to,
+      label_ids: this.editTicketData.label_ids || []
     };
 
     this.savingTicket = true;
@@ -865,7 +899,7 @@ export class TicketModal implements OnChanges {
       return '—';
     }
 
-    return priority.charAt(0).toUpperCase() + priority.slice(1);
+    return PRIORITY_LABELS[priority] ?? (priority.charAt(0).toUpperCase() + priority.slice(1));
   }
 
   getPriorityClass(priority: string | null | undefined): string {
@@ -893,10 +927,21 @@ export class TicketModal implements OnChanges {
     return fileType === 'application/pdf' || fileName.endsWith('.pdf');
   }
 
+  isVideoAttachment(attachment: any): boolean {
+    const fileName = attachment?.file_name?.toLowerCase() || '';
+    const fileType = attachment?.file_type?.toLowerCase() || '';
+
+    return (
+      fileType.startsWith('video/') ||
+      ['.mp4', '.mov', '.webm', '.avi', '.mkv', '.m4v'].some(ext => fileName.endsWith(ext))
+    );
+  }
+
   getAttachmentIcon(attachment: any): string {
     const fileName = attachment?.file_name?.toLowerCase() || '';
 
     if (this.isImageAttachment(attachment)) return '🖼️';
+    if (this.isVideoAttachment(attachment)) return '🎬';
     if (this.isPdfAttachment(attachment)) return '📄';
     if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) return '📝';
     if (fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) return '📊';
@@ -910,6 +955,7 @@ export class TicketModal implements OnChanges {
     const fileName = attachment?.file_name?.toLowerCase() || '';
 
     if (this.isImageAttachment(attachment)) return 'Image file';
+    if (this.isVideoAttachment(attachment)) return 'Video file';
     if (this.isPdfAttachment(attachment)) return 'PDF document';
     if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) return 'Word document';
     if (fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) return 'Spreadsheet';

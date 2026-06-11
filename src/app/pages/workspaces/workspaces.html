@@ -1,5 +1,5 @@
 <div class="workspaces-page">
-  <app-sidebar activePage="workspaces"></app-sidebar>
+  <app-sidebar activePage="projects"></app-sidebar>
 
   <main class="workspaces-main">
     <header class="page-header">
@@ -90,9 +90,11 @@
             <div class="workspace-copy">
               <h3 [title]="workspace.name">
                 {{ workspace.name }}
+                <span class="template-tag" *ngIf="workspace.is_template">Template</span>
               </h3>
 
               <p [title]="workspace.description || 'No description provided.'">
+                {{ projectTypeLabel(workspace.project_type) }} ·
                 {{ workspace.description || 'No description provided.' }}
               </p>
             </div>
@@ -115,6 +117,27 @@
               (click)="openWorkspace(workspace.id)"
             >
               Open Board
+            </button>
+
+            <button
+              type="button"
+              class="secondary-btn"
+              [disabled]="busyProjectId === workspace.id"
+              title="Create a copy of this project"
+              (click)="cloneWorkspace(workspace)"
+            >
+              Clone
+            </button>
+
+            <button
+              type="button"
+              class="secondary-btn"
+              *ngIf="!workspace.is_template"
+              [disabled]="busyProjectId === workspace.id"
+              title="Save this project as a reusable template"
+              (click)="saveWorkspaceAsTemplate(workspace)"
+            >
+              Save as Template
             </button>
 
             <button
@@ -181,6 +204,38 @@
           [(ngModel)]="description"
           placeholder="What is this workspace for?"
         ></textarea>
+      </div>
+
+      <div class="form-group" *ngIf="templates.length > 0">
+        <label for="templatePicker">Start From Template (optional)</label>
+        <select id="templatePicker" name="templatePicker" [(ngModel)]="selectedTemplateId">
+          <option [ngValue]="''">Blank project</option>
+          <option *ngFor="let template of templates" [ngValue]="template.id">
+            {{ template.name }}
+          </option>
+        </select>
+        <small class="field-hint">
+          A template copies its columns, workflow, and labels into the new project.
+        </small>
+      </div>
+
+      <div class="form-row" *ngIf="!selectedTemplateId">
+        <div class="form-group">
+          <label for="projectType">Project Type</label>
+          <select id="projectType" name="projectType" [(ngModel)]="projectType">
+            <option *ngFor="let opt of projectTypeOptions" [value]="opt.value">
+              {{ opt.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="projectMode">Board Mode</label>
+          <select id="projectMode" name="projectMode" [(ngModel)]="projectMode">
+            <option value="kanban">Kanban</option>
+            <option value="scrum">Scrum</option>
+          </select>
+        </div>
       </div>
 
       <p class="modal-error" *ngIf="errorMessage">

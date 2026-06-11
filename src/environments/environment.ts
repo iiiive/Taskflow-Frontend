@@ -1,5 +1,7 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://127.0.0.1:8000/api',
-  storageUrl: 'http://127.0.0.1:8000/storage'
+  // Relative so requests are same-origin (dev proxy / prod same-domain) — required
+  // for the httpOnly session cookie + Angular's XSRF header to be sent automatically.
+  apiUrl: '/api/v1',
+  storageUrl: '/storage'
 };

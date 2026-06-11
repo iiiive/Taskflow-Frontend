@@ -5,6 +5,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
+import {
+  WORKFLOW_REQUIRED_FIELD_OPTIONS,
+  WORKFLOW_REQUIRED_FIELD_LABELS
+} from '../../constants/planora.constants';
 
 interface WorkflowState {
   id: number;
@@ -14,6 +18,7 @@ interface WorkflowState {
   is_initial: boolean;
   is_final: boolean;
   requires_approval: boolean;
+  required_fields?: string[];
 }
 
 interface WorkflowTransition {
@@ -64,7 +69,26 @@ export class WorkspaceWorkflows implements OnInit {
     is_initial: false,
     is_final: false,
     requires_approval: false,
+    required_fields: [] as string[],
   };
+
+  requiredFieldOptions = WORKFLOW_REQUIRED_FIELD_OPTIONS;
+  draggedState: WorkflowState | null = null;
+
+  requiredFieldLabel(field: string): string {
+    return WORKFLOW_REQUIRED_FIELD_LABELS[field] ?? field;
+  }
+
+  toggleNewStateRequiredField(field: string): void {
+    const fields = this.newState.required_fields;
+    this.newState.required_fields = fields.includes(field)
+      ? fields.filter(f => f !== field)
+      : [...fields, field];
+  }
+
+  isNewStateFieldSelected(field: string): boolean {
+    return this.newState.required_fields.includes(field);
+  }
 
   newTransition = {
     from_state_id: null as number | null,
@@ -156,7 +180,7 @@ export class WorkspaceWorkflows implements OnInit {
           this.selectedWorkflow.states = [...(this.selectedWorkflow.states ?? []), state];
           this.selectedWorkflow.states.sort((a, b) => a.position - b.position);
         }
-        this.newState = { name: '', color: '#547A95', is_initial: false, is_final: false, requires_approval: false };
+        this.newState = { name: '', color: '#547A95', is_initial: false, is_final: false, requires_approval: false, required_fields: [] };
         this.showAddStateModal = false;
         this.successMessage = 'State added.';
         this.cdr.detectChanges();
@@ -263,6 +287,54 @@ export class WorkspaceWorkflows implements OnInit {
 
   getStateName(stateId: number): string {
     return this.selectedWorkflow?.states?.find(s => s.id === stateId)?.name ?? `State #${stateId}`;
+  }
+
+  // --- Drag-and-drop state reordering ---
+  onStateDragStart(state: WorkflowState): void {
+    this.draggedState = state;
+  }
+
+  onStateDragEnd(): void {
+    this.draggedState = null;
+  }
+
+  onStateDrop(target: WorkflowState): void {
+    if (!this.selectedWorkflow?.states || !this.draggedState || this.draggedState.id === target.id) {
+      this.draggedState = null;
+      return;
+    }
+
+    const states = [...this.selectedWorkflow.states];
+    const fromIndex = states.findIndex(s => s.id === this.draggedState!.id);
+    const toIndex = states.findIndex(s => s.id === target.id);
+    if (fromIndex < 0 || toIndex < 0) return;
+
+    // Reorder locally (optimistic), then persist new positions.
+    const [moved] = states.splice(fromIndex, 1);
+    states.splice(toIndex, 0, moved);
+    states.forEach((s, i) => (s.position = i + 1));
+    this.selectedWorkflow.states = states;
+    this.draggedState = null;
+    this.cdr.detectChanges();
+
+    this.persistStatePositions(states);
+  }
+
+  private persistStatePositions(states: WorkflowState[]): void {
+    if (!this.selectedWorkflow) return;
+    const workflowId = this.selectedWorkflow.id;
+
+    states.forEach(state => {
+      this.http.put<any>(
+        `${this.apiUrl}/workflows/${workflowId}/states/${state.id}`,
+        { position: state.position }
+      ).subscribe({
+        error: (err) => {
+          this.errorMessage = err?.error?.message || 'Unable to reorder states. Reloading.';
+          this.selectWorkflow({ id: workflowId } as WorkflowTemplate);
+        }
+      });
+    });
   }
 
   goToBoard(): void {

@@ -1,0 +1,173 @@
+<div class="admin-orgs">
+  <div class="page-header">
+    <h1>Organizations</h1>
+    <button class="btn-primary" (click)="showCreateModal.set(true)">+ New Organization</button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading">Loading organizations...</div>
+  } @else {
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Owner Email</th>
+          <th>Plan</th>
+          <th>Users</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (org of organizations(); track org.id) {
+          <tr>
+            <td class="org-name">{{ org.name }}</td>
+            <td>{{ org.owner_email }}</td>
+            <td>{{ org.subscription_plan?.name ?? '—' }}</td>
+            <td>{{ org.users_count ?? 0 }}</td>
+            <td>
+              <span [class]="org.is_active ? 'badge badge-green' : 'badge badge-red'">
+                {{ org.is_active ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td class="actions">
+              <button class="btn-sm btn-outline" (click)="openEdit(org)">Edit</button>
+              <button class="btn-sm btn-outline" (click)="openBilling(org)">Billing</button>
+              <button class="btn-sm btn-outline" (click)="toggleStatus(org)">
+                {{ org.is_active ? 'Deactivate' : 'Activate' }}
+              </button>
+              <button class="btn-sm btn-danger" (click)="deleteOrganization(org.id)">Delete</button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+
+  @if (showCreateModal()) {
+    <div class="modal-backdrop" (click)="showCreateModal.set(false)">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h2>New Organization</h2>
+        <div class="form-group">
+          <label>Organization Name</label>
+          <input type="text" [(ngModel)]="newOrg.name" placeholder="Acme Corp" />
+        </div>
+        <div class="form-group">
+          <label>Owner Email</label>
+          <input type="email" [(ngModel)]="newOrg.owner_email" placeholder="admin@acme.com" />
+        </div>
+        <div class="form-group">
+          <label>Subscription Plan</label>
+          <select [(ngModel)]="newOrg.subscription_plan_id">
+            <option value="">Select a plan</option>
+            @for (plan of plans(); track plan.id) {
+              <option [value]="plan.id">{{ plan.name }}</option>
+            }
+          </select>
+        </div>
+        @if (error()) {
+          <div class="form-error">{{ error() }}</div>
+        }
+        <div class="modal-actions">
+          <button class="btn-outline" (click)="showCreateModal.set(false)">Cancel</button>
+          <button class="btn-primary" (click)="createOrganization()" [disabled]="submitting()">
+            {{ submitting() ? 'Creating...' : 'Create Organization' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (editingOrg(); as org) {
+    <div class="modal-backdrop" (click)="closeEdit()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h2>Edit Organization</h2>
+
+        <div class="form-group">
+          <label>Organization Name</label>
+          <input type="text" [(ngModel)]="editForm.name" />
+        </div>
+        <div class="form-group">
+          <label>Owner Email</label>
+          <input type="email" [(ngModel)]="editForm.owner_email" />
+        </div>
+        <div class="form-group">
+          <label>Subscription Plan</label>
+          <select [(ngModel)]="editForm.subscription_plan_id">
+            <option value="">Select a plan</option>
+            @for (plan of plans(); track plan.id) {
+              <option [value]="plan.id">{{ plan.name }}</option>
+            }
+          </select>
+        </div>
+
+        <h3 class="section-subtitle">Branding</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Primary Color</label>
+            <input type="color" [(ngModel)]="editForm.primary_color" />
+          </div>
+          <div class="form-group">
+            <label>Logo</label>
+            @if (org.logo_url) {
+              <img [src]="org.logo_url" alt="Current logo" class="org-logo-preview" />
+            }
+            <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" (change)="onLogoSelected($event)" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Custom Domain</label>
+          <input type="text" [(ngModel)]="editForm.custom_domain" placeholder="acme.example.com" />
+        </div>
+
+        @if (error()) {
+          <div class="form-error">{{ error() }}</div>
+        }
+
+        <div class="modal-actions">
+          <button class="btn-outline" (click)="closeEdit()">Cancel</button>
+          <button class="btn-primary" (click)="saveBranding()" [disabled]="savingEdit()">
+            {{ savingEdit() ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (billing(); as bill) {
+    <div class="modal-backdrop" (click)="closeBilling()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h2>Billing — {{ billingOrgName() }}</h2>
+
+        <p class="billing-plan">
+          Plan: <strong>{{ bill.plan?.name ?? 'No plan assigned' }}</strong>
+        </p>
+
+        <div class="usage-block">
+          <div class="usage-label">
+            Projects <span>{{ bill.usage.projects.used }} / {{ bill.usage.projects.limit ?? '∞' }}</span>
+          </div>
+          <div class="usage-bar"><div class="usage-fill" [style.width.%]="usagePercent(bill.usage.projects.used, bill.usage.projects.limit)"></div></div>
+        </div>
+
+        <div class="usage-block">
+          <div class="usage-label">
+            Members <span>{{ bill.usage.members.used }} / {{ bill.usage.members.limit ?? '∞' }}</span>
+          </div>
+          <div class="usage-bar"><div class="usage-fill" [style.width.%]="usagePercent(bill.usage.members.used, bill.usage.members.limit)"></div></div>
+        </div>
+
+        <div class="usage-block">
+          <div class="usage-label">
+            Storage <span>{{ bill.usage.storage.used_gb }} GB / {{ bill.usage.storage.limit_gb ?? '∞' }} GB</span>
+          </div>
+          <div class="usage-bar"><div class="usage-fill" [style.width.%]="usagePercent(bill.usage.storage.used_bytes, bill.usage.storage.limit_bytes)"></div></div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-outline" (click)="closeBilling()">Close</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

@@ -264,7 +264,8 @@
           </div>
 
           <div class="attachment-upload" *ngIf="canEdit">
-            <input #attachmentInput type="file" (change)="onAttachmentSelected($event)" />
+            <input #attachmentInput type="file" (change)="onAttachmentSelected($event)"
+              accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar,video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska" />
 
             <button
               type="button"
@@ -430,6 +431,18 @@
           </div>
         </div>
 
+        <div class="details-field">
+          <span>Issue Type</span>
+
+          <strong *ngIf="!editingTicket">
+            {{ issueTypeLabel(ticket?.issue_type) || '—' }}
+          </strong>
+
+          <select *ngIf="editingTicket" name="editIssueType" [(ngModel)]="editTicketData.issue_type">
+            <option *ngFor="let opt of issueTypeOptions" [value]="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+
         <div class="details-field epic-field">
           <span>Epic</span>
 
@@ -464,11 +477,43 @@
           </strong>
 
           <select *ngIf="editingTicket" name="editPriority" [(ngModel)]="editTicketData.priority">
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
+            <option *ngFor="let opt of priorityOptions" [value]="opt.value">{{ opt.label }}</option>
           </select>
+        </div>
+
+        <div class="details-field labels-field">
+          <span>Labels</span>
+
+          <strong *ngIf="!editingTicket">
+            <span class="ticket-label-chip-list" *ngIf="ticket?.labels?.length; else noLabels">
+              <span
+                class="ticket-label-chip"
+                *ngFor="let label of ticket?.labels"
+                [style.backgroundColor]="label.color"
+              >
+                {{ label.name }}
+              </span>
+            </span>
+            <ng-template #noLabels><span class="empty-value">No labels</span></ng-template>
+          </strong>
+
+          <div class="label-picker" *ngIf="editingTicket && labels.length > 0">
+            <button
+              type="button"
+              *ngFor="let label of labels"
+              class="label-chip-toggle"
+              [class.selected]="isEditLabelSelected(label.id)"
+              [style.borderColor]="label.color"
+              [style.backgroundColor]="isEditLabelSelected(label.id) ? label.color : 'transparent'"
+              (click)="toggleEditLabel(label.id)"
+            >
+              {{ label.name }}
+            </button>
+          </div>
+
+          <p class="field-hint" *ngIf="editingTicket && labels.length === 0">
+            No labels created for this project yet.
+          </p>
         </div>
 
         <div class="details-field">

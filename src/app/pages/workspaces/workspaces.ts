@@ -5,12 +5,20 @@ import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
+import { ProjectService } from '../../services/project/project.service';
+import {
+  PROJECT_TYPE_OPTIONS,
+  PROJECT_TYPE_LABELS
+} from '../../constants/planora.constants';
 
 interface Workspace {
   id: number;
   owner_id?: number;
   name: string;
   description?: string | null;
+  project_type?: string;
+  project_mode?: string;
+  is_template?: boolean;
   role?: 'owner' | 'editor' | 'viewer';
   created_at?: string | null;
   updated_at?: string | null;
@@ -28,6 +36,10 @@ export class Workspaces implements OnInit {
 
   name = '';
   description = '';
+  projectType = 'software';
+  projectMode = 'kanban';
+
+  projectTypeOptions = PROJECT_TYPE_OPTIONS;
 
   loading = true;
   creating = false;
@@ -36,16 +48,80 @@ export class Workspaces implements OnInit {
 
   showCreateModal = false;
 
+  // Templates (clone / start-from-template)
+  templates: Workspace[] = [];
+  selectedTemplateId: number | '' = '';
+  busyProjectId: number | null = null;
+
+  projectTypeLabel(type?: string): string {
+    return PROJECT_TYPE_LABELS[type ?? ''] ?? (type ?? '');
+  }
+
   private apiUrl = environment.apiUrl;
 
   constructor(
     private http: HttpClient,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private projectService: ProjectService
   ) {}
 
   ngOnInit(): void {
     this.loadWorkspaces();
+    this.loadTemplates();
+  }
+
+  loadTemplates(): void {
+    this.projectService.getTemplates().subscribe({
+      next: (res) => {
+        this.templates = this.extractWorkspaceArray(res);
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.templates = [];
+      }
+    });
+  }
+
+  cloneWorkspace(workspace: Workspace): void {
+    this.busyProjectId = workspace.id;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.projectService.cloneProject(workspace.id, {}).subscribe({
+      next: (res) => {
+        const clone = res?.data ? res.data : res;
+        this.workspaces = [clone, ...this.workspaces];
+        this.busyProjectId = null;
+        this.successMessage = `"${workspace.name}" cloned successfully.`;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.busyProjectId = null;
+        this.errorMessage = err?.error?.message || 'Unable to clone project.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  saveWorkspaceAsTemplate(workspace: Workspace): void {
+    this.busyProjectId = workspace.id;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.projectService.saveAsTemplate(workspace.id, {}).subscribe({
+      next: () => {
+        this.busyProjectId = null;
+        this.successMessage = `Template created from "${workspace.name}".`;
+        this.loadTemplates();
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.busyProjectId = null;
+        this.errorMessage = err?.error?.message || 'Unable to create template.';
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   loadWorkspaces(): void {
@@ -104,6 +180,9 @@ export class Workspaces implements OnInit {
     this.showCreateModal = false;
     this.name = '';
     this.description = '';
+    this.projectType = 'software';
+    this.projectMode = 'kanban';
+    this.selectedTemplateId = '';
     this.errorMessage = '';
 
     this.cdr.detectChanges();
@@ -124,12 +203,16 @@ export class Workspaces implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    const payload = {
-      name: cleanedName,
-      description: cleanedDescription,
-    };
+    const request$ = this.selectedTemplateId
+      ? this.projectService.createFromTemplate(Number(this.selectedTemplateId), { name: cleanedName })
+      : this.projectService.createProject({
+          name: cleanedName,
+          description: cleanedDescription,
+          project_type: this.projectType,
+          project_mode: this.projectMode,
+        });
 
-    this.http.post<any>(`${this.apiUrl}/projects`, payload).subscribe({
+    request$.subscribe({
       next: (res) => {
         const newWorkspace = res?.data ? res.data : res;
 
@@ -137,6 +220,9 @@ export class Workspaces implements OnInit {
 
         this.name = '';
         this.description = '';
+        this.projectType = 'software';
+        this.projectMode = 'kanban';
+        this.selectedTemplateId = '';
 
         this.creating = false;
         this.showCreateModal = false;

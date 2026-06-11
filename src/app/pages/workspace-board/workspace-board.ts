@@ -14,6 +14,7 @@ import {
   ApiResponse,
   Epic,
   KanbanColumn,
+  Label,
   Ticket,
   TicketFormData,
   TicketPriority,
@@ -21,6 +22,12 @@ import {
   Workspace,
   WorkspaceMember
 } from '../../interfaces/planora.interface';
+import {
+  ISSUE_TYPE_OPTIONS,
+  ISSUE_TYPE_LABELS,
+  PRIORITY_OPTIONS,
+  PRIORITY_LABELS
+} from '../../constants/planora.constants';
 
 @Component({
   selector: 'app-workspace-board',
@@ -83,6 +90,7 @@ export class WorkspaceBoard implements OnInit {
 
   editingColumnId: number | null = null;
   editingColumnName = '';
+  editingColumnWip: number | null = null;
   newColumnName = '';
 
   selectedCreateColumn: KanbanColumn | null = null;
@@ -97,12 +105,27 @@ export class WorkspaceBoard implements OnInit {
     title: '',
     description: '',
     status: 'todo',
+    issue_type: 'task',
     kanban_column_id: null,
     epic_id: null,
     priority: 'medium',
     due_date: null,
-    assigned_to: null
+    assigned_to: null,
+    label_ids: []
   };
+
+  // Shared option lists (typed) for the create-ticket form.
+  issueTypeOptions = ISSUE_TYPE_OPTIONS;
+  priorityOptions = PRIORITY_OPTIONS;
+  labels: Label[] = [];
+
+  priorityLabel(priority: string | null | undefined): string {
+    return PRIORITY_LABELS[priority ?? ''] ?? (priority ?? '');
+  }
+
+  issueTypeLabel(type: string | null | undefined): string {
+    return ISSUE_TYPE_LABELS[type ?? ''] ?? (type ?? '');
+  }
 
   editorConfig = {
     base_url: '/tinymce',
@@ -155,6 +178,7 @@ export class WorkspaceBoard implements OnInit {
     this.loadWorkspace();
     this.loadWorkspaceMembers();
     this.loadEpics();
+    this.loadLabels();
     this.loadKanbanColumns();
   }
 
@@ -216,6 +240,32 @@ export class WorkspaceBoard implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  loadLabels(): void {
+    this.http.get<ApiResponse<Label[]> | Label[] | any>(
+      `${this.apiUrl}/projects/${this.workspaceId}/labels`
+    ).subscribe({
+      next: (res) => {
+        this.labels = this.extractArray<Label>(res);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Load labels error:', err);
+        this.labels = [];
+      }
+    });
+  }
+
+  toggleNewTicketLabel(labelId: number): void {
+    const ids = this.newTicket.label_ids ?? [];
+    this.newTicket.label_ids = ids.includes(labelId)
+      ? ids.filter(id => id !== labelId)
+      : [...ids, labelId];
+  }
+
+  isNewTicketLabelSelected(labelId: number): boolean {
+    return (this.newTicket.label_ids ?? []).includes(labelId);
   }
 
   loadKanbanColumns(): void {
@@ -434,11 +484,13 @@ export class WorkspaceBoard implements OnInit {
       title: '',
       description: '',
       status: this.getStatusForColumn(targetColumn),
+      issue_type: 'task',
       kanban_column_id: targetColumn?.id || null,
       epic_id: null,
       priority: 'medium',
       due_date: null,
-      assigned_to: null
+      assigned_to: null,
+      label_ids: []
     };
 
     this.errorMessage = '';
@@ -457,11 +509,13 @@ export class WorkspaceBoard implements OnInit {
       title: '',
       description: '',
       status: 'todo',
+      issue_type: 'task',
       kanban_column_id: null,
       epic_id: null,
       priority: 'medium',
       due_date: null,
-      assigned_to: null
+      assigned_to: null,
+      label_ids: []
     };
 
     this.cdr.detectChanges();
@@ -481,11 +535,13 @@ export class WorkspaceBoard implements OnInit {
     const payload: any = {
       title: this.newTicket.title.trim(),
       description: this.newTicket.description?.trim() || '',
+      issue_type: this.newTicket.issue_type || 'task',
       kanban_column_id: targetColumn?.id || null,
       epic_id: this.newTicket.epic_id || null,
       priority: this.newTicket.priority,
       due_date: this.newTicket.due_date || null,
-      assigned_to: this.newTicket.assigned_to
+      assigned_to: this.newTicket.assigned_to,
+      label_ids: this.newTicket.label_ids || []
     };
 
     /*
@@ -572,6 +628,7 @@ export class WorkspaceBoard implements OnInit {
 
     this.editingColumnId = column.id;
     this.editingColumnName = column.name;
+    this.editingColumnWip = column.wip_limit ?? null;
     this.errorMessage = '';
     this.successMessage = '';
 
@@ -581,6 +638,7 @@ export class WorkspaceBoard implements OnInit {
   cancelEditingColumn(): void {
     this.editingColumnId = null;
     this.editingColumnName = '';
+    this.editingColumnWip = null;
     this.cdr.detectChanges();
   }
 
@@ -593,7 +651,13 @@ export class WorkspaceBoard implements OnInit {
       return;
     }
 
-    if (name === column.name) {
+    // Normalize the WIP limit: empty/0/negative means "no limit" (null).
+    const wipLimit =
+      this.editingColumnWip !== null && Number(this.editingColumnWip) > 0
+        ? Number(this.editingColumnWip)
+        : null;
+
+    if (name === column.name && wipLimit === (column.wip_limit ?? null)) {
       this.cancelEditingColumn();
       return;
     }
@@ -604,7 +668,7 @@ export class WorkspaceBoard implements OnInit {
 
     this.http.put<any>(
       `${this.apiUrl}/kanban-columns/${column.id}`,
-      { name }
+      { name, wip_limit: wipLimit }
     ).subscribe({
       next: (res) => {
         const updatedColumn = res?.data ? res.data : res;
@@ -629,8 +693,9 @@ export class WorkspaceBoard implements OnInit {
 
         this.editingColumnId = null;
         this.editingColumnName = '';
+        this.editingColumnWip = null;
         this.savingColumn = false;
-        this.successMessage = 'Column renamed successfully.';
+        this.successMessage = 'Column updated successfully.';
 
         /*
         |--------------------------------------------------------------------------

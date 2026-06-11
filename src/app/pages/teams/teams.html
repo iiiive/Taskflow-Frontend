@@ -53,6 +53,11 @@
       <input type="color" [(ngModel)]="newTeam.color" />
     </div>
 
+    <div class="form-group">
+      <label>Weekly Capacity (hours)</label>
+      <input type="number" min="0" [(ngModel)]="newTeam.capacity_hours" placeholder="e.g. 160" />
+    </div>
+
     <div class="modal-actions">
       <button type="button" class="secondary-btn" (click)="closeCreateModal()">Cancel</button>
       <button type="button" class="primary-btn" (click)="createTeam()" [disabled]="creating">
@@ -84,10 +89,20 @@
         <div class="member-row" *ngFor="let member of selectedTeam.members">
           <div class="member-avatar">{{ getInitial(member.user?.name ?? 'U') }}</div>
           <div class="member-info">
-            <strong>{{ member.user?.name ?? 'Unknown' }}</strong>
+            <strong>
+              {{ member.user?.name ?? 'Unknown' }}
+              <span class="lead-badge" *ngIf="isLead(member)" title="Team Lead">★ Lead</span>
+            </strong>
             <span>{{ member.user?.email }}</span>
           </div>
-          <span class="role-badge role-{{ member.role }}">{{ member.role | titlecase }}</span>
+          <select
+            class="role-select"
+            [ngModel]="member.role"
+            (ngModelChange)="updateMemberRole(member, $event)"
+          >
+            <option value="member">Member</option>
+            <option value="team_lead">Team Lead</option>
+          </select>
           <button type="button" class="danger-btn-sm" (click)="removeMember(member)">Remove</button>
         </div>
         <div class="empty-state" *ngIf="(selectedTeam.members?.length ?? 0) === 0">No members yet.</div>
@@ -101,9 +116,53 @@
             <option value="member">Member</option>
             <option value="team_lead">Team Lead</option>
           </select>
+          <input
+            type="number"
+            min="0"
+            max="168"
+            class="capacity-input"
+            [(ngModel)]="newMemberCapacity"
+            placeholder="Hrs/wk"
+            title="Weekly capacity in hours"
+          />
           <button type="button" class="primary-btn" (click)="addMember()" [disabled]="addingMember">
             {{ addingMember ? 'Adding...' : 'Add' }}
           </button>
+        </div>
+      </div>
+
+      <!-- Workload panel -->
+      <div class="workload-panel">
+        <h3>Workload <small *ngIf="workload">({{ workload.totals.from }} → {{ workload.totals.to }})</small></h3>
+
+        <div class="loading-state" *ngIf="loadingWorkload">Loading workload...</div>
+
+        <div *ngIf="!loadingWorkload && workload">
+          <div class="workload-totals">
+            <span><strong>{{ workload.totals.logged_hours }}</strong> h logged</span>
+            <span><strong>{{ workload.totals.capacity_hours || '—' }}</strong> h capacity</span>
+            <span><strong>{{ workload.totals.open_tickets }}</strong> open tickets</span>
+          </div>
+
+          <div class="workload-row" *ngFor="let m of workload.members">
+            <div class="workload-name">{{ m.name }}</div>
+            <div class="workload-bar-track">
+              <div
+                class="workload-bar-fill"
+                [class.over]="m.utilization !== null && m.utilization > 100"
+                [style.width.%]="m.utilization !== null ? (m.utilization > 100 ? 100 : m.utilization) : 0"
+              ></div>
+            </div>
+            <div class="workload-stats">
+              {{ m.logged_hours }}h / {{ m.capacity_hours || '—' }}h
+              <span *ngIf="m.utilization !== null">· {{ m.utilization }}%</span>
+              · {{ m.open_tickets }} open
+            </div>
+          </div>
+
+          <div class="empty-state" *ngIf="workload.members.length === 0">
+            No members to report on.
+          </div>
         </div>
       </div>
     </ng-container>

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
+import { adminGuard } from './guards/admin.guard';
 
 export const routes: Routes = [
   {
@@ -101,6 +102,30 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/workspace-workflows/workspace-workflows').then(m => m.WorkspaceWorkflows),
     canActivate: [authGuard]
+  },
+
+  {
+    path: 'projects/:id/reports',
+    loadComponent: () =>
+      import('./pages/reports/reports').then(m => m.Reports),
+    canActivate: [authGuard]
+  },
+
+  {
+    path: 'admin',
+    canActivate: [authGuard, adminGuard],
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./pages/admin/admin-dashboard/admin-dashboard').then(m => m.AdminDashboard)
+      },
+      {
+        path: 'organizations',
+        loadComponent: () =>
+          import('./pages/admin/admin-organizations/admin-organizations').then(m => m.AdminOrganizations)
+      }
+    ]
   },
 
   {

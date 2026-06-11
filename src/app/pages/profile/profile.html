@@ -107,6 +107,44 @@
             />
           </div>
 
+          <div class="form-group">
+            <label for="timezone">Timezone</label>
+            <select id="timezone" name="timezone" [(ngModel)]="timezone">
+              <option value="">Not set</option>
+              <option *ngFor="let tz of timezones" [value]="tz">{{ tz }}</option>
+            </select>
+          </div>
+
+          <fieldset class="preferences-group">
+            <legend>Preferences</legend>
+
+            <div class="form-group">
+              <label for="prefTheme">Theme</label>
+              <select id="prefTheme" name="prefTheme" [(ngModel)]="preferences.theme">
+                <option value="system">System</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="prefBoardView">Default Project View</label>
+              <select id="prefBoardView" name="prefBoardView" [(ngModel)]="preferences.default_board_view">
+                <option value="board">Board</option>
+                <option value="backlog">Backlog</option>
+              </select>
+            </div>
+
+            <label class="checkbox-row">
+              <input
+                type="checkbox"
+                name="prefEmailNotifications"
+                [(ngModel)]="preferences.email_notifications"
+              />
+              Receive email notifications
+            </label>
+          </fieldset>
+
           <div class="info-box">
             <strong>Account note</strong>
             <p>

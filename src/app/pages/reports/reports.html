@@ -1,0 +1,360 @@
+<div class="reports-page">
+  <div class="reports-header">
+    <h1>Reports</h1>
+  </div>
+
+  <div class="tab-bar">
+    @for (tab of [
+      { id: 'overview',     label: 'Overview' },
+      { id: 'distribution', label: 'Issue Distribution' },
+      { id: 'progress',     label: 'Project Progress' },
+      { id: 'velocity',     label: 'Velocity' },
+      { id: 'burndown',     label: 'Burndown' },
+      { id: 'workload',     label: 'Team Workload' },
+      { id: 'sla',          label: 'SLA Compliance' },
+      { id: 'response_time', label: 'Response Time' },
+      { id: 'agent_performance', label: 'Agent Performance' },
+      { id: 'overdue',      label: 'Overdue Tickets' }
+    ]; track tab.id) {
+      <button
+        class="tab-btn"
+        [class.active]="activeTab() === tab.id"
+        (click)="loadTab(tab.id)">
+        {{ tab.label }}
+      </button>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="loading">Loading report...</div>
+  } @else if (error()) {
+    <div class="error">{{ error() }}</div>
+  } @else {
+
+    <!-- Overview (Executive metrics) -->
+    @if (activeTab() === 'overview' && summary()) {
+      <div class="report-section">
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-value">{{ summary().open_tickets }}</div>
+            <div class="stat-label">Open Tickets</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ summary().closed_tickets }}</div>
+            <div class="stat-label">Closed Tickets</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ summary().backlog_count }}</div>
+            <div class="stat-label">Backlog Count</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ summary().average_resolution?.average_days ?? '—' }}d</div>
+            <div class="stat-label">Avg Resolution Time</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ summary().sla?.compliance_rate ?? '—' }}%</div>
+            <div class="stat-label">SLA Compliance</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ summary().team_productivity_hours_30d }}h</div>
+            <div class="stat-label">Team Productivity (30d)</div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Project Progress -->
+    @if (activeTab() === 'progress' && progress()) {
+      <div class="report-section">
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-value">{{ progress().percent_complete }}%</div>
+            <div class="stat-label">Complete</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ progress().completed }}</div>
+            <div class="stat-label">Done</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ progress().in_progress }}</div>
+            <div class="stat-label">Remaining</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ progress().total }}</div>
+            <div class="stat-label">Total Issues</div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>By Status</h3>
+          @for (entry of objectEntries(progress().by_status); track entry[0]) {
+            <div class="bar-row">
+              <span class="bar-label">{{ entry[0] ?? 'none' }}</span>
+              <div class="bar-track">
+                <div class="bar-fill" [style.width.%]="progress().total ? (entry[1] / progress().total) * 100 : 0"></div>
+              </div>
+              <span class="bar-count">{{ entry[1] }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Response Time -->
+    @if (activeTab() === 'response_time' && responseTime()) {
+      <div class="report-section">
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-value">{{ responseTime().average_hours ?? '—' }}h</div>
+            <div class="stat-label">Avg First Response</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ responseTime().response_rate ?? '—' }}%</div>
+            <div class="stat-label">Response Rate</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ responseTime().responded }} / {{ responseTime().total }}</div>
+            <div class="stat-label">Responded / Total</div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Agent Performance -->
+    @if (activeTab() === 'agent_performance') {
+      <div class="report-section">
+        <div class="chart-card">
+          <h3>Agent Performance</h3>
+          @if (agentPerformance().length === 0) {
+            <div class="empty">No assigned tickets to report on.</div>
+          } @else {
+            <table class="data-table">
+              <thead>
+                <tr><th>Agent</th><th>Assigned</th><th>Resolved</th><th>Avg Resolution</th><th>SLA</th></tr>
+              </thead>
+              <tbody>
+                @for (a of agentPerformance(); track a.user?.id) {
+                  <tr>
+                    <td>{{ a.user?.name ?? 'Unknown' }}</td>
+                    <td>{{ a.total_assigned }}</td>
+                    <td>{{ a.resolved }}</td>
+                    <td>{{ a.avg_resolution_hours ?? '—' }}h</td>
+                    <td>
+                      <span [class]="(a.sla_compliance ?? 0) >= 80 ? 'badge badge-green' : 'badge badge-yellow'">
+                        {{ a.sla_compliance ?? '—' }}%
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Distribution -->
+    @if (activeTab() === 'distribution' && distribution()) {
+      <div class="report-section">
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-value">{{ distribution().total }}</div>
+            <div class="stat-label">Total Issues</div>
+          </div>
+        </div>
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h3>By Type</h3>
+            @for (entry of objectEntries(distribution().by_type); track entry[0]) {
+              <div class="bar-row">
+                <span class="bar-label">{{ entry[0] ?? 'none' }}</span>
+                <div class="bar-track">
+                  <div class="bar-fill" [style.width.%]="(entry[1] / distribution().total) * 100"></div>
+                </div>
+                <span class="bar-count">{{ entry[1] }}</span>
+              </div>
+            }
+          </div>
+          <div class="chart-card">
+            <h3>By Priority</h3>
+            @for (entry of objectEntries(distribution().by_priority); track entry[0]) {
+              <div class="bar-row">
+                <span class="bar-label">{{ entry[0] ?? 'none' }}</span>
+                <div class="bar-track">
+                  <div class="bar-fill" [class]="'priority-' + entry[0]" [style.width.%]="(entry[1] / distribution().total) * 100"></div>
+                </div>
+                <span class="bar-count">{{ entry[1] }}</span>
+              </div>
+            }
+          </div>
+          <div class="chart-card">
+            <h3>By Status</h3>
+            @for (entry of objectEntries(distribution().by_status); track entry[0]) {
+              <div class="bar-row">
+                <span class="bar-label">{{ entry[0] ?? 'none' }}</span>
+                <div class="bar-track">
+                  <div class="bar-fill" [style.width.%]="(entry[1] / distribution().total) * 100"></div>
+                </div>
+                <span class="bar-count">{{ entry[1] }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Velocity -->
+    @if (activeTab() === 'velocity' && velocity()) {
+      <div class="report-section">
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-value">{{ velocity().average_velocity }}</div>
+            <div class="stat-label">Avg Velocity (pts/sprint)</div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Sprint Velocity</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Sprint</th>
+                <th>Committed</th>
+                <th>Completed</th>
+                <th>Completion Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (s of velocity().sprints; track s.sprint_id) {
+                <tr>
+                  <td>{{ s.sprint_name }}</td>
+                  <td>{{ s.committed_points }} pts</td>
+                  <td>{{ s.completed_points }} pts</td>
+                  <td>
+                    <span [class]="s.completion_rate >= 80 ? 'badge badge-green' : 'badge badge-yellow'">
+                      {{ s.completion_rate }}%
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    <!-- Burndown -->
+    @if (activeTab() === 'burndown') {
+      <div class="report-section">
+        <div class="burndown-controls">
+          <label>Sprint:</label>
+          <select [(ngModel)]="selectedSprintId" (change)="loadTab('burndown')">
+            @for (s of sprints(); track s.id) {
+              <option [value]="s.id">{{ s.name }}</option>
+            }
+          </select>
+        </div>
+        @if (burndown()) {
+          <div class="stat-row">
+            <div class="stat-card">
+              <div class="stat-value">{{ burndown().total_points }}</div>
+              <div class="stat-label">Total Story Points</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ burndown().actual[burndown().actual.length - 1]?.remaining_points ?? '—' }}</div>
+              <div class="stat-label">Points Remaining</div>
+            </div>
+          </div>
+          <div class="chart-card">
+            <h3>Burndown — {{ burndown().sprint.name }}</h3>
+            <table class="data-table">
+              <thead>
+                <tr><th>Date</th><th>Remaining (Actual)</th><th>Remaining (Ideal)</th></tr>
+              </thead>
+              <tbody>
+                @for (day of burndown().actual; track day.date) {
+                  <tr>
+                    <td>{{ day.date }}</td>
+                    <td>{{ day.remaining_points }} pts</td>
+                    <td>{{ burndown().ideal[($index)]?.points ?? '—' }} pts</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Workload -->
+    @if (activeTab() === 'workload' && workload()) {
+      <div class="report-section">
+        <div class="chart-card">
+          <h3>Team Workload</h3>
+          <table class="data-table">
+            <thead>
+              <tr><th>Member</th><th>Hours Logged</th><th>Open Tickets</th></tr>
+            </thead>
+            <tbody>
+              @for (member of workload(); track member.user?.id) {
+                <tr>
+                  <td>{{ member.user?.name ?? 'Unknown' }}</td>
+                  <td>{{ member.total_hours }}h</td>
+                  <td>{{ member.open_tickets }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    <!-- SLA -->
+    @if (activeTab() === 'sla' && sla()) {
+      <div class="report-section">
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-value">{{ sla().compliance_rate ?? '—' }}%</div>
+            <div class="stat-label">SLA Compliance Rate</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ sla().resolved_on_time }}</div>
+            <div class="stat-label">Resolved On Time</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ sla().resolved }}</div>
+            <div class="stat-label">Total Resolved</div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Overdue -->
+    @if (activeTab() === 'overdue') {
+      <div class="report-section">
+        <div class="chart-card">
+          <h3>Overdue Tickets ({{ overdue().length }})</h3>
+          @if (overdue().length === 0) {
+            <div class="empty">No overdue tickets.</div>
+          } @else {
+            <table class="data-table">
+              <thead>
+                <tr><th>Issue</th><th>Title</th><th>Priority</th><th>Due Date</th><th>Assignee</th></tr>
+              </thead>
+              <tbody>
+                @for (t of overdue(); track t.id) {
+                  <tr>
+                    <td class="issue-number">{{ t.issue_number }}</td>
+                    <td>{{ t.title }}</td>
+                    <td><span [class]="'badge priority-' + t.priority">{{ t.priority }}</span></td>
+                    <td class="overdue-date">{{ t.due_date }}</td>
+                    <td>{{ t.assignee?.name ?? '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+      </div>
+    }
+
+  }
+</div>

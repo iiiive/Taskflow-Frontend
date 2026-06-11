@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Observable, switchMap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -11,20 +12,31 @@ export class Auth {
   constructor(private http: HttpClient) {}
 
   private getAuthHeaders() {
-    const token = localStorage.getItem('planora_token');
-
+    // Auth is cookie-based now; only the Accept header is needed (the global
+    // interceptor adds withCredentials + the XSRF header).
     return {
-      Authorization: `Bearer ${token}`,
       Accept: 'application/json'
     };
   }
 
+  /**
+   * Primes the Sanctum CSRF cookie. Required before any state-changing request
+   * (login/register) so the XSRF-TOKEN cookie exists for Angular to echo back.
+   */
+  csrf(): Observable<unknown> {
+    return this.http.get('/sanctum/csrf-cookie', { withCredentials: true });
+  }
+
   register(data: any) {
-    return this.http.post(`${this.apiUrl}/store`, data);
+    return this.csrf().pipe(
+      switchMap(() => this.http.post(`${this.apiUrl}/store`, data))
+    );
   }
 
   login(data: any) {
-    return this.http.post(`${this.apiUrl}/login`, data);
+    return this.csrf().pipe(
+      switchMap(() => this.http.post(`${this.apiUrl}/login`, data))
+    );
   }
 
   verifyTwoFactorLogin(data: {
@@ -80,7 +92,10 @@ export class Auth {
   }
 
   getGoogleRedirectUrl(): string {
-    return `${this.apiUrl}/auth/google/redirect`;
+    // Google OAuth endpoints are unversioned (/api/auth/google/*), matching the
+    // backend redirect URI + Google Cloud Console config.
+    const base = this.apiUrl.replace(/\/v1$/, '');
+    return `${base}/auth/google/redirect`;
   }
 
   getProfile() {

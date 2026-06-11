@@ -254,6 +254,19 @@
                 autofocus
               />
 
+              <label class="wip-edit-label">
+                WIP limit
+                <input
+                  type="number"
+                  min="0"
+                  name="editingColumnWip"
+                  placeholder="No limit"
+                  [(ngModel)]="editingColumnWip"
+                  (keyup.enter)="saveColumnName(column)"
+                  (keyup.escape)="cancelEditingColumn()"
+                />
+              </label>
+
               <div class="column-edit-actions">
                 <button
                   type="button"
@@ -335,17 +348,31 @@
                 #{{ ticket.id }}
               </span>
 
+              <span class="issue-type-pill" *ngIf="ticket.issue_type">
+                {{ issueTypeLabel(ticket.issue_type) }}
+              </span>
+
               <span
                 class="priority-badge"
                 [ngClass]="getPriorityClass(ticket.priority)"
               >
-                {{ ticket.priority }}
+                {{ priorityLabel(ticket.priority) }}
               </span>
             </div>
 
             <h3 class="premium-ticket-title" [title]="ticket.title">
               {{ ticket.title }}
             </h3>
+
+            <div class="ticket-labels-row" *ngIf="ticket.labels?.length">
+              <span
+                class="ticket-label-chip"
+                *ngFor="let label of ticket.labels"
+                [style.backgroundColor]="label.color"
+              >
+                {{ label.name }}
+              </span>
+            </div>
 
             <div class="ticket-epic-row" *ngIf="hasEpic(ticket)">
               <span
@@ -510,6 +537,15 @@
 
       <div class="form-grid">
         <div class="form-group">
+          <label>Issue Type</label>
+          <select name="newIssueType" [(ngModel)]="newTicket.issue_type">
+            <option *ngFor="let opt of issueTypeOptions" [value]="opt.value">
+              {{ opt.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
           <label>Kanban Column</label>
           <select
             name="newKanbanColumn"
@@ -541,11 +577,27 @@
         <div class="form-group">
           <label>Priority</label>
           <select name="newPriority" [(ngModel)]="newTicket.priority">
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
+            <option *ngFor="let opt of priorityOptions" [value]="opt.value">
+              {{ opt.label }}
+            </option>
           </select>
+        </div>
+      </div>
+
+      <div class="form-group" *ngIf="labels.length > 0">
+        <label>Labels</label>
+        <div class="label-picker">
+          <button
+            type="button"
+            *ngFor="let label of labels"
+            class="label-chip-toggle"
+            [class.selected]="isNewTicketLabelSelected(label.id)"
+            [style.borderColor]="label.color"
+            [style.backgroundColor]="isNewTicketLabelSelected(label.id) ? label.color : 'transparent'"
+            (click)="toggleNewTicketLabel(label.id)"
+          >
+            {{ label.name }}
+          </button>
         </div>
       </div>
 
@@ -595,6 +647,7 @@
   [workspaceMembers]="workspaceMembers"
   [kanbanColumns]="kanbanColumns"
   [epics]="epics"
+  [labels]="labels"
   [canEdit]="canEditTicket()"
   [canComment]="canCommentTicket()"
   [apiUrl]="apiUrl"

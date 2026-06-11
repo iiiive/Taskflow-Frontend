@@ -15,6 +15,36 @@ export type TicketPriority =
   | 'high'
   | 'urgent';
 
+export type IssueType =
+  | 'epic'
+  | 'story'
+  | 'task'
+  | 'subtask'
+  | 'bug'
+  | 'improvement'
+  | 'change_request'
+  | 'incident'
+  | 'service_request'
+  | 'feature_request'
+  | 'other';
+
+export type ProjectType =
+  | 'software'
+  | 'it_support'
+  | 'marketing'
+  | 'hr'
+  | 'construction'
+  | 'general';
+
+export interface Label {
+  id: number;
+  project_id?: number;
+  name: string;
+  color: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
 export type WorkspaceRole =
   | 'owner'
   | 'editor'
@@ -61,6 +91,10 @@ export interface Workspace {
   owner_id: number;
   name: string;
   description?: string | null;
+  project_type?: ProjectType | string;
+  project_mode?: 'kanban' | 'scrum' | string;
+  is_template?: boolean;
+  archived_at?: string | null;
   role?: WorkspaceRole;
   role_label?: string;
   can_edit?: boolean;
@@ -94,6 +128,7 @@ export interface Ticket {
   title: string;
   description: string | null;
   status: TicketStatus;
+  issue_type?: IssueType;
   priority: TicketPriority;
   due_date: string | null;
   due_date_warning?: string | null;
@@ -102,6 +137,7 @@ export interface Ticket {
   epic?: Epic | null;
   creator?: PlanoraUser | null;
   assignee?: PlanoraUser | null;
+  labels?: Label[];
   created_at?: string | null;
   updated_at?: string | null;
 }
@@ -110,11 +146,13 @@ export interface TicketFormData {
   title: string;
   description: string;
   status: TicketStatus;
+  issue_type?: IssueType;
   kanban_column_id?: number | null;
   epic_id?: number | null;
   priority: TicketPriority;
   due_date: string | null;
   assigned_to: number | null;
+  label_ids?: number[];
 }
 
 export interface TicketComment {

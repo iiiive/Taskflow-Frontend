@@ -54,8 +54,23 @@
             <button type="button" class="secondary-btn-sm" (click)="showAddStateModal = true; errorMessage = ''">+ Add State</button>
           </div>
 
+          <p class="reorder-hint" *ngIf="(selectedWorkflow.states?.length ?? 0) > 1">
+            Drag states to reorder them.
+          </p>
+
           <div class="states-flow">
-            <div class="state-node" *ngFor="let state of selectedWorkflow.states" [style.border-color]="state.color">
+            <div
+              class="state-node"
+              *ngFor="let state of selectedWorkflow.states"
+              [style.border-color]="state.color"
+              draggable="true"
+              (dragstart)="onStateDragStart(state)"
+              (dragend)="onStateDragEnd()"
+              (dragover)="$event.preventDefault()"
+              (drop)="onStateDrop(state)"
+              [class.dragging]="draggedState?.id === state.id"
+            >
+              <span class="state-drag-handle" title="Drag to reorder">⋮⋮</span>
               <div class="state-dot" [style.background]="state.color"></div>
               <div class="state-details">
                 <strong>{{ state.name }}</strong>
@@ -63,6 +78,10 @@
                   <span class="flag flag-initial" *ngIf="state.is_initial">Initial</span>
                   <span class="flag flag-final"   *ngIf="state.is_final">Final</span>
                   <span class="flag flag-approval" *ngIf="state.requires_approval">Needs Approval</span>
+                </div>
+                <div class="state-required" *ngIf="state.required_fields?.length">
+                  Requires:
+                  <span class="req-chip" *ngFor="let f of state.required_fields">{{ requiredFieldLabel(f) }}</span>
                 </div>
               </div>
               <button type="button" class="remove-btn" (click)="removeState(state)" title="Remove state">✕</button>
@@ -151,6 +170,23 @@
       <label><input type="checkbox" [(ngModel)]="newState.is_final" /> Final state (exit point)</label>
       <label><input type="checkbox" [(ngModel)]="newState.requires_approval" /> Requires approval to enter</label>
     </div>
+
+    <div class="form-group">
+      <label>Required Fields to Enter This State</label>
+      <div class="required-field-picker">
+        <button
+          type="button"
+          *ngFor="let opt of requiredFieldOptions"
+          class="req-toggle"
+          [class.selected]="isNewStateFieldSelected(opt.value)"
+          (click)="toggleNewStateRequiredField(opt.value)"
+        >
+          {{ opt.label }}
+        </button>
+      </div>
+      <small class="field-hint">A ticket can't move into this state until these fields are filled in.</small>
+    </div>
+
     <div class="modal-actions">
       <button type="button" class="secondary-btn" (click)="showAddStateModal = false">Cancel</button>
       <button type="button" class="primary-btn" (click)="addState()">Add State</button>

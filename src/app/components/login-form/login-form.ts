@@ -40,7 +40,6 @@ export class LoginForm implements OnInit {
 
   ngOnInit(): void {
     this.route.queryParamMap.subscribe(params => {
-      const googleToken = params.get('google_token') || params.get('token');
       const googleError = params.get('google_error') || params.get('error');
 
       const requires2fa = params.get('requires_2fa');
@@ -51,6 +50,7 @@ export class LoginForm implements OnInit {
         return;
       }
 
+      // Google sign-in that needs 2FA is redirected back here with a challenge.
       if (requires2fa === '1' && twoFactorToken) {
         this.requiresTwoFactorStep = true;
         this.twoFactorToken = twoFactorToken;
@@ -58,15 +58,8 @@ export class LoginForm implements OnInit {
         this.forceRefresh();
         return;
       }
-
-      if (googleToken) {
-        localStorage.setItem('token', googleToken);
-        localStorage.setItem('planora_token', googleToken);
-
-        this.showMessage('Google sign in successful. Redirecting to your dashboard...', true);
-
-        this.router.navigate(['/dashboard'], { replaceUrl: true });
-      }
+      // A successful Google sign-in sets the session cookie and redirects
+      // straight to /dashboard — no token is passed through the URL.
     });
   }
 
@@ -321,13 +314,8 @@ export class LoginForm implements OnInit {
   }
 
   private finishLogin(res: any): void {
-    const token = res?.token;
-
-    if (token) {
-      localStorage.setItem('token', token);
-      localStorage.setItem('planora_token', token);
-    }
-
+    // No token is stored — auth is the httpOnly session cookie. We keep only the
+    // (non-secret) user profile for UI/guards.
     if (res?.user) {
       localStorage.setItem('planora_user', JSON.stringify(res.user));
     }

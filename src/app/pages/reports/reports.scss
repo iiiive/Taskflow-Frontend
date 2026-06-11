@@ -1,0 +1,195 @@
+.reports-page {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.reports-header {
+  margin-bottom: 1.5rem;
+  h1 { font-size: 1.75rem; font-weight: 700; margin: 0; }
+}
+
+.tab-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  padding: 0.6rem 1.1rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+
+  &:hover { color: #4f46e5; }
+
+  &.active {
+    color: #4f46e5;
+    border-bottom-color: #4f46e5;
+  }
+}
+
+.loading, .error, .empty {
+  text-align: center;
+  padding: 3rem;
+  color: #6b7280;
+}
+.error { color: #dc2626; }
+
+.report-section { }
+
+.stat-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+  min-width: 150px;
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #4f46e5;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+  }
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.chart-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+
+  h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 1rem;
+    color: #374151;
+  }
+}
+
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+
+  .bar-label {
+    width: 140px;
+    font-size: 0.8rem;
+    color: #374151;
+    text-transform: capitalize;
+    flex-shrink: 0;
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 10px;
+    background: #f3f4f6;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: #4f46e5;
+    border-radius: 999px;
+    transition: width 0.3s;
+
+    &.priority-urgent { background: #dc2626; }
+    &.priority-high   { background: #f97316; }
+    &.priority-medium { background: #eab308; }
+    &.priority-low    { background: #22c55e; }
+  }
+
+  .bar-count {
+    font-size: 0.8rem;
+    color: #6b7280;
+    width: 30px;
+    text-align: right;
+  }
+}
+
+.burndown-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+
+  label { font-size: 0.875rem; font-weight: 500; }
+
+  select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.875rem;
+  }
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #6b7280;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  td {
+    padding: 0.7rem 0.75rem;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 0.875rem;
+  }
+}
+
+.issue-number { font-family: monospace; color: #4f46e5; font-weight: 600; }
+.overdue-date { color: #dc2626; font-weight: 500; }
+
+.badge {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  background: #f3f4f6;
+  color: #374151;
+
+  &-green  { background: #dcfce7; color: #166534; }
+  &-yellow { background: #fef9c3; color: #854d0e; }
+
+  &.priority-urgent { background: #fee2e2; color: #991b1b; }
+  &.priority-high   { background: #ffedd5; color: #9a3412; }
+  &.priority-medium { background: #fef9c3; color: #854d0e; }
+  &.priority-low    { background: #dcfce7; color: #166534; }
+}

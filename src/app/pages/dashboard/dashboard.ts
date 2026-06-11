@@ -237,10 +237,8 @@ export class Dashboard implements OnInit {
   }
 
   getAuthHeaders() {
-    const token = localStorage.getItem('token') || localStorage.getItem('planora_token');
-
+    // Cookie-based auth — the interceptor adds credentials; only Accept is needed.
     return {
-      Authorization: `Bearer ${token}`,
       Accept: 'application/json'
     };
   }

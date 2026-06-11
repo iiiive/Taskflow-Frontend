@@ -18,6 +18,23 @@ export class Profile implements OnInit {
 
   name = '';
   email = '';
+  timezone = '';
+
+  // Common IANA timezones (a curated subset for the selector).
+  timezones: string[] = [
+    'UTC',
+    'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
+    'America/Sao_Paulo', 'Europe/London', 'Europe/Paris', 'Europe/Berlin',
+    'Europe/Madrid', 'Africa/Johannesburg', 'Asia/Dubai', 'Asia/Kolkata',
+    'Asia/Singapore', 'Asia/Manila', 'Asia/Hong_Kong', 'Asia/Shanghai',
+    'Asia/Tokyo', 'Australia/Sydney', 'Pacific/Auckland'
+  ];
+
+  preferences = {
+    theme: 'system',
+    email_notifications: true,
+    default_board_view: 'board'
+  };
 
   currentPassword = '';
   newPassword = '';
@@ -62,6 +79,16 @@ export class Profile implements OnInit {
     this.loadProfile();
   }
 
+  private hydratePreferences(): void {
+    this.timezone = this.user?.timezone || '';
+    const prefs = this.user?.preferences || {};
+    this.preferences = {
+      theme: prefs.theme ?? 'system',
+      email_notifications: prefs.email_notifications ?? true,
+      default_board_view: prefs.default_board_view ?? 'board'
+    };
+  }
+
   loadProfile(): void {
     this.loading = true;
     this.message = '';
@@ -74,6 +101,7 @@ export class Profile implements OnInit {
 
         this.name = this.user?.name || '';
         this.email = this.user?.email || '';
+        this.hydratePreferences();
 
         localStorage.setItem('planora_user', JSON.stringify(this.user));
 
@@ -322,7 +350,9 @@ export class Profile implements OnInit {
 
     this.auth.updateProfile({
       name: this.name.trim(),
-      email: this.email.trim()
+      email: this.email.trim(),
+      timezone: this.timezone || null,
+      preferences: this.preferences
     }).subscribe({
       next: (res: any) => {
         this.user = res?.user || res?.data || res;

@@ -1,0 +1,53 @@
+<div class="admin-dashboard">
+  <div class="admin-header">
+    <h1>Super Admin Panel</h1>
+    <nav class="admin-nav">
+      <a routerLink="/admin/organizations" routerLinkActive="active">Organizations</a>
+      <a routerLink="/admin/plans" routerLinkActive="active">Subscription Plans</a>
+    </nav>
+  </div>
+
+  @if (loading()) {
+    <div class="loading">Loading...</div>
+  } @else if (error()) {
+    <div class="error">{{ error() }}</div>
+  } @else {
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value">{{ organizations().length }}</div>
+        <div class="stat-label">Organizations</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <h2>Recent Organizations</h2>
+        <a routerLink="/admin/organizations" class="btn-link">View all</a>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Owner Email</th>
+            <th>Plan</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (org of organizations().slice(0, 10); track org.id) {
+            <tr>
+              <td>{{ org.name }}</td>
+              <td>{{ org.owner_email }}</td>
+              <td>{{ org.subscription_plan?.name ?? '—' }}</td>
+              <td>
+                <span [class]="org.is_active ? 'badge badge-green' : 'badge badge-red'">
+                  {{ org.is_active ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
