@@ -13,7 +13,7 @@
 
     <div class="brand-text">
       <h2>Planora</h2>
-      <p>Project Workspace</p>
+      <p>{{ adminMode ? 'Admin Panel' : orgMode ? 'Organization' : 'Project Workspace' }}</p>
     </div>
 
     <button
@@ -30,122 +30,115 @@
   </div>
 
   <nav class="sidebar-nav">
-    <a
-      routerLink="/dashboard"
-      [class.active]="activePage === 'dashboard'"
-      title="Dashboard"
-    >
-      <span>▦</span>
-      <strong>Dashboard</strong>
-    </a>
-
-    <a
-      routerLink="/projects"
-      [class.active]="activePage === 'projects'"
-      title="Projects"
-    >
-      <span>□</span>
-      <strong>Projects</strong>
-    </a>
-
-    <a
-      routerLink="/teams"
-      [class.active]="activePage === 'teams'"
-      title="Teams"
-    >
-      <span>◈</span>
-      <strong>Teams</strong>
-    </a>
-
-    <a
-      routerLink="/profile"
-      [class.active]="activePage === 'profile'"
-      title="Profile"
-    >
-      <span>◉</span>
-      <strong>Profile</strong>
-    </a>
-
-    <div
-      class="workspace-nav-group"
-      *ngIf="hasSelectedWorkspace()"
-    >
-      <p class="sidebar-section-label">Selected Project</p>
-
-
-      <a
-        [routerLink]="['/projects', getSelectedWorkspaceId(), 'board']"
-        [class.active]="activePage === 'board'"
-        title="Board"
-      >
-        <span>▤</span>
-        <strong>Board</strong>
+    @if (orgMode) {
+      <a routerLink="/org" [class.active]="activePage === 'org-overview'" title="Overview">
+        <span>▦</span>
+        <strong>Overview</strong>
       </a>
 
-      <a
-        [routerLink]="['/projects', getSelectedWorkspaceId(), 'activity']"
-        [class.active]="activePage === 'activity'"
-        title="Activity"
-      >
-        <span>◷</span>
-        <strong>Activity</strong>
+      <a routerLink="/org/users" [class.active]="activePage === 'org-users'" title="Users">
+        <span>◉</span>
+        <strong>Users</strong>
       </a>
 
-      <a
-        [routerLink]="['/projects', getSelectedWorkspaceId(), 'timesheet']"
-        [class.active]="activePage === 'timesheet'"
-        title="Timesheet"
-      >
-        <span>◴</span>
-        <strong>Timesheet</strong>
+      <a routerLink="/org/projects" [class.active]="activePage === 'org-projects'" title="Projects">
+        <span>□</span>
+        <strong>Projects</strong>
       </a>
 
-      <a
-        [routerLink]="['/projects', getSelectedWorkspaceId(), 'archive']"
-        [class.active]="activePage === 'archive'"
-        title="Archive"
-      >
-        <span>▣</span>
-        <strong>Archive</strong>
+      <a routerLink="/org/teams" [class.active]="activePage === 'org-teams'" title="Teams">
+        <span>◈</span>
+        <strong>Teams</strong>
+      </a>
+    } @else if (!adminMode) {
+      <a routerLink="/dashboard" [class.active]="activePage === 'dashboard'" title="Dashboard">
+        <span>▦</span>
+        <strong>Dashboard</strong>
       </a>
 
-      <a
-        [routerLink]="['/projects', getSelectedWorkspaceId(), 'sprints']"
-        [class.active]="activePage === 'sprints'"
-        title="Sprints"
-      >
-        <span>◎</span>
-        <strong>Sprints</strong>
+      <a routerLink="/projects" [class.active]="activePage === 'projects'" title="Projects">
+        <span>□</span>
+        <strong>Projects</strong>
       </a>
 
-      <a
-        [routerLink]="['/projects', getSelectedWorkspaceId(), 'workflows']"
-        [class.active]="activePage === 'workflows'"
-        title="Workflows"
-      >
-        <span>⬡</span>
-        <strong>Workflows</strong>
+      <a routerLink="/teams" [class.active]="activePage === 'teams'" title="Teams">
+        <span>◈</span>
+        <strong>Teams</strong>
       </a>
-    </div>
+
+      <a routerLink="/profile" [class.active]="activePage === 'profile'" title="Profile">
+        <span>◉</span>
+        <strong>Profile</strong>
+      </a>
+
+      @if (hasSelectedWorkspace()) {
+        <div class="workspace-nav-group">
+          <p class="sidebar-section-label">Selected Project</p>
+
+          <a [routerLink]="['/projects', getSelectedWorkspaceId(), 'board']" [class.active]="activePage === 'board'" title="Board">
+            <span>▤</span>
+            <strong>Board</strong>
+          </a>
+
+          <a [routerLink]="['/projects', getSelectedWorkspaceId(), 'activity']" [class.active]="activePage === 'activity'" title="Activity">
+            <span>◷</span>
+            <strong>Activity</strong>
+          </a>
+
+          <a [routerLink]="['/projects', getSelectedWorkspaceId(), 'timesheet']" [class.active]="activePage === 'timesheet'" title="Timesheet">
+            <span>◴</span>
+            <strong>Timesheet</strong>
+          </a>
+
+          <a [routerLink]="['/projects', getSelectedWorkspaceId(), 'archive']" [class.active]="activePage === 'archive'" title="Archive">
+            <span>▣</span>
+            <strong>Archive</strong>
+          </a>
+
+          <a [routerLink]="['/projects', getSelectedWorkspaceId(), 'sprints']" [class.active]="activePage === 'sprints'" title="Sprints">
+            <span>◎</span>
+            <strong>Sprints</strong>
+          </a>
+
+          <a [routerLink]="['/projects', getSelectedWorkspaceId(), 'workflows']" [class.active]="activePage === 'workflows'" title="Workflows">
+            <span>⬡</span>
+            <strong>Workflows</strong>
+          </a>
+        </div>
+      }
+    } @else {
+      <a routerLink="/admin" [class.active]="activePage === 'overview'" title="Overview">
+        <span>▦</span>
+        <strong>Overview</strong>
+      </a>
+
+      <a routerLink="/admin/organizations" [class.active]="activePage === 'organizations'" title="Organizations">
+        <span>◈</span>
+        <strong>Organizations</strong>
+      </a>
+
+      <a routerLink="/admin/plans" [class.active]="activePage === 'plans'" title="Plans">
+        <span>◉</span>
+        <strong>Plans</strong>
+      </a>
+    }
   </nav>
 
   <div class="sidebar-user">
     <div class="sidebar-avatar">
-      <img
-        *ngIf="avatarUrl"
-        [src]="avatarUrl"
-        [alt]="userName"
-      />
-
-      <span *ngIf="!avatarUrl">
-        {{ getUserInitial() }}
-      </span>
+      @if (avatarUrl) {
+        <img [src]="avatarUrl" [alt]="userName" />
+      } @else {
+        <span>{{ getUserInitial() }}</span>
+      }
     </div>
 
     <div class="sidebar-user-info">
       <p>Signed in as</p>
       <strong>{{ userName }}</strong>
-      <small *ngIf="userEmail">{{ userEmail }}</small>
+      @if (userEmail) {
+        <small>{{ userEmail }}</small>
+      }
     </div>
 
     <button type="button" (click)="logout()">

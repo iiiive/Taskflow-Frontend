@@ -1,0 +1,118 @@
+<div class="org-page">
+  <app-sidebar [orgMode]="true" activePage="org-projects"></app-sidebar>
+
+  <main class="org-main">
+    <header class="page-header">
+      <div>
+        <p class="breadcrumb">Organization</p>
+        <h1>Projects</h1>
+        <p class="header-text">Create projects, choose a board mode, assign members and a team.</p>
+      </div>
+      <button class="primary-btn" (click)="openCreate()">+ New Project</button>
+    </header>
+
+    @if (loading()) {
+      <div class="loading-state">Loading projects...</div>
+    } @else {
+      @if (error()) { <div class="form-error">{{ error() }}</div> }
+      <div class="content-card">
+        @if (projects().length === 0) {
+          <div class="empty-state">No projects yet. Create one to get started.</div>
+        } @else {
+          <table class="data-table">
+            <thead>
+              <tr><th>Name</th><th>Mode</th><th>Team</th><th>Members</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              @for (project of projects(); track project.id) {
+                <tr>
+                  <td class="primary-cell">{{ project.name }}</td>
+                  <td><span class="badge blue">{{ project.project_mode }}</span></td>
+                  <td class="muted">{{ project.team?.name ?? '—' }}</td>
+                  <td>{{ project.members?.length ?? 0 }}</td>
+                  <td class="actions">
+                    <button class="danger-btn compact" (click)="deleteProject(project)">Delete</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    }
+  </main>
+</div>
+
+@if (showCreateModal()) {
+  <div class="modal-backdrop" (click)="showCreateModal.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2>New Project</h2>
+
+      <div class="form-group">
+        <label>Project Name</label>
+        <input type="text" [(ngModel)]="newProject.name" placeholder="Website Revamp" />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Board Mode</label>
+          <select [(ngModel)]="newProject.project_mode">
+            <option value="kanban">Kanban (To Do / Working / Done)</option>
+            <option value="scrum">Scrum (full dev flow + sprints)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Team (optional)</label>
+          <select [(ngModel)]="newProject.team_id">
+            <option [ngValue]="null">No team</option>
+            @for (team of teams(); track team.id) {
+              <option [ngValue]="team.id">{{ team.name }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <p class="section-label">Members (optional)</p>
+      <div class="assign-row">
+        <div class="form-group">
+          <label>User</label>
+          <select [(ngModel)]="draft.user_id">
+            <option [ngValue]="null">Select a user</option>
+            @for (user of users(); track user.id) {
+              <option [ngValue]="user.id">{{ user.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select [(ngModel)]="draft.role">
+            @for (role of roles; track role.value) {
+              <option [value]="role.value">{{ role.label }}</option>
+            }
+          </select>
+        </div>
+        <button class="secondary-btn" (click)="addMember()">Add</button>
+      </div>
+
+      @if (members().length > 0) {
+        <div class="assigned-list">
+          @for (member of members(); track member.user_id; let i = $index) {
+            <div class="assigned-pill">
+              <span>{{ userName(member.user_id) }} — {{ roleLabel(member.role) }}</span>
+              <button class="remove" (click)="removeMember(i)">✕</button>
+            </div>
+          }
+        </div>
+      }
+
+      @if (error()) { <div class="form-error" style="margin-top:12px">{{ error() }}</div> }
+
+      <div class="modal-actions">
+        <button class="secondary-btn" (click)="showCreateModal.set(false)">Cancel</button>
+        <button class="primary-btn" (click)="createProject()" [disabled]="submitting() || !newProject.name">
+          {{ submitting() ? 'Creating...' : 'Create Project' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

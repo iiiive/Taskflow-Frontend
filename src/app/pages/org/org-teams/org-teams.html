@@ -1,0 +1,82 @@
+<div class="org-page">
+  <app-sidebar [orgMode]="true" activePage="org-teams"></app-sidebar>
+
+  <main class="org-main">
+    <header class="page-header">
+      <div>
+        <p class="breadcrumb">Organization</p>
+        <h1>Teams</h1>
+        <p class="header-text">Create teams and assign them to a project. Project members auto-join the team.</p>
+      </div>
+      <button class="primary-btn" (click)="openCreate()">+ New Team</button>
+    </header>
+
+    @if (loading()) {
+      <div class="loading-state">Loading teams...</div>
+    } @else {
+      @if (error()) { <div class="form-error">{{ error() }}</div> }
+      <div class="content-card">
+        @if (teams().length === 0) {
+          <div class="empty-state">No teams yet. Create one to get started.</div>
+        } @else {
+          <table class="data-table">
+            <thead>
+              <tr><th>Name</th><th>Assigned Project</th><th>Members</th><th>Capacity (h)</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              @for (team of teams(); track team.id) {
+                <tr>
+                  <td class="primary-cell">
+                    <span class="dot" [style.background]="team.color"></span>{{ team.name }}
+                  </td>
+                  <td class="muted">{{ team.project?.name ?? '—' }}</td>
+                  <td>{{ team.members_count ?? team.members?.length ?? 0 }}</td>
+                  <td>{{ team.capacity_hours ?? '—' }}</td>
+                  <td class="actions">
+                    <button class="danger-btn compact" (click)="deleteTeam(team)">Delete</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    }
+  </main>
+</div>
+
+@if (showCreateModal()) {
+  <div class="modal-backdrop" (click)="showCreateModal.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2>New Team</h2>
+
+      <div class="form-group">
+        <label>Team Name</label>
+        <input type="text" [(ngModel)]="newTeam.name" placeholder="QA Team" />
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" [(ngModel)]="newTeam.description" placeholder="Optional" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Color</label>
+          <input type="color" [(ngModel)]="newTeam.color" />
+        </div>
+        <div class="form-group">
+          <label>Weekly Capacity (hours)</label>
+          <input type="number" [(ngModel)]="newTeam.capacity_hours" placeholder="40" min="0" />
+        </div>
+      </div>
+
+      @if (error()) { <div class="form-error">{{ error() }}</div> }
+
+      <div class="modal-actions">
+        <button class="secondary-btn" (click)="showCreateModal.set(false)">Cancel</button>
+        <button class="primary-btn" (click)="createTeam()" [disabled]="submitting() || !newTeam.name">
+          {{ submitting() ? 'Creating...' : 'Create Team' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

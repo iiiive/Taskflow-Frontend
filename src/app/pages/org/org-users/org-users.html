@@ -1,0 +1,110 @@
+<div class="org-page">
+  <app-sidebar [orgMode]="true" activePage="org-users"></app-sidebar>
+
+  <main class="org-main">
+    <header class="page-header">
+      <div>
+        <p class="breadcrumb">Organization</p>
+        <h1>Users</h1>
+        <p class="header-text">Create accounts and assign people to projects.</p>
+      </div>
+      <button class="primary-btn" (click)="openCreate()">+ New User</button>
+    </header>
+
+    @if (loading()) {
+      <div class="loading-state">Loading users...</div>
+    } @else {
+      @if (error()) { <div class="form-error">{{ error() }}</div> }
+      <div class="content-card">
+        @if (users().length === 0) {
+          <div class="empty-state">No users yet. Create one to get started.</div>
+        } @else {
+          <table class="data-table">
+            <thead>
+              <tr><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              @for (user of users(); track user.id) {
+                <tr>
+                  <td class="primary-cell">{{ user.name }}</td>
+                  <td class="muted">{{ user.email }}</td>
+                  <td>
+                    @if (user.is_org_admin) {
+                      <span class="badge blue">Org Admin</span>
+                    } @else {
+                      <span class="badge">Member</span>
+                    }
+                  </td>
+                  <td class="actions">
+                    @if (!user.is_org_admin) {
+                      <button class="danger-btn compact" (click)="deleteUser(user)">Remove</button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    }
+  </main>
+</div>
+
+@if (showCreateModal()) {
+  <div class="modal-backdrop" (click)="showCreateModal.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2>New User</h2>
+
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" [(ngModel)]="newUser.name" placeholder="Jane Doe" />
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" [(ngModel)]="newUser.email" placeholder="jane@example.com" />
+      </div>
+
+      <p class="section-label">Project Assignments (optional)</p>
+      <div class="assign-row">
+        <div class="form-group">
+          <label>Project</label>
+          <select [(ngModel)]="draft.project_id">
+            <option [ngValue]="null">Select a project</option>
+            @for (project of projects(); track project.id) {
+              <option [ngValue]="project.id">{{ project.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select [(ngModel)]="draft.role">
+            @for (role of roles; track role.value) {
+              <option [value]="role.value">{{ role.label }}</option>
+            }
+          </select>
+        </div>
+        <button class="secondary-btn" (click)="addAssignment()">Add</button>
+      </div>
+
+      @if (assignments().length > 0) {
+        <div class="assigned-list">
+          @for (assignment of assignments(); track assignment.project_id; let i = $index) {
+            <div class="assigned-pill">
+              <span>{{ projectName(assignment.project_id) }} — {{ roleLabel(assignment.role) }}</span>
+              <button class="remove" (click)="removeAssignment(i)">✕</button>
+            </div>
+          }
+        </div>
+      }
+
+      @if (error()) { <div class="form-error" style="margin-top:12px">{{ error() }}</div> }
+
+      <div class="modal-actions">
+        <button class="secondary-btn" (click)="showCreateModal.set(false)">Cancel</button>
+        <button class="primary-btn" (click)="createUser()" [disabled]="submitting() || !newUser.name || !newUser.email">
+          {{ submitting() ? 'Creating...' : 'Create User' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

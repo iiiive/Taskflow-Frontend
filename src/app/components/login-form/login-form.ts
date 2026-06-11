@@ -324,9 +324,19 @@ export class LoginForm implements OnInit {
     this.twoFactorToken = '';
     this.twoFactorCode = '';
 
-    this.showMessage('Login successful. Redirecting to your dashboard...', true);
+    const isSuperAdmin = res?.user?.is_super_admin === true;
+    const isOrgAdmin = res?.user?.is_org_admin === true;
 
-    this.router.navigate(['/dashboard'], { replaceUrl: true });
+    const target = isSuperAdmin ? '/admin' : isOrgAdmin ? '/org' : '/dashboard';
+    const destinationLabel = isSuperAdmin
+      ? 'admin panel'
+      : isOrgAdmin
+        ? 'organization console'
+        : 'your dashboard';
+
+    this.showMessage(`Login successful. Redirecting to ${destinationLabel}...`, true);
+
+    this.router.navigate([target], { replaceUrl: true });
   }
 
   private normalizeEmailValue(value: string): string {

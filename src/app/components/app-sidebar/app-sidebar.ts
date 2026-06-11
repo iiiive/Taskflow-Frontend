@@ -25,6 +25,13 @@ type SidebarPage =
   | 'archive'
   | 'sprints'
   | 'workflows'
+  | 'overview'
+  | 'organizations'
+  | 'plans'
+  | 'org-overview'
+  | 'org-users'
+  | 'org-projects'
+  | 'org-teams'
   | '';
 
 @Component({
@@ -37,6 +44,8 @@ type SidebarPage =
 export class AppSidebar implements OnInit {
   @Input() activePage: SidebarPage = '';
   @Input() workspaceId: number | null = null;
+  @Input() adminMode = false;
+  @Input() orgMode = false;
 
   @HostBinding('class.sidebar-collapsed-host')
   isCollapsed = false;
@@ -118,6 +127,41 @@ export class AppSidebar implements OnInit {
     }
 
     this.selectedWorkspaceId = null;
+
+    if (cleanUrl === '/admin' || cleanUrl === '/admin/') {
+      this.activePage = 'overview';
+      return;
+    }
+
+    if (cleanUrl.startsWith('/admin/organizations')) {
+      this.activePage = 'organizations';
+      return;
+    }
+
+    if (cleanUrl.startsWith('/admin/plans')) {
+      this.activePage = 'plans';
+      return;
+    }
+
+    if (cleanUrl === '/org' || cleanUrl === '/org/') {
+      this.activePage = 'org-overview';
+      return;
+    }
+
+    if (cleanUrl.startsWith('/org/users')) {
+      this.activePage = 'org-users';
+      return;
+    }
+
+    if (cleanUrl.startsWith('/org/projects')) {
+      this.activePage = 'org-projects';
+      return;
+    }
+
+    if (cleanUrl.startsWith('/org/teams')) {
+      this.activePage = 'org-teams';
+      return;
+    }
 
     if (cleanUrl.startsWith('/dashboard')) {
       this.activePage = 'dashboard';

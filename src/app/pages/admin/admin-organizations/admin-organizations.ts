@@ -1,12 +1,13 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AppSidebar } from '../../../components/app-sidebar/app-sidebar';
 import { AdminService } from '../../../services/admin/admin.service';
 
 @Component({
   selector: 'app-admin-organizations',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AppSidebar],
   templateUrl: './admin-organizations.html',
   styleUrl: './admin-organizations.scss'
 })
@@ -18,7 +19,8 @@ export class AdminOrganizations implements OnInit {
   submitting = signal(false);
   error = signal<string | null>(null);
 
-  newOrg = { name: '', owner_email: '', subscription_plan_id: '' };
+  newOrg = { name: '', owner_name: '', owner_email: '', subscription_plan_id: '' };
+  renewingId = signal<number | null>(null);
 
   // Branding / settings edit
   editingOrg = signal<any | null>(null);
@@ -55,16 +57,34 @@ export class AdminOrganizations implements OnInit {
 
   createOrganization(): void {
     this.submitting.set(true);
+    this.error.set(null);
     this.adminService.createOrganization(this.newOrg).subscribe({
       next: (res: any) => {
         this.organizations.update(orgs => [res.data, ...orgs]);
         this.showCreateModal.set(false);
-        this.newOrg = { name: '', owner_email: '', subscription_plan_id: '' };
+        this.newOrg = { name: '', owner_name: '', owner_email: '', subscription_plan_id: '' };
         this.submitting.set(false);
       },
-      error: () => {
-        this.error.set('Failed to create organization.');
+      error: (err: any) => {
+        this.error.set(
+          err?.error?.errors?.owner_email?.[0] || err?.error?.message || 'Failed to create organization.'
+        );
         this.submitting.set(false);
+      }
+    });
+  }
+
+  renewOrganization(org: any): void {
+    if (!confirm(`Renew the subscription for "${org.name}"?`)) return;
+    this.renewingId.set(org.id);
+    this.adminService.renewOrganization(org.id).subscribe({
+      next: (res: any) => {
+        this.organizations.update(orgs => orgs.map(o => o.id === org.id ? res.data : o));
+        this.renewingId.set(null);
+      },
+      error: (err: any) => {
+        this.error.set(err?.error?.message || 'Failed to renew subscription.');
+        this.renewingId.set(null);
       }
     });
   }

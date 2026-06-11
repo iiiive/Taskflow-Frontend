@@ -1,0 +1,70 @@
+<div class="org-page">
+  <app-sidebar [orgMode]="true" activePage="org-overview"></app-sidebar>
+
+  <main class="org-main">
+    <header class="page-header">
+      <div>
+        <p class="breadcrumb">Organization</p>
+        <h1>{{ organization()?.name || 'Overview' }}</h1>
+        <p class="header-text">Manage your organization's users, projects and teams.</p>
+      </div>
+    </header>
+
+    @if (loading()) {
+      <div class="loading-state">Loading...</div>
+    } @else if (error()) {
+      <div class="error-state">{{ error() }}</div>
+    } @else {
+      @if (organization()?.is_expired) {
+        <div class="expiry-banner expired">
+          Your subscription has expired. Please contact your platform administrator to renew access.
+        </div>
+      } @else if (organization()?.subscription_ends_at) {
+        <div class="expiry-banner active">
+          Subscription active until <strong>{{ organization()?.subscription_ends_at | date:'mediumDate' }}</strong>
+          @if (organization()?.subscription_plan?.name) {
+            · Plan: <strong>{{ organization()?.subscription_plan?.name }}</strong>
+          }
+        </div>
+      }
+
+      <div class="stats-grid">
+        <a routerLink="/org/projects" class="stat-card">
+          <div class="stat-icon">□</div>
+          <div class="stat-value">{{ counts().projects }}</div>
+          <div class="stat-label">Projects</div>
+        </a>
+        <a routerLink="/org/users" class="stat-card">
+          <div class="stat-icon">◉</div>
+          <div class="stat-value">{{ counts().users }}</div>
+          <div class="stat-label">Users</div>
+        </a>
+        <a routerLink="/org/teams" class="stat-card">
+          <div class="stat-icon">◈</div>
+          <div class="stat-value">{{ counts().teams }}</div>
+          <div class="stat-label">Teams</div>
+        </a>
+      </div>
+
+      @if (organization()?.subscription_plan; as plan) {
+        <div class="content-card">
+          <div class="card-header"><h2>Plan Limits</h2></div>
+          <div class="limits">
+            <div class="limit-item">
+              <span>Projects</span>
+              <strong>{{ counts().projects }} / {{ plan.max_projects ?? '∞' }}</strong>
+            </div>
+            <div class="limit-item">
+              <span>Members</span>
+              <strong>{{ counts().users }} / {{ plan.max_members ?? '∞' }}</strong>
+            </div>
+            <div class="limit-item">
+              <span>Storage</span>
+              <strong>{{ plan.storage_gb ?? '∞' }} GB</strong>
+            </div>
+          </div>
+        </div>
+      }
+    }
+  </main>
+</div>

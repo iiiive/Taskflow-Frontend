@@ -1,53 +1,76 @@
-<div class="admin-dashboard">
-  <div class="admin-header">
-    <h1>Super Admin Panel</h1>
-    <nav class="admin-nav">
-      <a routerLink="/admin/organizations" routerLinkActive="active">Organizations</a>
-      <a routerLink="/admin/plans" routerLinkActive="active">Subscription Plans</a>
-    </nav>
-  </div>
+<div class="admin-page">
+  <app-sidebar [adminMode]="true" activePage="overview"></app-sidebar>
 
-  @if (loading()) {
-    <div class="loading">Loading...</div>
-  } @else if (error()) {
-    <div class="error">{{ error() }}</div>
-  } @else {
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-value">{{ organizations().length }}</div>
-        <div class="stat-label">Organizations</div>
+  <main class="admin-main">
+    <header class="page-header">
+      <div>
+        <p class="breadcrumb">Admin Panel</p>
+        <h1>Overview</h1>
+        <p class="header-text">Manage organizations, subscription plans, and platform settings.</p>
       </div>
-    </div>
+    </header>
 
-    <div class="section">
-      <div class="section-header">
-        <h2>Recent Organizations</h2>
-        <a routerLink="/admin/organizations" class="btn-link">View all</a>
+    @if (loading()) {
+      <div class="loading-state">Loading...</div>
+    } @else if (error()) {
+      <div class="error-state">{{ error() }}</div>
+    } @else {
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">◈</div>
+          <div class="stat-value">{{ organizations().length }}</div>
+          <div class="stat-label">Organizations</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">▣</div>
+          <div class="stat-value">{{ activeOrgs() }}</div>
+          <div class="stat-label">Active Orgs</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">◉</div>
+          <div class="stat-value">{{ plans().length }}</div>
+          <div class="stat-label">Subscription Plans</div>
+        </div>
       </div>
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Owner Email</th>
-            <th>Plan</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (org of organizations().slice(0, 10); track org.id) {
-            <tr>
-              <td>{{ org.name }}</td>
-              <td>{{ org.owner_email }}</td>
-              <td>{{ org.subscription_plan?.name ?? '—' }}</td>
-              <td>
-                <span [class]="org.is_active ? 'badge badge-green' : 'badge badge-red'">
-                  {{ org.is_active ? 'Active' : 'Inactive' }}
-                </span>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  }
+
+      <div class="content-card">
+        <div class="card-header">
+          <h2>Recent Organizations</h2>
+          <a routerLink="/admin/organizations" class="view-all-link">View all →</a>
+        </div>
+
+        @if (organizations().length === 0) {
+          <div class="empty-state">
+            No organizations yet.
+            <a routerLink="/admin/organizations">Create one →</a>
+          </div>
+        } @else {
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Owner Email</th>
+                <th>Plan</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (org of organizations().slice(0, 8); track org.id) {
+                <tr>
+                  <td class="org-name">{{ org.name }}</td>
+                  <td class="muted">{{ org.owner_email }}</td>
+                  <td>{{ org.subscription_plan?.name ?? '—' }}</td>
+                  <td>
+                    <span [class]="org.is_active ? 'badge badge-green' : 'badge badge-red'">
+                      {{ org.is_active ? 'Active' : 'Inactive' }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    }
+  </main>
 </div>

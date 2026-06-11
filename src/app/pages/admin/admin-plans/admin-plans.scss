@@ -116,7 +116,7 @@
   border-collapse: collapse;
 
   th {
-    padding: 10px 20px;
+    padding: 10px 24px;
     font-size: 11px;
     font-weight: 900;
     text-transform: uppercase;
@@ -128,7 +128,7 @@
   }
 
   td {
-    padding: 14px 20px;
+    padding: 16px 24px;
     font-size: 14px;
     color: #334155;
     border-bottom: 1px solid rgba(84, 122, 149, 0.06);
@@ -138,34 +138,22 @@
   tbody tr:last-child td { border-bottom: none; }
   tbody tr:hover td { background: #f8fafc; }
 
-  .org-name { font-weight: 700; color: #0f172a; }
-  .muted { color: #64748b; }
-  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-
-  &-green { background: #dcfce7; color: #166534; }
-  &-red   { background: #fee2e2; color: #991b1b; }
+  .plan-name { font-weight: 800; color: #0f172a; }
+  .actions { display: flex; gap: 8px; }
 }
 
 /* ── States ── */
 
 .loading-state,
-.empty-state {
+.empty-state,
+.error-state {
   padding: 48px 24px;
   text-align: center;
   color: #64748b;
   font-size: 14px;
 }
+
+.error-state { color: #dc2626; }
 
 /* ── Modal ── */
 
@@ -186,8 +174,6 @@
   padding: 28px 32px;
   width: 480px;
   max-width: 95vw;
-  max-height: 90vh;
-  overflow-y: auto;
   box-shadow: 0 24px 64px rgba(15, 23, 42, 0.18);
 
   h2 {
@@ -197,15 +183,6 @@
     color: #0f172a;
     letter-spacing: -0.03em;
   }
-}
-
-.section-label {
-  margin: 16px 0 10px;
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #547a95;
 }
 
 .form-group {
@@ -219,7 +196,7 @@
     margin-bottom: 6px;
   }
 
-  input, select {
+  input {
     width: 100%;
     height: 40px;
     padding: 0 12px;
@@ -238,18 +215,12 @@
       box-shadow: 0 0 0 3px rgba(84, 122, 149, 0.12);
     }
   }
+}
 
-  input[type="color"] {
-    height: 40px;
-    padding: 4px 6px;
-    cursor: pointer;
-  }
-
-  input[type="file"] {
-    height: auto;
-    padding: 8px 10px;
-    font-size: 13px;
-  }
+.hint {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
 }
 
 .form-row {
@@ -271,53 +242,4 @@
   justify-content: flex-end;
   gap: 10px;
   margin-top: 20px;
-}
-
-.org-logo-preview {
-  display: block;
-  max-height: 44px;
-  margin-bottom: 8px;
-  border-radius: 8px;
-}
-
-/* ── Billing ── */
-
-.billing-plan {
-  margin: 0 0 16px;
-  font-size: 14px;
-  color: #334155;
-}
-
-.usage-block { margin-bottom: 14px; }
-
-.usage-label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  color: #475569;
-  font-weight: 600;
-  margin-bottom: 6px;
-
-  span { color: #0f172a; font-weight: 800; }
-}
-
-.usage-bar {
-  height: 8px;
-  background: #eef2f7;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.usage-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #7ca6c2, #547a95);
-  border-radius: 999px;
-  transition: width 0.3s ease;
-}
-
-.form-hint {
-  margin: 4px 0 12px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: #64748b;
 }

@@ -1,6 +1,8 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
+import { userOnlyGuard } from './guards/user-only.guard';
+import { orgAdminGuard } from './guards/org-admin.guard';
 
 export const routes: Routes = [
   {
@@ -34,81 +36,81 @@ export const routes: Routes = [
   {
     path: 'dashboard',
     loadComponent: () => import('./pages/dashboard/dashboard').then(m => m.Dashboard),
-    canActivate: [authGuard]
+    canActivate: [authGuard, userOnlyGuard]
   },
 
   {
     path: 'projects',
     loadComponent: () => import('./pages/workspaces/workspaces').then(m => m.Workspaces),
-    canActivate: [authGuard]
+    canActivate: [authGuard, userOnlyGuard]
   },
 
   {
     path: 'profile',
     loadComponent: () => import('./pages/profile/profile').then(m => m.Profile),
-    canActivate: [authGuard]
+    canActivate: [authGuard, userOnlyGuard]
   },
 
   {
     path: 'projects/:id/board',
     loadComponent: () =>
       import('./pages/workspace-board/workspace-board').then(m => m.WorkspaceBoard),
-    canActivate: [authGuard]
+    canActivate: [authGuard, userOnlyGuard]
   },
 
   {
     path: 'projects/:id/backlog',
     loadComponent: () =>
       import('./pages/workspace-backlog/workspace-backlog').then(m => m.WorkspaceBacklog),
-    canActivate: [authGuard]
+    canActivate: [authGuard, userOnlyGuard]
   },
 
   {
     path: 'projects/:id/activity',
     loadComponent: () =>
       import('./pages/workspace-activity/workspace-activity').then(m => m.WorkspaceActivity),
-    canActivate: [authGuard]
+    canActivate: [authGuard, userOnlyGuard]
   },
 
   {
     path: 'projects/:id/archive',
     loadComponent: () =>
       import('./pages/workspace-archive/workspace-archive').then(m => m.WorkspaceArchive),
-    canActivate: [authGuard]
+    canActivate: [authGuard, userOnlyGuard]
   },
 
   {
     path: 'projects/:id/timesheet',
     loadComponent: () =>
       import('./pages/workspace-timesheet/workspace-timesheet').then(m => m.WorkspaceTimesheet),
-    canActivate: [authGuard]
+    canActivate: [authGuard, userOnlyGuard]
   },
 
   {
     path: 'teams',
     loadComponent: () => import('./pages/teams/teams').then(m => m.Teams),
-    canActivate: [authGuard]
+    canActivate: [authGuard, userOnlyGuard]
   },
 
   {
     path: 'projects/:id/sprints',
     loadComponent: () =>
       import('./pages/workspace-sprints/workspace-sprints').then(m => m.WorkspaceSprints),
-    canActivate: [authGuard]
+    canActivate: [authGuard, userOnlyGuard]
   },
 
   {
     path: 'projects/:id/workflows',
     loadComponent: () =>
       import('./pages/workspace-workflows/workspace-workflows').then(m => m.WorkspaceWorkflows),
-    canActivate: [authGuard]
+    canActivate: [authGuard, userOnlyGuard]
   },
 
   {
     path: 'projects/:id/reports',
     loadComponent: () =>
       import('./pages/reports/reports').then(m => m.Reports),
-    canActivate: [authGuard]
+    canActivate: [authGuard, userOnlyGuard]
   },
 
   {
@@ -124,6 +126,38 @@ export const routes: Routes = [
         path: 'organizations',
         loadComponent: () =>
           import('./pages/admin/admin-organizations/admin-organizations').then(m => m.AdminOrganizations)
+      },
+      {
+        path: 'plans',
+        loadComponent: () =>
+          import('./pages/admin/admin-plans/admin-plans').then(m => m.AdminPlans)
+      }
+    ]
+  },
+
+  {
+    path: 'org',
+    canActivate: [authGuard, orgAdminGuard],
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./pages/org/org-overview/org-overview').then(m => m.OrgOverview)
+      },
+      {
+        path: 'users',
+        loadComponent: () =>
+          import('./pages/org/org-users/org-users').then(m => m.OrgUsers)
+      },
+      {
+        path: 'projects',
+        loadComponent: () =>
+          import('./pages/org/org-projects/org-projects').then(m => m.OrgProjects)
+      },
+      {
+        path: 'teams',
+        loadComponent: () =>
+          import('./pages/org/org-teams/org-teams').then(m => m.OrgTeams)
       }
     ]
   },

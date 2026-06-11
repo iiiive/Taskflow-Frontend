@@ -13,6 +13,11 @@ export const adminGuard: CanActivateFn = () => {
   try {
     const user = JSON.parse(userJson);
     if (user?.is_super_admin) return true;
+    // Org admins belong in their own console, not the platform admin.
+    if (user?.is_org_admin) {
+      router.navigate(['/org'], { replaceUrl: true });
+      return false;
+    }
   } catch {}
 
   router.navigate(['/dashboard']);

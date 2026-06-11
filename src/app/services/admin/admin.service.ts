@@ -34,6 +34,10 @@ export class AdminService extends ApiService {
     return this.get(`/admin/organizations/${id}/billing`);
   }
 
+  renewOrganization(id: number, endsAt?: string): Observable<any> {
+    return this.post(`/admin/organizations/${id}/renew`, endsAt ? { ends_at: endsAt } : {});
+  }
+
   deleteOrganization(id: number): Observable<any> {
     return this.delete(`/admin/organizations/${id}`);
   }

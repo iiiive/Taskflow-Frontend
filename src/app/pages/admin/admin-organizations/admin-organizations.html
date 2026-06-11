@@ -1,173 +1,211 @@
-<div class="admin-orgs">
-  <div class="page-header">
-    <h1>Organizations</h1>
-    <button class="btn-primary" (click)="showCreateModal.set(true)">+ New Organization</button>
-  </div>
+<div class="admin-page">
+  <app-sidebar [adminMode]="true" activePage="organizations"></app-sidebar>
 
-  @if (loading()) {
-    <div class="loading">Loading organizations...</div>
-  } @else {
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Owner Email</th>
-          <th>Plan</th>
-          <th>Users</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (org of organizations(); track org.id) {
-          <tr>
-            <td class="org-name">{{ org.name }}</td>
-            <td>{{ org.owner_email }}</td>
-            <td>{{ org.subscription_plan?.name ?? '—' }}</td>
-            <td>{{ org.users_count ?? 0 }}</td>
-            <td>
-              <span [class]="org.is_active ? 'badge badge-green' : 'badge badge-red'">
-                {{ org.is_active ? 'Active' : 'Inactive' }}
-              </span>
-            </td>
-            <td class="actions">
-              <button class="btn-sm btn-outline" (click)="openEdit(org)">Edit</button>
-              <button class="btn-sm btn-outline" (click)="openBilling(org)">Billing</button>
-              <button class="btn-sm btn-outline" (click)="toggleStatus(org)">
-                {{ org.is_active ? 'Deactivate' : 'Activate' }}
-              </button>
-              <button class="btn-sm btn-danger" (click)="deleteOrganization(org.id)">Delete</button>
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
-  }
-
-  @if (showCreateModal()) {
-    <div class="modal-backdrop" (click)="showCreateModal.set(false)">
-      <div class="modal" (click)="$event.stopPropagation()">
-        <h2>New Organization</h2>
-        <div class="form-group">
-          <label>Organization Name</label>
-          <input type="text" [(ngModel)]="newOrg.name" placeholder="Acme Corp" />
-        </div>
-        <div class="form-group">
-          <label>Owner Email</label>
-          <input type="email" [(ngModel)]="newOrg.owner_email" placeholder="admin@acme.com" />
-        </div>
-        <div class="form-group">
-          <label>Subscription Plan</label>
-          <select [(ngModel)]="newOrg.subscription_plan_id">
-            <option value="">Select a plan</option>
-            @for (plan of plans(); track plan.id) {
-              <option [value]="plan.id">{{ plan.name }}</option>
-            }
-          </select>
-        </div>
-        @if (error()) {
-          <div class="form-error">{{ error() }}</div>
-        }
-        <div class="modal-actions">
-          <button class="btn-outline" (click)="showCreateModal.set(false)">Cancel</button>
-          <button class="btn-primary" (click)="createOrganization()" [disabled]="submitting()">
-            {{ submitting() ? 'Creating...' : 'Create Organization' }}
-          </button>
-        </div>
+  <main class="admin-main">
+    <header class="page-header">
+      <div>
+        <p class="breadcrumb">Admin Panel</p>
+        <h1>Organizations</h1>
+        <p class="header-text">Create and manage customer organizations.</p>
       </div>
-    </div>
-  }
+      <button class="primary-btn" (click)="showCreateModal.set(true)">+ New Organization</button>
+    </header>
 
-  @if (editingOrg(); as org) {
-    <div class="modal-backdrop" (click)="closeEdit()">
-      <div class="modal" (click)="$event.stopPropagation()">
-        <h2>Edit Organization</h2>
-
-        <div class="form-group">
-          <label>Organization Name</label>
-          <input type="text" [(ngModel)]="editForm.name" />
-        </div>
-        <div class="form-group">
-          <label>Owner Email</label>
-          <input type="email" [(ngModel)]="editForm.owner_email" />
-        </div>
-        <div class="form-group">
-          <label>Subscription Plan</label>
-          <select [(ngModel)]="editForm.subscription_plan_id">
-            <option value="">Select a plan</option>
-            @for (plan of plans(); track plan.id) {
-              <option [value]="plan.id">{{ plan.name }}</option>
-            }
-          </select>
-        </div>
-
-        <h3 class="section-subtitle">Branding</h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Primary Color</label>
-            <input type="color" [(ngModel)]="editForm.primary_color" />
-          </div>
-          <div class="form-group">
-            <label>Logo</label>
-            @if (org.logo_url) {
-              <img [src]="org.logo_url" alt="Current logo" class="org-logo-preview" />
-            }
-            <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" (change)="onLogoSelected($event)" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Custom Domain</label>
-          <input type="text" [(ngModel)]="editForm.custom_domain" placeholder="acme.example.com" />
-        </div>
-
-        @if (error()) {
-          <div class="form-error">{{ error() }}</div>
+    @if (loading()) {
+      <div class="loading-state">Loading organizations...</div>
+    } @else {
+      <div class="content-card">
+        @if (organizations().length === 0) {
+          <div class="empty-state">No organizations yet. Create one to get started.</div>
+        } @else {
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Owner Email</th>
+                <th>Plan</th>
+                <th>Users</th>
+                <th>Subscription</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (org of organizations(); track org.id) {
+                <tr>
+                  <td class="org-name">{{ org.name }}</td>
+                  <td class="muted">{{ org.owner_email }}</td>
+                  <td>{{ org.subscription_plan?.name ?? '—' }}</td>
+                  <td>{{ org.users_count ?? 0 }}</td>
+                  <td>
+                    @if (org.subscription_ends_at) {
+                      <span [class]="org.is_expired ? 'badge badge-red' : 'badge badge-green'">
+                        {{ org.is_expired ? 'Expired' : 'Until' }} {{ org.subscription_ends_at | date:'mediumDate' }}
+                      </span>
+                    } @else {
+                      <span class="muted">No expiry</span>
+                    }
+                  </td>
+                  <td>
+                    <span [class]="org.is_active ? 'badge badge-green' : 'badge badge-red'">
+                      {{ org.is_active ? 'Active' : 'Inactive' }}
+                    </span>
+                  </td>
+                  <td class="actions">
+                    <button class="secondary-btn compact" (click)="openEdit(org)">Edit</button>
+                    <button class="secondary-btn compact" (click)="openBilling(org)">Billing</button>
+                    @if (org.is_expired || !org.is_active) {
+                      <button class="secondary-btn compact" (click)="renewOrganization(org)" [disabled]="renewingId() === org.id">
+                        {{ renewingId() === org.id ? 'Renewing...' : 'Renew' }}
+                      </button>
+                    }
+                    <button class="secondary-btn compact" (click)="toggleStatus(org)">
+                      {{ org.is_active ? 'Deactivate' : 'Activate' }}
+                    </button>
+                    <button class="danger-btn compact" (click)="deleteOrganization(org.id)">Delete</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
         }
-
-        <div class="modal-actions">
-          <button class="btn-outline" (click)="closeEdit()">Cancel</button>
-          <button class="btn-primary" (click)="saveBranding()" [disabled]="savingEdit()">
-            {{ savingEdit() ? 'Saving...' : 'Save Changes' }}
-          </button>
-        </div>
       </div>
-    </div>
-  }
-
-  @if (billing(); as bill) {
-    <div class="modal-backdrop" (click)="closeBilling()">
-      <div class="modal" (click)="$event.stopPropagation()">
-        <h2>Billing — {{ billingOrgName() }}</h2>
-
-        <p class="billing-plan">
-          Plan: <strong>{{ bill.plan?.name ?? 'No plan assigned' }}</strong>
-        </p>
-
-        <div class="usage-block">
-          <div class="usage-label">
-            Projects <span>{{ bill.usage.projects.used }} / {{ bill.usage.projects.limit ?? '∞' }}</span>
-          </div>
-          <div class="usage-bar"><div class="usage-fill" [style.width.%]="usagePercent(bill.usage.projects.used, bill.usage.projects.limit)"></div></div>
-        </div>
-
-        <div class="usage-block">
-          <div class="usage-label">
-            Members <span>{{ bill.usage.members.used }} / {{ bill.usage.members.limit ?? '∞' }}</span>
-          </div>
-          <div class="usage-bar"><div class="usage-fill" [style.width.%]="usagePercent(bill.usage.members.used, bill.usage.members.limit)"></div></div>
-        </div>
-
-        <div class="usage-block">
-          <div class="usage-label">
-            Storage <span>{{ bill.usage.storage.used_gb }} GB / {{ bill.usage.storage.limit_gb ?? '∞' }} GB</span>
-          </div>
-          <div class="usage-bar"><div class="usage-fill" [style.width.%]="usagePercent(bill.usage.storage.used_bytes, bill.usage.storage.limit_bytes)"></div></div>
-        </div>
-
-        <div class="modal-actions">
-          <button class="btn-outline" (click)="closeBilling()">Close</button>
-        </div>
-      </div>
-    </div>
-  }
+    }
+  </main>
 </div>
+
+@if (showCreateModal()) {
+  <div class="modal-backdrop" (click)="showCreateModal.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2>New Organization</h2>
+      <div class="form-group">
+        <label>Organization Name</label>
+        <input type="text" [(ngModel)]="newOrg.name" placeholder="Acme Corp" />
+      </div>
+      <div class="form-group">
+        <label>Org Admin Name</label>
+        <input type="text" [(ngModel)]="newOrg.owner_name" placeholder="Jane Doe" />
+      </div>
+      <div class="form-group">
+        <label>Org Admin Email</label>
+        <input type="email" [(ngModel)]="newOrg.owner_email" placeholder="admin@acme.com" />
+      </div>
+      <div class="form-group">
+        <label>Subscription Plan</label>
+        <select [(ngModel)]="newOrg.subscription_plan_id">
+          <option value="">Select a plan</option>
+          @for (plan of plans(); track plan.id) {
+            <option [value]="plan.id">{{ plan.name }}</option>
+          }
+        </select>
+      </div>
+      <p class="form-hint">An admin account will be created and login credentials emailed to the org admin.
+        The subscription window is set from the plan's duration.</p>
+      @if (error()) {
+        <div class="form-error">{{ error() }}</div>
+      }
+      <div class="modal-actions">
+        <button class="secondary-btn" (click)="showCreateModal.set(false)">Cancel</button>
+        <button class="primary-btn" (click)="createOrganization()" [disabled]="submitting()">
+          {{ submitting() ? 'Creating...' : 'Create Organization' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (editingOrg(); as org) {
+  <div class="modal-backdrop" (click)="closeEdit()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2>Edit — {{ org.name }}</h2>
+
+      <div class="form-group">
+        <label>Organization Name</label>
+        <input type="text" [(ngModel)]="editForm.name" />
+      </div>
+      <div class="form-group">
+        <label>Owner Email</label>
+        <input type="email" [(ngModel)]="editForm.owner_email" />
+      </div>
+      <div class="form-group">
+        <label>Subscription Plan</label>
+        <select [(ngModel)]="editForm.subscription_plan_id">
+          <option value="">Select a plan</option>
+          @for (plan of plans(); track plan.id) {
+            <option [value]="plan.id">{{ plan.name }}</option>
+          }
+        </select>
+      </div>
+
+      <p class="section-label">Branding</p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Primary Color</label>
+          <input type="color" [(ngModel)]="editForm.primary_color" />
+        </div>
+        <div class="form-group">
+          <label>Logo</label>
+          @if (org.logo_url) {
+            <img [src]="org.logo_url" alt="Current logo" class="org-logo-preview" />
+          }
+          <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" (change)="onLogoSelected($event)" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Custom Domain</label>
+        <input type="text" [(ngModel)]="editForm.custom_domain" placeholder="acme.example.com" />
+      </div>
+
+      @if (error()) {
+        <div class="form-error">{{ error() }}</div>
+      }
+      <div class="modal-actions">
+        <button class="secondary-btn" (click)="closeEdit()">Cancel</button>
+        <button class="primary-btn" (click)="saveBranding()" [disabled]="savingEdit()">
+          {{ savingEdit() ? 'Saving...' : 'Save Changes' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (billing(); as bill) {
+  <div class="modal-backdrop" (click)="closeBilling()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2>Billing — {{ billingOrgName() }}</h2>
+
+      <p class="billing-plan">Plan: <strong>{{ bill.plan?.name ?? 'No plan assigned' }}</strong></p>
+
+      <div class="usage-block">
+        <div class="usage-label">
+          Projects <span>{{ bill.usage.projects.used }} / {{ bill.usage.projects.limit ?? '∞' }}</span>
+        </div>
+        <div class="usage-bar">
+          <div class="usage-fill" [style.width.%]="usagePercent(bill.usage.projects.used, bill.usage.projects.limit)"></div>
+        </div>
+      </div>
+
+      <div class="usage-block">
+        <div class="usage-label">
+          Members <span>{{ bill.usage.members.used }} / {{ bill.usage.members.limit ?? '∞' }}</span>
+        </div>
+        <div class="usage-bar">
+          <div class="usage-fill" [style.width.%]="usagePercent(bill.usage.members.used, bill.usage.members.limit)"></div>
+        </div>
+      </div>
+
+      <div class="usage-block">
+        <div class="usage-label">
+          Storage <span>{{ bill.usage.storage.used_gb }} GB / {{ bill.usage.storage.limit_gb ?? '∞' }} GB</span>
+        </div>
+        <div class="usage-bar">
+          <div class="usage-fill" [style.width.%]="usagePercent(bill.usage.storage.used_bytes, bill.usage.storage.limit_bytes)"></div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="secondary-btn" (click)="closeBilling()">Close</button>
+      </div>
+    </div>
+  </div>
+}
