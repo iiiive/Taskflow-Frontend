@@ -1,0 +1,113 @@
+<header class="topbar">
+  <!-- Global search -->
+  <div class="topbar-search" [class.is-open]="searchOpen">
+    <span class="search-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <circle cx="11" cy="11" r="7" stroke-width="1.8" />
+        <path d="M21 21l-4.3-4.3" stroke-width="1.8" stroke-linecap="round" />
+      </svg>
+    </span>
+
+    <input
+      type="search"
+      class="search-input"
+      [(ngModel)]="query"
+      (input)="onSearchInput()"
+      (focus)="onSearchFocus()"
+      placeholder="Search…"
+      aria-label="Global search"
+      autocomplete="off"
+      role="combobox"
+      [attr.aria-expanded]="searchOpen"
+    />
+
+    @if (query) {
+      <button type="button" class="search-clear" (click)="clearSearch()" aria-label="Clear search">×</button>
+    }
+
+    @if (searchOpen) {
+      <div class="search-results" role="listbox">
+        @if (searching) {
+          <div class="search-state">Searching…</div>
+        } @else if (query.trim().length < 2) {
+          <div class="search-state">Type at least 2 characters to search.</div>
+        } @else if (!hasResults) {
+          <div class="search-state">No results for “{{ query }}”.</div>
+        } @else {
+          @for (group of groups; track group.type) {
+            <div class="search-group">
+              <p class="search-group-label">{{ group.label }}</p>
+              @for (item of group.items; track item.type + '-' + item.id) {
+                <button
+                  type="button"
+                  class="search-result"
+                  role="option"
+                  (click)="selectResult(item)"
+                >
+                  <span class="result-label">{{ item.label }}</span>
+                  @if (item.sublabel) {
+                    <span class="result-sublabel">{{ item.sublabel }}</span>
+                  }
+                </button>
+              }
+            </div>
+          }
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Actions -->
+  <div class="topbar-actions">
+    <app-notification-bell></app-notification-bell>
+
+    <div class="topbar-account" [class.is-open]="menuOpen">
+      <button
+        type="button"
+        class="account-trigger"
+        (click)="toggleMenu()"
+        [attr.aria-expanded]="menuOpen"
+        aria-haspopup="menu"
+        aria-label="Account menu"
+      >
+        <span class="account-avatar">
+          @if (avatarUrl) {
+            <img [src]="avatarUrl" [alt]="userName" />
+          } @else {
+            <span>{{ getUserInitial() }}</span>
+          }
+        </span>
+        <span class="account-meta">
+          <strong>{{ userName }}</strong>
+          @if (userEmail) { <small>{{ userEmail }}</small> }
+        </span>
+        <span class="account-caret" aria-hidden="true">▾</span>
+      </button>
+
+      @if (menuOpen) {
+        <div class="account-menu" role="menu">
+          <div class="account-menu-header">
+            <strong>{{ userName }}</strong>
+            @if (userEmail) { <small>{{ userEmail }}</small> }
+          </div>
+
+          <a class="account-menu-item" role="menuitem" [routerLink]="profileLink" (click)="toggleMenu()">
+            <span class="item-icon" aria-hidden="true">◎</span> Profile Settings
+          </a>
+          <a class="account-menu-item" role="menuitem" [routerLink]="profileLink" fragment="security" (click)="toggleMenu()">
+            <span class="item-icon" aria-hidden="true">⛉</span> Account &amp; Security
+          </a>
+          <a class="account-menu-item" role="menuitem" [routerLink]="profileLink" fragment="preferences" (click)="toggleMenu()">
+            <span class="item-icon" aria-hidden="true">⚙</span> Preferences
+          </a>
+
+          <div class="account-menu-sep"></div>
+
+          <button type="button" class="account-menu-item danger" role="menuitem" (click)="logout()">
+            <span class="item-icon" aria-hidden="true">⏻</span> Log out
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</header>

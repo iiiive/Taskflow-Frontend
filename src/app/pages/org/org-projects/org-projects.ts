@@ -1,7 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AppSidebar } from '../../../components/app-sidebar/app-sidebar';
 import { OrgService } from '../../../services/org/org.service';
 import { PROJECT_ROLES } from '../org-roles';
 
@@ -13,7 +12,7 @@ interface MemberAssignment {
 @Component({
   selector: 'app-org-projects',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSidebar],
+  imports: [CommonModule, FormsModule],
   templateUrl: './org-projects.html',
   styleUrl: './org-projects.scss'
 })

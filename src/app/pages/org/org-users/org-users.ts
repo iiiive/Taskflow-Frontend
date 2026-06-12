@@ -1,27 +1,17 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AppSidebar } from '../../../components/app-sidebar/app-sidebar';
 import { OrgService } from '../../../services/org/org.service';
-import { PROJECT_ROLES } from '../org-roles';
-
-interface ProjectAssignment {
-  project_id: number | null;
-  role: string;
-}
 
 @Component({
   selector: 'app-org-users',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSidebar],
+  imports: [CommonModule, FormsModule],
   templateUrl: './org-users.html',
   styleUrl: './org-users.scss'
 })
 export class OrgUsers implements OnInit {
-  readonly roles = PROJECT_ROLES;
-
   users = signal<any[]>([]);
-  projects = signal<any[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
 
@@ -29,16 +19,11 @@ export class OrgUsers implements OnInit {
   submitting = signal(false);
 
   newUser = { name: '', email: '' };
-  assignments = signal<ProjectAssignment[]>([]);
-  draft: ProjectAssignment = { project_id: null, role: 'developer' };
 
   constructor(private orgService: OrgService) {}
 
   ngOnInit(): void {
     this.loadUsers();
-    this.orgService.getProjects().subscribe({
-      next: (res: any) => this.projects.set(res.data ?? [])
-    });
   }
 
   loadUsers(): void {
@@ -57,37 +42,14 @@ export class OrgUsers implements OnInit {
   openCreate(): void {
     this.error.set(null);
     this.newUser = { name: '', email: '' };
-    this.assignments.set([]);
-    this.draft = { project_id: null, role: 'developer' };
     this.showCreateModal.set(true);
-  }
-
-  projectName(id: number | null): string {
-    return this.projects().find(p => p.id === id)?.name ?? '';
-  }
-
-  addAssignment(): void {
-    if (!this.draft.project_id) return;
-    if (this.assignments().some(a => a.project_id === this.draft.project_id)) return;
-    this.assignments.update(list => [...list, { ...this.draft }]);
-    this.draft = { project_id: null, role: 'developer' };
-  }
-
-  removeAssignment(index: number): void {
-    this.assignments.update(list => list.filter((_, i) => i !== index));
   }
 
   createUser(): void {
     this.submitting.set(true);
     this.error.set(null);
 
-    const payload = {
-      name: this.newUser.name,
-      email: this.newUser.email,
-      projects: this.assignments().map(a => ({ project_id: a.project_id, role: a.role }))
-    };
-
-    this.orgService.createUser(payload).subscribe({
+    this.orgService.createUser({ name: this.newUser.name, email: this.newUser.email }).subscribe({
       next: (res: any) => {
         this.users.update(u => [res.data, ...u]);
         this.showCreateModal.set(false);
@@ -106,9 +68,5 @@ export class OrgUsers implements OnInit {
       next: () => this.users.update(u => u.filter(x => x.id !== user.id)),
       error: (err: any) => this.error.set(err?.error?.message || 'Failed to remove user.')
     });
-  }
-
-  roleLabel(value: string): string {
-    return this.roles.find(r => r.value === value)?.label ?? value;
   }
 }

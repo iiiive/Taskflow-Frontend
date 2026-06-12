@@ -1,9 +1,4 @@
 <div class="board-page">
-  <app-sidebar
-    activePage="board"
-    [workspaceId]="workspaceId"
-  ></app-sidebar>
-
   <main class="board-main">
     <header class="page-header">
       <div>
@@ -56,30 +51,18 @@
       </div>
     </header>
 
-    <nav class="ticket-nav" aria-label="Ticket navigation">
-      <button type="button" class="ticket-nav-item active">
-        <span class="nav-icon">▦</span>
-        <span>Development Board</span>
-      </button>
-
-      <button type="button" class="ticket-nav-item" (click)="goToActivityLog()">
-        <span class="nav-icon">↻</span>
-        <span>Activity Log</span>
-      </button>
-
-      <button type="button" class="ticket-nav-item" (click)="goToTimesheet()">
-        <span class="nav-icon">◴</span>
-        <span>Timesheet</span>
-      </button>
-
-      <button type="button" class="ticket-nav-item" (click)="goToArchive()">
-        <span class="nav-icon">▣</span>
-        <span>Archive</span>
-      </button>
-    </nav>
+    <app-workspace-tabs [workspaceId]="workspaceId" active="board" [isScrum]="isScrum()"></app-workspace-tabs>
 
     <section class="status-card error-card" *ngIf="errorMessage && !showCreateModal">
       <p>{{ errorMessage }}</p>
+    </section>
+
+    <section class="status-card" *ngIf="isScrum() && !activeSprintId && !loadingBoard">
+      <p>
+        No active sprint — the board is empty. Add work in the
+        <a class="inline-link" (click)="goToBacklog()">Backlog</a>, then start a sprint
+        from the Sprints page to bring items onto the board.
+      </p>
     </section>
 
     <section class="status-card success-card" *ngIf="successMessage">

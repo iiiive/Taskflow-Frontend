@@ -1,0 +1,34 @@
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+/* Sits to the right of the fixed sidebar; the sidebar host reserves its own
+   width inside the flex row, so no manual offset is needed here. */
+.app-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-outlet {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Make the routed page host fill the available content area, preserving each
+   page's own flex layout (`.x-page` wrappers). */
+.app-outlet > * {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .app-layout {
+    flex-direction: column;
+  }
+}

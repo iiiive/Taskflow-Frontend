@@ -1,0 +1,11 @@
+<div class="app-layout">
+  <app-sidebar [adminMode]="adminMode" [orgMode]="orgMode"></app-sidebar>
+
+  <div class="app-body">
+    <app-topbar [context]="context"></app-topbar>
+
+    <div class="app-outlet">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+</div>

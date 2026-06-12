@@ -1,13 +1,12 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AppSidebar } from '../../../components/app-sidebar/app-sidebar';
 import { AdminService } from '../../../services/admin/admin.service';
 
 @Component({
   selector: 'app-admin-organizations',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSidebar],
+  imports: [CommonModule, FormsModule],
   templateUrl: './admin-organizations.html',
   styleUrl: './admin-organizations.scss'
 })
@@ -27,6 +26,9 @@ export class AdminOrganizations implements OnInit {
   editForm = { name: '', owner_email: '', subscription_plan_id: '', primary_color: '#4f46e5', custom_domain: '' };
   logoFile: File | null = null;
   savingEdit = signal(false);
+
+  // One-time credentials shown after org creation
+  createdCredentials = signal<{ email: string; password: string } | null>(null);
 
   // Billing view
   billing = signal<any | null>(null);
@@ -62,6 +64,10 @@ export class AdminOrganizations implements OnInit {
       next: (res: any) => {
         this.organizations.update(orgs => [res.data, ...orgs]);
         this.showCreateModal.set(false);
+        this.createdCredentials.set({
+          email: this.newOrg.owner_email,
+          password: res.temporary_password
+        });
         this.newOrg = { name: '', owner_name: '', owner_email: '', subscription_plan_id: '' };
         this.submitting.set(false);
       },
@@ -72,6 +78,12 @@ export class AdminOrganizations implements OnInit {
         this.submitting.set(false);
       }
     });
+  }
+
+  copyCredentials(): void {
+    const creds = this.createdCredentials();
+    if (!creds) return;
+    navigator.clipboard.writeText(`Email: ${creds.email}\nPassword: ${creds.password}`);
   }
 
   renewOrganization(org: any): void {

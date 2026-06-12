@@ -62,6 +62,14 @@ export class OrgService extends ApiService {
     return this.post('/org/teams', data);
   }
 
+  addTeamMember(teamId: number, userId: number, role: string = 'developer'): Observable<any> {
+    return this.post(`/org/teams/${teamId}/members`, { user_id: userId, role });
+  }
+
+  removeTeamMember(teamId: number, userId: number): Observable<any> {
+    return this.delete(`/org/teams/${teamId}/members/${userId}`);
+  }
+
   deleteTeam(id: number): Observable<any> {
     return this.delete(`/org/teams/${id}`);
   }

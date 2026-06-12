@@ -1,9 +1,4 @@
 <div class="archive-page">
-  <app-sidebar
-    activePage="archive"
-    [workspaceId]="workspaceId"
-  ></app-sidebar>
-
   <main class="archive-main">
     <header class="page-header">
       <div>
@@ -19,29 +14,7 @@
       </div>
     </header>
 
-    <nav class="ticket-nav" aria-label="Ticket navigation">
-
-      <button type="button" class="ticket-nav-item" (click)="goToBoard()">
-        <span class="nav-icon">▦</span>
-        <span>Development Board</span>
-      </button>
-
-      <button type="button" class="ticket-nav-item" (click)="goToActivityLog()">
-        <span class="nav-icon">↻</span>
-        <span>Activity Log</span>
-      </button>
-
-      <button type="button" class="ticket-nav-item" (click)="goToTimesheet()">
-  <span class="nav-icon">◴</span>
-  <span>Timesheet</span>
-</button>
-
-      <button type="button" class="ticket-nav-item active">
-        <span class="nav-icon">▣</span>
-        <span>Archive</span>
-        <strong>{{ tickets.length }}</strong>
-      </button>
-    </nav>
+    <app-workspace-tabs [workspaceId]="workspaceId" active="archive" [isScrum]="$any(workspace)?.project_mode === 'scrum'"></app-workspace-tabs>
 
     <section class="status-card error-card" *ngIf="errorMessage">
       <p>{{ errorMessage }}</p>

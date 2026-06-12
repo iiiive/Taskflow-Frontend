@@ -12,7 +12,6 @@ import {
   registerables
 } from 'chart.js';
 
-import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
 
 import {
   ActivityLog,
@@ -43,10 +42,12 @@ interface KanbanColumnResponse {
   is_done_column?: boolean;
 }
 
+import { WorkspaceTabs } from '../../components/workspace-tabs/workspace-tabs';
+
 @Component({
   selector: 'app-workspace-activity',
   standalone: true,
-  imports: [CommonModule, AppSidebar, BaseChartDirective],
+  imports: [WorkspaceTabs, CommonModule, BaseChartDirective],
   templateUrl: './workspace-activity.html',
   styleUrl: './workspace-activity.scss'
 })

@@ -1,5 +1,4 @@
 <div class="workspaces-page">
-  <app-sidebar activePage="projects"></app-sidebar>
 
   <main class="workspaces-main">
     <header class="page-header">
@@ -14,6 +13,7 @@
       </div>
 
       <button
+        *ngIf="isOrgAdministrator"
         type="button"
         class="create-icon-btn"
         (click)="openCreateModal()"
@@ -60,11 +60,17 @@
 
         <h3>No workspaces yet</h3>
 
-        <p>
+        <p *ngIf="isOrgAdministrator">
           Create your first workspace to start organizing tickets and team tasks.
         </p>
 
+        <p *ngIf="!isOrgAdministrator">
+          You haven't been added to any projects yet. Your organization administrator
+          provisions projects and assigns members.
+        </p>
+
         <button
+          *ngIf="isOrgAdministrator"
           type="button"
           class="empty-create-btn"
           (click)="openCreateModal()"
@@ -120,6 +126,7 @@
             </button>
 
             <button
+              *ngIf="workspace.can_manage_project"
               type="button"
               class="secondary-btn"
               [disabled]="busyProjectId === workspace.id"
@@ -132,7 +139,7 @@
             <button
               type="button"
               class="secondary-btn"
-              *ngIf="!workspace.is_template"
+              *ngIf="!workspace.is_template && workspace.can_manage_project"
               [disabled]="busyProjectId === workspace.id"
               title="Save this project as a reusable template"
               (click)="saveWorkspaceAsTemplate(workspace)"
@@ -141,6 +148,7 @@
             </button>
 
             <button
+              *ngIf="isOrgAdministrator"
               type="button"
               class="delete-btn"
               (click)="deleteWorkspace(workspace)"

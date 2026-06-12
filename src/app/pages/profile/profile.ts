@@ -4,17 +4,18 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Auth } from '../../services/auth/auth';
 import { environment } from '../../../environments/environment';
-import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSidebar],
+  imports: [CommonModule, FormsModule],
   templateUrl: './profile.html',
   styleUrl: './profile.scss'
 })
 export class Profile implements OnInit {
   user: any = null;
+  adminMode = false;
+  orgMode = false;
 
   name = '';
   email = '';
@@ -102,6 +103,8 @@ export class Profile implements OnInit {
         this.name = this.user?.name || '';
         this.email = this.user?.email || '';
         this.hydratePreferences();
+        this.adminMode = !!this.user?.is_super_admin;
+        this.orgMode = !!this.user?.is_org_admin;
 
         localStorage.setItem('planora_user', JSON.stringify(this.user));
 

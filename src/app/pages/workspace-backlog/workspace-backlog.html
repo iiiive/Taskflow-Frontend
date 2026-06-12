@@ -1,9 +1,4 @@
 <div class="backlog-page">
-  <app-sidebar
-    activePage="backlog"
-    [workspaceId]="workspaceId"
-  ></app-sidebar>
-
   <main class="backlog-main">
     <header class="page-header">
       <div>
@@ -14,7 +9,8 @@
         </h1>
 
         <p class="header-text">
-          Newly created To Do tickets stay here first. Move them to development when ready.
+          Your product backlog — items not yet in a sprint. Pull an item into a sprint to
+          bring it onto the board's To Do column.
         </p>
       </div>
 
@@ -30,33 +26,7 @@
       </div>
     </header>
 
-    <nav class="ticket-nav" aria-label="Ticket navigation">
-  <button type="button" class="ticket-nav-item active">
-    <span class="nav-icon">☰</span>
-    <span>Backlog</span>
-    <strong>{{ tickets.length }}</strong>
-  </button>
-
-  <button type="button" class="ticket-nav-item" (click)="goToBoard()">
-    <span class="nav-icon">▦</span>
-    <span>Development Board</span>
-  </button>
-
-  <button type="button" class="ticket-nav-item" (click)="goToActivityLog()">
-    <span class="nav-icon">↻</span>
-    <span>Activity Log</span>
-  </button>
-
-  <button type="button" class="ticket-nav-item" (click)="goToTimesheet()">
-  <span class="nav-icon">◴</span>
-  <span>Timesheet</span>
-</button>
-
-   <button type="button" class="ticket-nav-item" (click)="goToArchive()">
-    <span class="nav-icon">▣</span>
-    <span>Archive</span>
-  </button>
-</nav>
+    <app-workspace-tabs [workspaceId]="workspaceId" active="backlog" [isScrum]="true"></app-workspace-tabs>
 
     <section class="status-card error-card" *ngIf="errorMessage && !showCreateModal">
       <p>{{ errorMessage }}</p>
@@ -147,13 +117,31 @@
             Edit
           </button>
 
-          <button
-            type="button"
-            class="primary-btn"
-            (click)="moveToDevelopment(ticket)"
-          >
-            Move to Development
-          </button>
+          <ng-container *ngIf="sprints.length > 0">
+            <select
+              class="sprint-select"
+              [(ngModel)]="selectedSprintByTicket[ticket.id]"
+              [ngModelOptions]="{ standalone: true }"
+            >
+              <option [ngValue]="''">Select sprint…</option>
+              <option *ngFor="let sprint of sprints" [ngValue]="sprint.id">
+                {{ sprint.name }} ({{ sprint.status }})
+              </option>
+            </select>
+
+            <button
+              type="button"
+              class="primary-btn"
+              [disabled]="assigningTicketId === ticket.id"
+              (click)="addToSprint(ticket)"
+            >
+              {{ assigningTicketId === ticket.id ? 'Adding…' : 'Add to Sprint' }}
+            </button>
+          </ng-container>
+
+          <span class="sprint-hint" *ngIf="sprints.length === 0">
+            Create a sprint to pull this in.
+          </span>
 
           <button
             type="button"
@@ -168,8 +156,8 @@
 
     <section class="empty-state" *ngIf="!loadingTickets && tickets.length === 0">
       <div class="empty-icon">☰</div>
-      <h3>No backlog tickets</h3>
-      <p>New To Do tickets will appear here before they move to the development board.</p>
+      <h3>No backlog items</h3>
+      <p>Items not assigned to a sprint appear here. Create one, or it's all been pulled into sprints.</p>
     </section>
   </main>
 </div>

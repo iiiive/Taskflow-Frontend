@@ -1,12 +1,11 @@
 <div class="org-page">
-  <app-sidebar [orgMode]="true" activePage="org-teams"></app-sidebar>
 
   <main class="org-main">
     <header class="page-header">
       <div>
         <p class="breadcrumb">Organization</p>
         <h1>Teams</h1>
-        <p class="header-text">Create teams and assign them to a project. Project members auto-join the team.</p>
+        <p class="header-text">Create a team, add members, then assign the team to a project.</p>
       </div>
       <button class="primary-btn" (click)="openCreate()">+ New Team</button>
     </header>
@@ -21,7 +20,13 @@
         } @else {
           <table class="data-table">
             <thead>
-              <tr><th>Name</th><th>Assigned Project</th><th>Members</th><th>Capacity (h)</th><th>Actions</th></tr>
+              <tr>
+                <th>Name</th>
+                <th>Assigned Project</th>
+                <th>Members</th>
+                <th>Capacity (h)</th>
+                <th>Actions</th>
+              </tr>
             </thead>
             <tbody>
               @for (team of teams(); track team.id) {
@@ -33,6 +38,7 @@
                   <td>{{ team.members_count ?? team.members?.length ?? 0 }}</td>
                   <td>{{ team.capacity_hours ?? '—' }}</td>
                   <td class="actions">
+                    <button class="secondary-btn compact" (click)="openManageMembers(team)">Members</button>
                     <button class="danger-btn compact" (click)="deleteTeam(team)">Delete</button>
                   </td>
                 </tr>
@@ -45,6 +51,7 @@
   </main>
 </div>
 
+<!-- Create Team Modal -->
 @if (showCreateModal()) {
   <div class="modal-backdrop" (click)="showCreateModal.set(false)">
     <div class="modal" (click)="$event.stopPropagation()">
@@ -76,6 +83,66 @@
         <button class="primary-btn" (click)="createTeam()" [disabled]="submitting() || !newTeam.name">
           {{ submitting() ? 'Creating...' : 'Create Team' }}
         </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Manage Members Modal -->
+@if (managingTeam(); as team) {
+  <div class="modal-backdrop" (click)="closeManageMembers()">
+    <div class="modal members-modal" (click)="$event.stopPropagation()">
+      <div class="members-modal-header">
+        <span class="dot" [style.background]="team.color"></span>
+        <h2>{{ team.name }} — Members</h2>
+      </div>
+      @if (team.project) {
+        <p class="project-badge">Assigned to: <strong>{{ team.project.name }}</strong></p>
+      }
+
+      <!-- Add member row -->
+      <div class="add-member-row">
+        <select [(ngModel)]="selectedUserId" class="member-select">
+          <option [ngValue]="null" disabled>Select a user to add...</option>
+          @for (u of availableUsers(team); track u.id) {
+            <option [ngValue]="u.id">{{ u.name }} — {{ u.email }}</option>
+          }
+        </select>
+        <select [(ngModel)]="selectedRole" class="role-select">
+          @for (r of projectRoles; track r.value) {
+            <option [value]="r.value">{{ r.label }}</option>
+          }
+        </select>
+        <button class="primary-btn" (click)="addMember()"
+          [disabled]="!selectedUserId() || addingMember()">
+          {{ addingMember() ? 'Adding...' : 'Add' }}
+        </button>
+      </div>
+
+      @if (error()) { <div class="form-error">{{ error() }}</div> }
+
+      <!-- Member list -->
+      @if (!team.members || team.members.length === 0) {
+        <div class="empty-members">No members yet. Add one above.</div>
+      } @else {
+        <div class="member-list">
+          @for (m of team.members; track m.id) {
+            <div class="member-row">
+              <div class="member-avatar">{{ (m.user?.name ?? '?')[0].toUpperCase() }}</div>
+              <div class="member-info">
+                <span class="member-name">{{ m.user?.name ?? '—' }}</span>
+                <span class="member-email">{{ m.user?.email ?? '' }}</span>
+              </div>
+              <span class="role-badge">{{ m.role | titlecase }}</span>
+              <button class="remove-btn" (click)="removeMember(team.id, m.user?.id ?? m.user_id)"
+                title="Remove from team">✕</button>
+            </div>
+          }
+        </div>
+      }
+
+      <div class="modal-actions" style="margin-top: 16px;">
+        <button class="secondary-btn" (click)="closeManageMembers()">Done</button>
       </div>
     </div>
   </div>

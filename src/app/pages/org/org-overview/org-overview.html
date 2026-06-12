@@ -1,11 +1,10 @@
 <div class="org-page">
-  <app-sidebar [orgMode]="true" activePage="org-overview"></app-sidebar>
 
   <main class="org-main">
     <header class="page-header">
       <div>
         <p class="breadcrumb">Organization</p>
-        <h1>{{ organization()?.name || 'Overview' }}</h1>
+        <h1>{{ organization()?.name || 'Dashboard' }}</h1>
         <p class="header-text">Manage your organization's users, projects and teams.</p>
       </div>
     </header>
@@ -57,10 +56,6 @@
             <div class="limit-item">
               <span>Members</span>
               <strong>{{ counts().users }} / {{ plan.max_members ?? '∞' }}</strong>
-            </div>
-            <div class="limit-item">
-              <span>Storage</span>
-              <strong>{{ plan.storage_gb ?? '∞' }} GB</strong>
             </div>
           </div>
         </div>

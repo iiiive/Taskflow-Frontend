@@ -5,7 +5,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
-import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
 import { TicketModal } from '../../components/ticket-modal/ticket-modal';
 
 import {
@@ -15,10 +14,12 @@ import {
   WorkspaceMember
 } from '../../interfaces/planora.interface';
 
+import { WorkspaceTabs } from '../../components/workspace-tabs/workspace-tabs';
+
 @Component({
   selector: 'app-workspace-archive',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSidebar, TicketModal],
+  imports: [WorkspaceTabs, CommonModule, FormsModule, TicketModal],
   templateUrl: './workspace-archive.html',
   styleUrl: './workspace-archive.scss',
 })

@@ -5,7 +5,6 @@ import { environment } from '../../../environments/environment';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
 
 import {
   ApiResponse,
@@ -73,10 +72,12 @@ interface TimesheetTicketRow {
   totalHours: number;
 }
 
+import { WorkspaceTabs } from '../../components/workspace-tabs/workspace-tabs';
+
 @Component({
   selector: 'app-workspace-timesheet',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSidebar],
+  imports: [WorkspaceTabs, CommonModule, FormsModule],
   templateUrl: './workspace-timesheet.html',
   styleUrl: './workspace-timesheet.scss'
 })

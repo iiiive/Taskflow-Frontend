@@ -1,0 +1,48 @@
+<nav class="ticket-nav" aria-label="Project section navigation">
+  <a
+    class="ticket-nav-item"
+    [class.active]="active === 'board'"
+    [routerLink]="['/projects', workspaceId, 'board']"
+  >
+    <span class="nav-icon">▦</span>
+    <span>Development Board</span>
+  </a>
+
+  @if (isScrum) {
+    <a
+      class="ticket-nav-item"
+      [class.active]="active === 'backlog'"
+      [routerLink]="['/projects', workspaceId, 'backlog']"
+    >
+      <span class="nav-icon">≣</span>
+      <span>Backlog</span>
+    </a>
+  }
+
+  <a
+    class="ticket-nav-item"
+    [class.active]="active === 'activity'"
+    [routerLink]="['/projects', workspaceId, 'activity']"
+  >
+    <span class="nav-icon">↻</span>
+    <span>Activity Log</span>
+  </a>
+
+  <a
+    class="ticket-nav-item"
+    [class.active]="active === 'timesheet'"
+    [routerLink]="['/projects', workspaceId, 'timesheet']"
+  >
+    <span class="nav-icon">◴</span>
+    <span>Timesheet</span>
+  </a>
+
+  <a
+    class="ticket-nav-item"
+    [class.active]="active === 'archive'"
+    [routerLink]="['/projects', workspaceId, 'archive']"
+  >
+    <span class="nav-icon">▣</span>
+    <span>Archive</span>
+  </a>
+</nav>

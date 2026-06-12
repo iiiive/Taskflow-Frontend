@@ -1,21 +1,20 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AppSidebar } from '../../../components/app-sidebar/app-sidebar';
 import { AdminService } from '../../../services/admin/admin.service';
+import { ToastService } from '../../../services/toast/toast.service';
 
 interface PlanForm {
   name: string;
   max_projects: number | null;
   max_members: number | null;
-  storage_gb: number | null;
   duration_days: number | null;
 }
 
 @Component({
   selector: 'app-admin-plans',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSidebar],
+  imports: [CommonModule, FormsModule],
   templateUrl: './admin-plans.html',
   styleUrl: './admin-plans.scss'
 })
@@ -29,10 +28,13 @@ export class AdminPlans implements OnInit {
   editingPlan = signal<any | null>(null);
   savingEdit = signal(false);
 
-  newPlan: PlanForm = { name: '', max_projects: null, max_members: null, storage_gb: null, duration_days: null };
-  editForm: PlanForm = { name: '', max_projects: null, max_members: null, storage_gb: null, duration_days: null };
+  newPlan: PlanForm = { name: '', max_projects: null, max_members: null, duration_days: null };
+  editForm: PlanForm = { name: '', max_projects: null, max_members: null, duration_days: null };
 
-  constructor(private adminService: AdminService) {}
+  constructor(
+    private adminService: AdminService,
+    private toast: ToastService
+  ) {}
 
   ngOnInit(): void {
     this.adminService.getSubscriptionPlans().subscribe({
@@ -54,11 +56,14 @@ export class AdminPlans implements OnInit {
       next: (res: any) => {
         this.plans.update(p => [res.data, ...p]);
         this.showCreateModal.set(false);
-        this.newPlan = { name: '', max_projects: null, max_members: null, storage_gb: null, duration_days: null };
+        this.newPlan = { name: '', max_projects: null, max_members: null, duration_days: null };
         this.submitting.set(false);
+        this.toast.success('Subscription plan created.');
       },
       error: (err: any) => {
-        this.error.set(err?.error?.message || 'Failed to create plan.');
+        const message = err?.error?.message || 'Failed to create plan.';
+        this.error.set(message);
+        this.toast.error(message);
         this.submitting.set(false);
       }
     });
@@ -70,7 +75,6 @@ export class AdminPlans implements OnInit {
       name: plan.name,
       max_projects: plan.max_projects ?? null,
       max_members: plan.max_members ?? null,
-      storage_gb: plan.storage_gb ?? null,
       duration_days: plan.duration_days ?? null
     };
     this.editingPlan.set(plan);
@@ -86,19 +90,38 @@ export class AdminPlans implements OnInit {
         this.plans.update(p => p.map(pl => pl.id === plan.id ? res.data : pl));
         this.savingEdit.set(false);
         this.editingPlan.set(null);
+        this.toast.success('Subscription plan updated.');
       },
       error: (err: any) => {
-        this.error.set(err?.error?.message || 'Failed to update plan.');
+        const message = err?.error?.message || 'Failed to update plan.';
+        this.error.set(message);
+        this.toast.error(message);
         this.savingEdit.set(false);
       }
     });
   }
 
-  deletePlan(id: number): void {
-    if (!confirm('Delete this plan? Organizations using it will lose their plan assignment.')) return;
-    this.adminService.deleteSubscriptionPlan(id).subscribe({
-      next: () => this.plans.update(p => p.filter(pl => pl.id !== id))
+  deletePlan(plan: any): void {
+    if ((plan.organizations_count ?? 0) > 0) {
+      this.toast.error(
+        `"${plan.name}" is in use by ${plan.organizations_count} organization(s) and cannot be deleted. Reassign or expire those organizations first.`
+      );
+      return;
+    }
+    if (!confirm(`Delete the "${plan.name}" plan?`)) return;
+    this.error.set(null);
+    this.adminService.deleteSubscriptionPlan(plan.id).subscribe({
+      next: () => {
+        this.plans.update(p => p.filter(pl => pl.id !== plan.id));
+        this.toast.success(`"${plan.name}" plan deleted.`);
+      },
+      error: (err: any) =>
+        this.toast.error(err?.error?.message || 'Failed to delete plan.')
     });
+  }
+
+  planInUse(plan: any): boolean {
+    return (plan.organizations_count ?? 0) > 0;
   }
 
   formatLimit(val: number | null | undefined): string {

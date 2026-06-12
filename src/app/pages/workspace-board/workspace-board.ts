@@ -6,7 +6,6 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { EditorModule, TINYMCE_SCRIPT_SRC } from '@tinymce/tinymce-angular';
 
-import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
 import { TicketModal } from '../../components/ticket-modal/ticket-modal';
 import { WorkspaceMembersModal } from '../../components/workspace-members-modal/workspace-members-modal';
 
@@ -29,15 +28,16 @@ import {
   PRIORITY_LABELS
 } from '../../constants/planora.constants';
 
+import { WorkspaceTabs } from '../../components/workspace-tabs/workspace-tabs';
+
 @Component({
   selector: 'app-workspace-board',
   standalone: true,
-  imports: [
+  imports: [WorkspaceTabs, 
     CommonModule,
     FormsModule,
     EditorModule,
     TicketModal,
-    AppSidebar,
     WorkspaceMembersModal
   ],
   providers: [
@@ -167,6 +167,9 @@ export class WorkspaceBoard implements OnInit {
     private cdr: ChangeDetectorRef
   ) {}
 
+  // Scrum: the board is filtered to the active sprint; null = no active sprint.
+  activeSprintId: number | null = null;
+
   ngOnInit(): void {
     this.workspaceId = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -179,7 +182,32 @@ export class WorkspaceBoard implements OnInit {
     this.loadWorkspaceMembers();
     this.loadEpics();
     this.loadLabels();
+    this.loadActiveSprint();
     this.loadKanbanColumns();
+  }
+
+  isScrum(): boolean {
+    return (this.workspace as any)?.project_mode === 'scrum';
+  }
+
+  loadActiveSprint(): void {
+    this.http.get<any>(
+      `${this.apiUrl}/projects/${this.workspaceId}/sprints`
+    ).subscribe({
+      next: (res) => {
+        const sprints = this.extractArray<any>(res);
+        const active = sprints.find(s => s.status === 'active');
+        this.activeSprintId = active ? Number(active.id) : null;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.activeSprintId = null;
+      }
+    });
+  }
+
+  goToBacklog(): void {
+    this.router.navigate(['/projects', this.workspaceId, 'backlog']);
   }
 
   loadWorkspace(): void {
@@ -312,6 +340,14 @@ export class WorkspaceBoard implements OnInit {
 
     return this.tickets
       .filter(ticket => ticket.kanban_column_id === columnId)
+      .filter(ticket => {
+        // Scrum boards only show the active sprint; backlog/other sprints are hidden.
+        if (!this.isScrum()) {
+          return true;
+        }
+        return this.activeSprintId !== null
+          && Number((ticket as any).sprint_id) === this.activeSprintId;
+      })
       .filter(ticket => {
         if (!this.selectedPriority) {
           return true;
@@ -564,13 +600,31 @@ export class WorkspaceBoard implements OnInit {
       `${this.apiUrl}/projects/${this.workspaceId}/tickets`,
       payload
     ).subscribe({
-      next: () => {
-        this.creating = false;
-        this.showCreateModal = false;
-        this.selectedCreateColumn = null;
-        this.successMessage = 'Ticket created successfully.';
+      next: (res) => {
+        const created = res?.data ? res.data : res;
 
-        this.loadKanbanColumns();
+        const finish = (message: string) => {
+          this.creating = false;
+          this.showCreateModal = false;
+          this.selectedCreateColumn = null;
+          this.successMessage = message;
+          this.loadKanbanColumns();
+        };
+
+        // Scrum: a board-created ticket joins the active sprint so it stays visible.
+        if (this.isScrum() && this.activeSprintId && created?.id) {
+          this.http.post<any>(
+            `${this.apiUrl}/tickets/${created.id}/sprint`,
+            { sprint_id: this.activeSprintId }
+          ).subscribe({
+            next: () => finish('Ticket created in the active sprint.'),
+            error: () => finish('Ticket created.')
+          });
+        } else if (this.isScrum() && !this.activeSprintId && created?.id) {
+          finish('Ticket created in the backlog (no active sprint).');
+        } else {
+          finish('Ticket created successfully.');
+        }
       },
       error: (err) => {
         console.error('Create ticket error:', err);

@@ -1,5 +1,4 @@
 <div class="admin-page">
-  <app-sidebar [adminMode]="true" activePage="organizations"></app-sidebar>
 
   <main class="admin-main">
     <header class="page-header">
@@ -73,6 +72,30 @@
     }
   </main>
 </div>
+
+@if (createdCredentials(); as creds) {
+  <div class="modal-backdrop" (click)="createdCredentials.set(null)">
+    <div class="modal credentials-modal" (click)="$event.stopPropagation()">
+      <div class="creds-icon">🔑</div>
+      <h2>Org Admin Credentials</h2>
+      <p class="creds-note">The org admin's login credentials are shown below and have been emailed to them. <strong>Copy them now — the password won't be displayed again.</strong></p>
+      <div class="creds-box">
+        <div class="cred-row">
+          <span class="cred-label">Email</span>
+          <span class="cred-value">{{ creds.email }}</span>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Password</span>
+          <span class="cred-value cred-password">{{ creds.password }}</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="secondary-btn" (click)="copyCredentials()">Copy to Clipboard</button>
+        <button class="primary-btn" (click)="createdCredentials.set(null)">Done</button>
+      </div>
+    </div>
+  </div>
+}
 
 @if (showCreateModal()) {
   <div class="modal-backdrop" (click)="showCreateModal.set(false)">
@@ -191,15 +214,6 @@
         </div>
         <div class="usage-bar">
           <div class="usage-fill" [style.width.%]="usagePercent(bill.usage.members.used, bill.usage.members.limit)"></div>
-        </div>
-      </div>
-
-      <div class="usage-block">
-        <div class="usage-label">
-          Storage <span>{{ bill.usage.storage.used_gb }} GB / {{ bill.usage.storage.limit_gb ?? '∞' }} GB</span>
-        </div>
-        <div class="usage-bar">
-          <div class="usage-fill" [style.width.%]="usagePercent(bill.usage.storage.used_bytes, bill.usage.storage.limit_bytes)"></div>
         </div>
       </div>
 

@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
-import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
 
 interface TeamMember {
   id: number;
@@ -51,7 +50,7 @@ interface TeamWorkload {
 @Component({
   selector: 'app-teams',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSidebar],
+  imports: [CommonModule, FormsModule],
   templateUrl: './teams.html',
   styleUrl: './teams.scss',
 })

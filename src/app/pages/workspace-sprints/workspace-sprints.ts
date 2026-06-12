@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
 
 interface Sprint {
   id: number;
@@ -23,7 +22,7 @@ interface Sprint {
 @Component({
   selector: 'app-workspace-sprints',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSidebar],
+  imports: [CommonModule, FormsModule],
   templateUrl: './workspace-sprints.html',
   styleUrl: './workspace-sprints.scss',
 })

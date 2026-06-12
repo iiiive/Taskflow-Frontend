@@ -14,7 +14,6 @@ import {
   registerables
 } from 'chart.js';
 
-import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
 
 Chart.register(...registerables);
 
@@ -127,7 +126,7 @@ interface DashboardNotification {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, AppSidebar, BaseChartDirective],
+  imports: [CommonModule, RouterLink, BaseChartDirective],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })

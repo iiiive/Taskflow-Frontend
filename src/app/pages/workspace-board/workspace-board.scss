@@ -127,6 +127,13 @@ app-sidebar {
   line-height: 1;
 }
 
+.inline-link {
+  color: #547a95;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .primary-btn,
 .secondary-btn {
   height: 40px;

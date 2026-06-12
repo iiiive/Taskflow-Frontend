@@ -1,12 +1,11 @@
 <div class="org-page">
-  <app-sidebar [orgMode]="true" activePage="org-users"></app-sidebar>
 
   <main class="org-main">
     <header class="page-header">
       <div>
         <p class="breadcrumb">Organization</p>
         <h1>Users</h1>
-        <p class="header-text">Create accounts and assign people to projects.</p>
+        <p class="header-text">Create accounts for your organization members. Assign them to projects via Teams.</p>
       </div>
       <button class="primary-btn" (click)="openCreate()">+ New User</button>
     </header>
@@ -64,40 +63,9 @@
         <input type="email" [(ngModel)]="newUser.email" placeholder="jane@example.com" />
       </div>
 
-      <p class="section-label">Project Assignments (optional)</p>
-      <div class="assign-row">
-        <div class="form-group">
-          <label>Project</label>
-          <select [(ngModel)]="draft.project_id">
-            <option [ngValue]="null">Select a project</option>
-            @for (project of projects(); track project.id) {
-              <option [ngValue]="project.id">{{ project.name }}</option>
-            }
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Role</label>
-          <select [(ngModel)]="draft.role">
-            @for (role of roles; track role.value) {
-              <option [value]="role.value">{{ role.label }}</option>
-            }
-          </select>
-        </div>
-        <button class="secondary-btn" (click)="addAssignment()">Add</button>
-      </div>
+      <p class="form-hint">Login credentials will be emailed to this address. Add them to a team to give project access.</p>
 
-      @if (assignments().length > 0) {
-        <div class="assigned-list">
-          @for (assignment of assignments(); track assignment.project_id; let i = $index) {
-            <div class="assigned-pill">
-              <span>{{ projectName(assignment.project_id) }} — {{ roleLabel(assignment.role) }}</span>
-              <button class="remove" (click)="removeAssignment(i)">✕</button>
-            </div>
-          }
-        </div>
-      }
-
-      @if (error()) { <div class="form-error" style="margin-top:12px">{{ error() }}</div> }
+      @if (error()) { <div class="form-error">{{ error() }}</div> }
 
       <div class="modal-actions">
         <button class="secondary-btn" (click)="showCreateModal.set(false)">Cancel</button>

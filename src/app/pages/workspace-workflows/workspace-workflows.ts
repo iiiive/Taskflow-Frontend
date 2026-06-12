@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
 import {
   WORKFLOW_REQUIRED_FIELD_OPTIONS,
   WORKFLOW_REQUIRED_FIELD_LABELS
@@ -40,7 +39,7 @@ interface WorkflowTemplate {
 @Component({
   selector: 'app-workspace-workflows',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSidebar],
+  imports: [CommonModule, FormsModule],
   templateUrl: './workspace-workflows.html',
   styleUrl: './workspace-workflows.scss',
 })

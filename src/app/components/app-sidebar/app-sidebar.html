@@ -31,9 +31,9 @@
 
   <nav class="sidebar-nav">
     @if (orgMode) {
-      <a routerLink="/org" [class.active]="activePage === 'org-overview'" title="Overview">
+      <a routerLink="/org" [class.active]="activePage === 'org-overview'" title="Dashboard">
         <span>▦</span>
-        <strong>Overview</strong>
+        <strong>Dashboard</strong>
       </a>
 
       <a routerLink="/org/users" [class.active]="activePage === 'org-users'" title="Users">
@@ -49,6 +49,11 @@
       <a routerLink="/org/teams" [class.active]="activePage === 'org-teams'" title="Teams">
         <span>◈</span>
         <strong>Teams</strong>
+      </a>
+
+      <a routerLink="/org/profile" [class.active]="activePage === 'profile'" title="Profile">
+        <span>◎</span>
+        <strong>Profile</strong>
       </a>
     } @else if (!adminMode) {
       <a routerLink="/dashboard" [class.active]="activePage === 'dashboard'" title="Dashboard">
@@ -107,9 +112,9 @@
         </div>
       }
     } @else {
-      <a routerLink="/admin" [class.active]="activePage === 'overview'" title="Overview">
+      <a routerLink="/admin" [class.active]="activePage === 'overview'" title="Dashboard">
         <span>▦</span>
-        <strong>Overview</strong>
+        <strong>Dashboard</strong>
       </a>
 
       <a routerLink="/admin/organizations" [class.active]="activePage === 'organizations'" title="Organizations">
@@ -120,6 +125,11 @@
       <a routerLink="/admin/plans" [class.active]="activePage === 'plans'" title="Plans">
         <span>◉</span>
         <strong>Plans</strong>
+      </a>
+
+      <a routerLink="/admin/profile" [class.active]="activePage === 'profile'" title="Profile">
+        <span>◎</span>
+        <strong>Profile</strong>
       </a>
     }
   </nav>

@@ -4,8 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
 import { ProjectService } from '../../services/project/project.service';
+import { ToastService } from '../../services/toast/toast.service';
 import {
   PROJECT_TYPE_OPTIONS,
   PROJECT_TYPE_LABELS
@@ -19,7 +19,10 @@ interface Workspace {
   project_type?: string;
   project_mode?: string;
   is_template?: boolean;
-  role?: 'owner' | 'editor' | 'viewer';
+  role?: string | null;
+  can_manage_project?: boolean;
+  can_edit?: boolean;
+  can_manage_members?: boolean;
   created_at?: string | null;
   updated_at?: string | null;
 }
@@ -27,7 +30,7 @@ interface Workspace {
 @Component({
   selector: 'app-workspaces',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSidebar],
+  imports: [CommonModule, FormsModule],
   templateUrl: './workspaces.html',
   styleUrl: './workspaces.scss',
 })
@@ -48,6 +51,10 @@ export class Workspaces implements OnInit {
 
   showCreateModal = false;
 
+  // Project creation/deletion is reserved for organization administrators.
+  // Workspace members (this page) provision nothing; PM/team-lead can manage.
+  isOrgAdministrator = false;
+
   // Templates (clone / start-from-template)
   templates: Workspace[] = [];
   selectedTemplateId: number | '' = '';
@@ -63,12 +70,27 @@ export class Workspaces implements OnInit {
     private http: HttpClient,
     private router: Router,
     private cdr: ChangeDetectorRef,
-    private projectService: ProjectService
+    private projectService: ProjectService,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
+    this.isOrgAdministrator = this.resolveIsOrgAdministrator();
     this.loadWorkspaces();
     this.loadTemplates();
+  }
+
+  private resolveIsOrgAdministrator(): boolean {
+    try {
+      const stored = localStorage.getItem('planora_user');
+      if (!stored) {
+        return false;
+      }
+      const user = JSON.parse(stored);
+      return Boolean(user?.is_org_admin || user?.is_super_admin);
+    } catch {
+      return false;
+    }
   }
 
   loadTemplates(): void {
@@ -93,12 +115,12 @@ export class Workspaces implements OnInit {
         const clone = res?.data ? res.data : res;
         this.workspaces = [clone, ...this.workspaces];
         this.busyProjectId = null;
-        this.successMessage = `"${workspace.name}" cloned successfully.`;
+        this.toast.success(`"${workspace.name}" cloned successfully.`);
         this.cdr.detectChanges();
       },
       error: (err) => {
         this.busyProjectId = null;
-        this.errorMessage = err?.error?.message || 'Unable to clone project.';
+        this.toast.error(err?.error?.message || 'Unable to clone project.');
         this.cdr.detectChanges();
       }
     });
@@ -112,13 +134,13 @@ export class Workspaces implements OnInit {
     this.projectService.saveAsTemplate(workspace.id, {}).subscribe({
       next: () => {
         this.busyProjectId = null;
-        this.successMessage = `Template created from "${workspace.name}".`;
+        this.toast.success(`Template created from "${workspace.name}".`);
         this.loadTemplates();
         this.cdr.detectChanges();
       },
       error: (err) => {
         this.busyProjectId = null;
-        this.errorMessage = err?.error?.message || 'Unable to create template.';
+        this.toast.error(err?.error?.message || 'Unable to create template.');
         this.cdr.detectChanges();
       }
     });
@@ -226,7 +248,7 @@ export class Workspaces implements OnInit {
 
         this.creating = false;
         this.showCreateModal = false;
-        this.successMessage = 'Workspace created successfully.';
+        this.toast.success('Workspace created successfully.');
 
         this.cdr.detectChanges();
       },
@@ -238,6 +260,7 @@ export class Workspaces implements OnInit {
           err?.error?.message ||
           err?.error?.errors?.name?.[0] ||
           'Unable to create workspace. Please check your input.';
+        this.toast.error(this.errorMessage);
 
         this.cdr.detectChanges();
       },
@@ -266,15 +289,16 @@ export class Workspaces implements OnInit {
           item => item.id !== workspace.id
         );
 
-        this.successMessage = 'Workspace deleted successfully.';
+        this.toast.success('Workspace deleted successfully.');
         this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Delete workspace error:', err);
 
-        this.errorMessage =
+        this.toast.error(
           err?.error?.message ||
-          'Unable to delete workspace. You may not have permission.';
+          'Unable to delete workspace. You may not have permission.'
+        );
 
         this.cdr.detectChanges();
       },

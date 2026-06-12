@@ -1,13 +1,12 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { AppSidebar } from '../../../components/app-sidebar/app-sidebar';
 import { OrgService } from '../../../services/org/org.service';
 
 @Component({
   selector: 'app-org-overview',
   standalone: true,
-  imports: [CommonModule, RouterLink, AppSidebar],
+  imports: [CommonModule, RouterLink],
   templateUrl: './org-overview.html',
   styleUrl: './org-overview.scss'
 })

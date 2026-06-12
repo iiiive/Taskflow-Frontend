@@ -5,8 +5,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
-import { AppSidebar } from '../../components/app-sidebar/app-sidebar';
 import { TicketModal } from '../../components/ticket-modal/ticket-modal';
+import { ToastService } from '../../services/toast/toast.service';
 
 import {
   ApiResponse,
@@ -17,10 +17,12 @@ import {
   WorkspaceMember
 } from '../../interfaces/planora.interface';
 
+import { WorkspaceTabs } from '../../components/workspace-tabs/workspace-tabs';
+
 @Component({
   selector: 'app-workspace-backlog',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSidebar, TicketModal],
+  imports: [WorkspaceTabs, CommonModule, FormsModule, TicketModal],
   templateUrl: './workspace-backlog.html',
   styleUrl: './workspace-backlog.scss'
 })
@@ -32,6 +34,11 @@ export class WorkspaceBacklog implements OnInit {
   workspaceMembers: WorkspaceMember[] = [];
 
   tickets: Ticket[] = [];
+
+  // Scrum sprints available to pull backlog items into (planning + active).
+  sprints: any[] = [];
+  selectedSprintByTicket: Record<number, number | ''> = {};
+  assigningTicketId: number | null = null;
 
   loadingWorkspace = true;
   loadingTickets = true;
@@ -62,7 +69,8 @@ export class WorkspaceBacklog implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private http: HttpClient,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -75,7 +83,54 @@ export class WorkspaceBacklog implements OnInit {
 
     this.loadWorkspace();
     this.loadWorkspaceMembers();
+    this.loadSprints();
     this.loadBacklogTickets();
+  }
+
+  loadSprints(): void {
+    this.http.get<any>(
+      `${this.apiUrl}/projects/${this.workspaceId}/sprints`
+    ).subscribe({
+      next: (res) => {
+        // Only sprints you can still add work to (not completed).
+        this.sprints = this.extractArray<any>(res)
+          .filter(s => s.status !== 'completed');
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.sprints = [];
+      }
+    });
+  }
+
+  addToSprint(ticket: Ticket): void {
+    const sprintId = this.selectedSprintByTicket[ticket.id];
+
+    if (!sprintId) {
+      this.toast.error('Choose a sprint first.');
+      return;
+    }
+
+    this.assigningTicketId = ticket.id;
+
+    this.http.post<any>(
+      `${this.apiUrl}/tickets/${ticket.id}/sprint`,
+      { sprint_id: sprintId }
+    ).subscribe({
+      next: () => {
+        // Pulled into a sprint → leaves the backlog.
+        this.tickets = this.tickets.filter(item => item.id !== ticket.id);
+        this.assigningTicketId = null;
+        const sprint = this.sprints.find(s => Number(s.id) === Number(sprintId));
+        this.toast.success(`"${ticket.title}" added to ${sprint?.name || 'sprint'}.`);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.assigningTicketId = null;
+        this.toast.error(err?.error?.message || 'Unable to add ticket to sprint.');
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   loadWorkspace(): void {
@@ -121,7 +176,8 @@ export class WorkspaceBacklog implements OnInit {
     this.loadingTickets = true;
     this.errorMessage = '';
 
-    let params = new HttpParams().set('status', 'todo');
+    // Backlog = tickets not yet pulled into any sprint.
+    let params = new HttpParams().set('backlog', '1');
 
     if (this.search.trim()) {
       params = params.set('search', this.search.trim());
@@ -203,7 +259,7 @@ export class WorkspaceBacklog implements OnInit {
 
         this.creating = false;
         this.showCreateModal = false;
-        this.successMessage = 'Ticket added to backlog.';
+        this.toast.success('Ticket added to backlog.');
 
         this.cdr.detectChanges();
       },
@@ -231,10 +287,11 @@ export class WorkspaceBacklog implements OnInit {
   }
 
   handleTicketUpdated(updatedTicket: Ticket): void {
-    if (updatedTicket.status !== 'todo') {
+    // A backlog item leaves the list only once it belongs to a sprint.
+    if ((updatedTicket as any).sprint_id) {
       this.tickets = this.tickets.filter(ticket => ticket.id !== updatedTicket.id);
       this.closeTicketDetails();
-      this.successMessage = 'Ticket updated and moved to board.';
+      this.toast.success('Ticket updated and moved to a sprint.');
       this.cdr.detectChanges();
       return;
     }
@@ -244,7 +301,7 @@ export class WorkspaceBacklog implements OnInit {
     );
 
     this.selectedTicket = updatedTicket;
-    this.successMessage = 'Ticket updated successfully.';
+    this.toast.success('Ticket updated successfully.');
     this.cdr.detectChanges();
   }
 
@@ -300,24 +357,25 @@ export class WorkspaceBacklog implements OnInit {
           this.closeTicketDetails();
         }
 
-        this.successMessage = 'Ticket deleted successfully.';
-        this.errorMessage = '';
+        this.toast.success('Ticket deleted successfully.');
         this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Delete ticket error:', err);
-        this.errorMessage = err?.error?.message || 'Unable to delete ticket.';
+        this.toast.error(err?.error?.message || 'Unable to delete ticket.');
         this.cdr.detectChanges();
       }
     });
   }
 
   canEditTicket(): boolean {
-    return this.workspace?.role === 'owner' || this.workspace?.role === 'editor';
+    return this.workspace?.role === 'owner'
+      || this.workspace?.role === 'editor'
+      || (this.workspace as any)?.can_edit === true;
   }
 
   canCommentTicket(): boolean {
-    return this.workspace?.role === 'owner' || this.workspace?.role === 'editor';
+    return this.canEditTicket();
   }
 
   goToBoard(): void {
